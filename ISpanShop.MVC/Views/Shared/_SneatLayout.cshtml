@@ -1,0 +1,247 @@
+﻿@{
+}
+<!DOCTYPE html>
+<html lang="zh-Hant"
+      class="light-style layout-menu-fixed"
+      dir="ltr"
+      data-theme="theme-default"
+      data-assets-path="/sneat/assets/"
+      data-template="vertical-menu-template-free">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
+    <title>@ViewData["Title"] - ISpanShop 後台管理系統</title>
+    <link rel="icon" type="image/x-icon" href="~/sneat/assets/img/favicon/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/sneat/assets/vendor/fonts/boxicons.css" />
+    <link rel="stylesheet" href="~/sneat/assets/vendor/css/core.css" />
+    <link rel="stylesheet" href="~/sneat/assets/vendor/css/theme-default.css" />
+    <link rel="stylesheet" href="~/sneat/assets/css/demo.css" />
+    <link rel="stylesheet" href="~/sneat/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css" />
+
+    <!-- 自訂主題：深色側邊欄 + 青綠配色 -->
+    <style>
+        /* ── 側邊欄背景 ── */
+        .bg-menu-theme {
+            background-color: #2a3f54 !important;
+        }
+
+        /* ── 選單文字 / icon ── */
+        .menu-inner > .menu-item > .menu-link,
+        .menu-inner > .menu-item .menu-link {
+            color: #a9c1d8 !important;
+        }
+
+            .menu-inner > .menu-item > .menu-link:hover,
+            .menu-inner > .menu-item .menu-link:hover {
+                color: #ffffff !important;
+                background: rgba(255,255,255,0.08) !important;
+            }
+
+        /* ── active 選單項目 ── */
+        .menu-item.active > .menu-link,
+        .menu-item.active > .menu-link .menu-icon {
+            color: #ffffff !important;
+            background: linear-gradient(90deg, #1abb9c, #18a084) !important;
+            border-radius: 8px;
+        }
+
+        /* ── 選單分類標題 ── */
+        .menu-header .menu-header-text {
+            color: #73a0bf !important;
+        }
+
+        /* ── Brand 區域 ── */
+        .app-brand {
+            border-bottom: 1px solid rgba(255,255,255,0.08) !important;
+            padding-bottom: 0.75rem !important;
+            margin-bottom: 0.25rem !important;
+        }
+
+        .app-brand-text {
+            color: #ffffff !important;
+        }
+
+        /* ── 頂部 Navbar ── */
+        .bg-navbar-theme {
+            background-color: #ffffff !important;
+            border-bottom: 1px solid #e8edf2 !important;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05) !important;
+        }
+        /* 移除 navbar 上方空隙 */
+        .layout-navbar {
+            margin: 0 !important;
+            border-radius: 0 !important;
+        }
+
+        .layout-page {
+            padding-top: 0 !important;
+        }
+
+        /* ── 主要按鈕改青綠 ── */
+        .btn-primary {
+            background-color: #1abb9c !important;
+            border-color: #1abb9c !important;
+            color: #fff !important;
+        }
+
+            .btn-primary:hover {
+                background-color: #18a084 !important;
+                border-color: #18a084 !important;
+            }
+
+        /* ── page-link active ── */
+        .page-item.active .page-link {
+            background-color: #1abb9c !important;
+            border-color: #1abb9c !important;
+        }
+
+        /* ── text-primary 改青綠 ── */
+        .text-primary {
+            color: #1abb9c !important;
+        }
+
+        a.text-primary:hover {
+            color: #18a084 !important;
+        }
+
+        /* ── 側邊欄捲軸顏色 ── */
+        .layout-menu::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.15) !important;
+        }
+    </style>
+    <script src="~/sneat/assets/vendor/js/helpers.js"></script>
+    <script src="~/sneat/assets/js/config.js"></script>
+</head>
+<body>
+    <div class="layout-wrapper layout-content-navbar">
+        <div class="layout-container">
+
+            <!-- 左側選單 -->
+            <aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme">
+                <div class="app-brand demo">
+                    <a href="/" class="app-brand-link">
+                        <span class="app-brand-logo demo"
+                              style="width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,#696cff,#9155fd);display:flex;align-items:center;justify-content:center;">
+                            <i class="bx bx-store-alt" style="font-size:1.35rem;color:#fff;"></i>
+                        </span>
+                        <span class="app-brand-text demo menu-text fw-bolder ms-2">ISpanShop</span>
+                    </a>
+                    <a href="javascript:void(0);" class="layout-menu-toggle menu-link text-large ms-auto d-block d-xl-none">
+                        <i class="bx bx-chevron-left bx-sm align-middle"></i>
+                    </a>
+
+                </div>
+                <div class="menu-inner-shadow"></div>
+                <ul class="menu-inner py-1">
+                    <li class="menu-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Home" ? "active" : "")">
+                        <a href="/" class="menu-link">
+                            <i class="menu-icon tf-icons bx bx-home-circle"></i>
+                            <div>首頁</div>
+                        </a>
+                    </li>
+                    <li class="menu-header small text-uppercase">
+                        <span class="menu-header-text">商品管理</span>
+                    </li>
+                    <li class="menu-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Products" && ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")">
+                        <a href="@Url.Action("Index", "Products")" class="menu-link">
+                            <i class="menu-icon tf-icons bx bx-store"></i>
+                            <div>全站商品總覽</div>
+                        </a>
+                    </li>
+                    <li class="menu-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Products" && ViewContext.RouteData.Values["action"]?.ToString() == "PendingReview" ? "active" : "")">
+                        <a href="@Url.Action("PendingReview", "Products")" class="menu-link">
+                            <i class="menu-icon tf-icons bx bx-time-five"></i>
+                            <div>待審核商品</div>
+                        </a>
+                    </li>
+                </ul>
+            </aside>
+
+            <!-- 右側 -->
+            <div class="layout-page">
+                <!-- 頂部導覽列（無搜尋欄） -->
+                <nav class="layout-navbar navbar navbar-expand-xl align-items-center bg-navbar-theme" id="layout-navbar" style="margin:0;border-radius:0;top:0;">
+                    <div class="layout-menu-toggle navbar-nav align-items-xl-center me-3 me-xl-0">
+                        <a class="nav-item nav-link px-0 me-xl-4 layout-menu-toggle" href="javascript:void(0)" title="收合/展開選單">
+                            <i class="bx bx-menu bx-sm"></i>
+                        </a>
+                    </div>
+                    <div class="navbar-nav-right d-flex align-items-center" id="navbar-collapse">
+                        <ul class="navbar-nav flex-row align-items-center ms-auto">
+                            <li class="nav-item navbar-dropdown dropdown-user dropdown">
+                                <a class="nav-link dropdown-toggle hide-arrow d-flex align-items-center gap-2" href="javascript:void(0);" data-bs-toggle="dropdown">
+                                    <div class="avatar avatar-online">
+                                        <img src="~/sneat/assets/img/avatars/1.png" alt class="w-px-40 h-auto rounded-circle" />
+                                    </div>
+                                    <span class="d-none d-xl-block fw-semibold" style="color:#2d3748;font-size:0.9rem;">John Doe</span>
+                                    <i class="bx bx-chevron-down d-none d-xl-block" style="color:#8a9bb0;font-size:0.85rem;"></i>
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <a class="dropdown-item" href="#">
+                                            <div class="d-flex">
+                                                <div class="flex-shrink-0 me-3">
+                                                    <div class="avatar avatar-online">
+                                                        <img src="~/sneat/assets/img/avatars/1.png" alt class="w-px-40 h-auto rounded-circle" />
+                                                    </div>
+                                                </div>
+                                                <div class="flex-grow-1">
+                                                    <span class="fw-semibold d-block">管理員</span>
+                                                    <small class="text-muted">Admin</small>
+                                                </div>
+                                            </div>
+                                        </a>
+                                    </li>
+                                    <li><div class="dropdown-divider"></div></li>
+                                    <li>
+                                        <a class="dropdown-item" href="#">
+                                            <i class="bx bx-user me-2"></i><span class="align-middle">個人資料</span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="#">
+                                            <i class="bx bx-cog me-2"></i><span class="align-middle">設定</span>
+                                        </a>
+                                    </li>
+                                    <li><div class="dropdown-divider"></div></li>
+                                    <li>
+                                        <a class="dropdown-item" href="#">
+                                            <i class="bx bx-power-off me-2"></i><span class="align-middle">登出</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
+                </nav>
+
+                <!-- 頁面內容 -->
+                <div class="content-wrapper">
+                    <div class="flex-grow-1 container-p-y px-4">
+                        @RenderBody()
+                    </div>
+                    <footer class="content-footer footer bg-footer-theme">
+                        <div class="container-xxl d-flex flex-wrap justify-content-between py-2 flex-md-row flex-column">
+                            <div class="mb-2 mb-md-0">
+                                &copy; <script>document.write(new Date().getFullYear())</script> ISpanShop 後台管理系統
+                            </div>
+                        </div>
+                    </footer>
+                    <div class="content-backdrop fade"></div>
+                </div>
+            </div>
+        </div>
+        <div class="layout-overlay layout-menu-toggle"></div>
+    </div>
+    <script src="~/sneat/assets/vendor/libs/jquery/jquery.js"></script>
+    <script src="~/sneat/assets/vendor/libs/popper/popper.js"></script>
+    <script src="~/sneat/assets/vendor/js/bootstrap.js"></script>
+    <script src="~/sneat/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js"></script>
+    <script src="~/sneat/assets/vendor/js/menu.js"></script>
+    <script src="~/sneat/assets/js/main.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

@@ -16,14 +16,13 @@ namespace ISpanShop.MVC
 			// Add services to the container.
 			builder.Services.AddControllersWithViews();
 
-			// �o�̪� "DefaultConnection" ������z appsettings.json��appsettings.Development�̪��W�r�@�Ҥ@��
 			builder.Services.AddDbContext<ISpanShopDBContext>(options =>
 				options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-			//���U���~�A��
+
 			builder.Services.AddScoped<IProductService, ProductService>();
 
-			//���U���~��Ʈw�s��
+
 			builder.Services.AddScoped<IProductRepository, ProductRepository>();
 
 			var app = builder.Build();
@@ -47,13 +46,13 @@ namespace ISpanShop.MVC
 				name: "default",
 				pattern: "{controller=Home}/{action=Index}/{id?}");
 
-			// �b���ε{���Ұʮɰ����Ƽ���
+
 			using (var scope = app.Services.CreateScope())
 			{
 				var services = scope.ServiceProvider;
 				var context = services.GetRequiredService<ISpanShop.Models.EfModels.ISpanShopDBContext>(); // �T�{�A�� DbContext �W��
 
-				// �令�I�s�D�P�B�� SeedAsync
+
 				await ISpanShop.Models.DataSeeder.SeedAsync(context);
 				// 每次啟動確保有 15 筆待審核商品（供測試使用）
 				await ISpanShop.Models.DataSeeder.EnsurePendingProductsAsync(context);
