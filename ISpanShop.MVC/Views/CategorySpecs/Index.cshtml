@@ -1,0 +1,591 @@
+@model IEnumerable<ISpanShop.Models.DTOs.CategorySpecDto>
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "分類規格管理";
+    var specList = Model.ToList();
+}
+
+<style>
+/* ══ 基礎卡片 ══ */
+.mg-card {
+    background:#fff; border-radius:14px;
+    box-shadow:0 2px 14px rgba(0,0,0,.07);
+    border:none; margin-bottom:24px; overflow:hidden;
+}
+.mg-head {
+    padding:14px 22px; border-bottom:1px solid #f0f0f0;
+    background:#fafbfc; display:flex; align-items:center;
+    justify-content:space-between; flex-wrap:wrap; gap:8px;
+}
+.mg-head h5 { margin:0; font-weight:700; font-size:.95rem; color:#333; }
+
+/* ══ 篩選列 ══ */
+.filter-bar {
+    display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+    padding:12px 22px; border-bottom:1px solid #f0f0f0; background:#fefefe;
+}
+.filter-bar input, .filter-bar select {
+    border:1.5px solid #dde2e8; border-radius:8px;
+    padding:7px 12px; font-size:.85rem; outline:none;
+    transition:border-color .2s; background:#fff;
+}
+.filter-bar input:focus, .filter-bar select:focus {
+    border-color:#1a73e8; box-shadow:0 0 0 3px rgba(26,115,232,.1);
+}
+
+/* ══ 矩陣表格 ══ */
+.matrix-wrap { overflow-x:auto; max-height:480px; overflow-y:auto; }
+.matrix-table { border-collapse:collapse; min-width:100%; }
+.matrix-table th, .matrix-table td { border:1px solid #eee; }
+
+.col-cat {
+    position:sticky; left:0; z-index:3;
+    background:#fff; min-width:130px; max-width:160px;
+    font-size:.85rem; font-weight:600; padding:10px 14px;
+    border-right:2px solid #e0e4ea;
+}
+thead .col-cat { background:#f0f4ff; z-index:4; font-weight:700; color:#3c4a6b; font-size:.82rem; }
+.matrix-table thead th { position:sticky; top:0; z-index:2; background:#f6f7fb; }
+
+.group-row td {
+    background:#eef2ff; color:#3d5afe; font-weight:700;
+    font-size:.78rem; padding:5px 14px; letter-spacing:.4px;
+    position:sticky; left:0;
+}
+.spec-head {
+    font-size:.78rem; font-weight:700; color:#555;
+    padding:8px 8px 6px; text-align:center; min-width:82px; max-width:110px;
+}
+.spec-head-name { font-weight:700; margin-bottom:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:90px; }
+.spec-head-opts { font-weight:400; color:#aaa; font-size:.67rem; white-space:normal; line-height:1.4; }
+
+.status-cell { text-align:center; padding:9px 6px; min-width:82px; }
+.status-dot {
+    display:inline-flex; align-items:center; justify-content:center;
+    width:24px; height:24px; border-radius:50%; font-size:.8rem;
+}
+.status-dot.on  { background:#e6f4ea; color:#34a853; }
+.status-dot.off { background:#f4f4f4; color:#ccc; }
+
+.cat-row-link {
+    display:flex; align-items:center; justify-content:space-between;
+    cursor:pointer; transition:color .15s;
+}
+.cat-row-link:hover .cat-name { color:#1a73e8; text-decoration:underline; }
+.edit-icon { font-size:.75rem; color:#bbb; margin-left:6px; }
+.bound-count-pill {
+    font-size:.7rem; background:#e8f0fe; color:#1a73e8;
+    border-radius:10px; padding:1px 7px; margin-left:6px; white-space:nowrap;
+}
+.matrix-table tbody tr:hover td { background:#fafcff; }
+.matrix-table tbody tr:hover td.col-cat { background:#f0f7ff; }
+
+/* ══ 右側抽屜 ══ */
+#drawer-overlay {
+    display:none; position:fixed; inset:0;
+    background:rgba(0,0,0,.35); z-index:1040;
+}
+#drawer {
+    position:fixed; top:0; right:-440px; width:420px; height:100vh;
+    background:#fff; z-index:1050; box-shadow:-4px 0 24px rgba(0,0,0,.14);
+    display:flex; flex-direction:column;
+    transition:right .28s cubic-bezier(.4,0,.2,1);
+    border-radius:16px 0 0 16px;
+}
+#drawer.open { right:0; }
+#drawer-overlay.open { display:block; }
+
+.drawer-head {
+    padding:20px 22px 16px; border-bottom:1px solid #f0f0f0;
+    display:flex; align-items:flex-start; justify-content:space-between; flex-shrink:0;
+}
+.drawer-head h5 { margin:0 0 3px; font-weight:700; font-size:1rem; }
+.drawer-head small { color:#888; font-size:.82rem; }
+.drawer-close {
+    background:none; border:none; font-size:1.4rem;
+    color:#aaa; cursor:pointer; padding:0; line-height:1; transition:color .15s;
+}
+.drawer-close:hover { color:#e53935; }
+.drawer-body { flex:1; overflow-y:auto; padding:16px 22px; }
+.drawer-footer {
+    padding:14px 22px; border-top:1px solid #f0f0f0; flex-shrink:0;
+    background:#fafbfc; display:flex; align-items:center; gap:10px;
+}
+
+/* 規格 Toggle 列表 */
+.spec-toggle-item {
+    display:flex; align-items:flex-start; gap:14px;
+    padding:13px 0; border-bottom:1px solid #f5f5f5;
+}
+.spec-toggle-item:last-child { border-bottom:none; }
+.spec-toggle-info { flex:1; min-width:0; }
+.spec-toggle-name { font-weight:700; font-size:.9rem; margin-bottom:4px; display:flex; align-items:center; gap:6px; }
+.spec-toggle-opts { font-size:.78rem; color:#888; }
+.spec-toggle-opts span {
+    display:inline-block; background:#e8f0fe; color:#1a5bb5;
+    border-radius:8px; padding:1px 7px; margin:2px; font-size:.73rem;
+}
+
+/* iOS Toggle */
+.toggle-wrap { flex-shrink:0; margin-top:2px; }
+.toggle-switch { position:relative; display:inline-block; width:44px; height:24px; }
+.toggle-switch input { opacity:0; width:0; height:0; }
+.toggle-track {
+    position:absolute; inset:0; border-radius:12px;
+    background:#ddd; cursor:pointer; transition:background .2s;
+}
+.toggle-track:before {
+    content:''; position:absolute; width:18px; height:18px;
+    left:3px; top:3px; border-radius:50%; background:#fff;
+    transition:transform .2s; box-shadow:0 1px 4px rgba(0,0,0,.2);
+}
+.toggle-switch input:checked + .toggle-track { background:#34a853; }
+.toggle-switch input:checked + .toggle-track:before { transform:translateX(20px); }
+
+.save-indicator { font-size:.8rem; color:#888; display:flex; align-items:center; gap:6px; }
+.save-indicator.saving { color:#1a73e8; }
+.save-indicator.saved  { color:#34a853; }
+.save-indicator.error  { color:#e53935; }
+
+/* ══ 規格總表 ══ */
+.spec-table { width:100%; border-collapse:collapse; }
+.spec-table th {
+    background:#f6f7fb; font-weight:700; font-size:.82rem;
+    color:#555; padding:11px 14px; white-space:nowrap; border-bottom:1.5px solid #eee;
+}
+.spec-table td { font-size:.87rem; padding:11px 14px; border-bottom:1px solid #f3f3f3; vertical-align:middle; }
+.spec-table tbody tr:hover { background:#fafcff; }
+
+.bd { display:inline-block; padding:3px 9px; border-radius:12px; font-size:.74rem; font-weight:600; white-space:nowrap; }
+.bd-select   { background:#1a73e8; color:#fff; }
+.bd-text     { background:#9e9e9e; color:#fff; }
+.bd-checkbox { background:#ff9800; color:#fff; }
+.bd-radio    { background:#9c27b0; color:#fff; }
+.bd-req      { background:#e6f4ea; color:#1e7e34; }
+.bd-opt      { display:inline-block; background:#e8f0fe; color:#1a5bb5; padding:2px 8px; border-radius:8px; font-size:.74rem; margin:2px; }
+.bd-cat      { display:inline-block; background:#fff3e0; color:#e65100; padding:2px 8px; border-radius:8px; font-size:.74rem; margin:2px; }
+
+.spin { display:inline-block; width:16px; height:16px; border:2px solid #ddd; border-top-color:#1a73e8; border-radius:50%; animation:_spin .6s linear infinite; }
+@@keyframes _spin { to { transform:rotate(360deg); } }
+
+#gToast {
+    position:fixed; top:22px; right:22px; z-index:9999;
+    display:none; background:#2d2d2d; color:#fff;
+    padding:11px 22px; border-radius:10px; font-size:.86rem;
+    box-shadow:0 4px 18px rgba(0,0,0,.22);
+}
+.btn { border-radius:8px; }
+.btn-sm { font-size:.8rem; padding:4px 10px; }
+</style>
+
+<div id="gToast"></div>
+
+@* ── 右側抽屜 ── *@
+<div id="drawer-overlay" onclick="closeDrawer()"></div>
+<div id="drawer">
+    <div class="drawer-head">
+        <div>
+            <h5 id="drawer-title">設定規格</h5>
+            <small>開啟 Toggle 即時儲存，無需按確認</small>
+        </div>
+        <button class="drawer-close" onclick="closeDrawer()">×</button>
+    </div>
+    <div class="drawer-body" id="drawer-body">
+        <div style="text-align:center;padding:40px;color:#aaa">
+            <div class="spin" style="width:24px;height:24px;margin:0 auto 10px"></div>載入中...
+        </div>
+    </div>
+    <div class="drawer-footer">
+        <div class="save-indicator" id="saveIndicator">✅ 變更即時儲存</div>
+        <button class="btn btn-outline-secondary btn-sm ms-auto" onclick="closeDrawer()">關閉</button>
+    </div>
+</div>
+
+@* ── 頁頭 ── *@
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h4 class="fw-bold mb-0">分類規格管理</h4>
+        <small class="text-muted">管理規格字典，點擊分類名稱可設定該分類的規格</small>
+    </div>
+    <a href="@Url.Action("Create")" class="btn btn-success px-4">＋ 新增規格</a>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show">
+        @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@* ══ 卡片一：矩陣總覽 ══ *@
+<div class="mg-card">
+    <div class="mg-head">
+        <div>
+            <h5>🗂 分類 × 規格 綁定總覽</h5>
+            <small style="color:#888;font-size:.8rem">點擊左側分類名稱，右側抽屜開啟編輯</small>
+        </div>
+        <small class="text-muted">✓ = 已綁定　○ = 未綁定</small>
+    </div>
+    <div class="filter-bar">
+        <input type="text" id="filterCat"   placeholder="🔍 搜尋分類..." oninput="renderMatrix()" style="width:180px">
+        <input type="text" id="filterSpec"  placeholder="🔍 搜尋規格..." oninput="renderMatrix()" style="width:180px">
+        <select id="filterBound" onchange="renderMatrix()" style="width:155px">
+            <option value="">全部分類</option>
+            <option value="bound">有綁定的分類</option>
+            <option value="unbound">未綁定任何規格</option>
+        </select>
+        <button class="btn btn-outline-secondary btn-sm" onclick="resetFilter()">清除</button>
+        <span id="matrixStatus" style="font-size:.8rem;color:#aaa;margin-left:auto"></span>
+    </div>
+    <div class="matrix-wrap">
+        <div id="matrixContainer">
+            <div style="text-align:center;padding:36px;color:#aaa">
+                <div class="spin" style="width:24px;height:24px;margin:0 auto 10px"></div>載入矩陣資料中...
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ══ 卡片二：規格總表 ══ *@
+<div class="mg-card">
+    <div class="mg-head">
+        <h5>📋 規格總表</h5>
+        <span style="font-size:.82rem;color:#999">共 @specList.Count 筆</span>
+    </div>
+    @if (!specList.Any())
+    {
+        <div style="text-align:center;padding:48px;color:#bbb">
+            <div style="font-size:2rem;margin-bottom:8px">📭</div>
+            尚無規格，請點右上角「＋ 新增規格」
+        </div>
+    }
+    else
+    {
+        <table class="spec-table">
+            <thead>
+                <tr>
+                    <th style="width:44px">#</th>
+                    <th>規格名稱</th>
+                    <th>輸入類型</th>
+                    <th>必填</th>
+                    <th>選項內容</th>
+                    <th>已綁定分類</th>
+                    <th style="width:60px">排序</th>
+                    <th style="width:130px">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var spec in specList)
+                {
+                    <tr>
+                        <td style="color:#ccc;font-size:.8rem">@spec.Id</td>
+                        <td><strong>@spec.Name</strong></td>
+                        <td>
+                            @{
+                                var (tl, tc) = spec.InputType switch {
+                                    "select"   => ("下拉選單", "bd-select"),
+                                    "checkbox" => ("多選框",   "bd-checkbox"),
+                                    "radio"    => ("單選框",   "bd-radio"),
+                                    _          => ("文字輸入", "bd-text")
+                                };
+                            }
+                            <span class="bd @tc">@tl</span>
+                        </td>
+                        <td>
+                            @if (spec.IsRequired)
+                            { <span class="bd bd-req">✓ 必填</span> }
+                            else
+                            { <span style="color:#bbb;font-size:.82rem">選填</span> }
+                        </td>
+                        <td>
+                            @if (spec.InputType == "text")
+                            { <span style="color:#aaa;font-size:.82rem">✏️ 自由輸入</span> }
+                            else if (spec.Options.Any())
+                            { foreach (var o in spec.Options) { <span class="bd-opt">@o</span> } }
+                            else
+                            { <span style="color:#ccc;font-size:.8rem">尚未設定</span> }
+                        </td>
+                        <td class="bound-cats-cell" data-spec-id="@spec.Id">
+                            @if (spec.BoundCategoryNames != null && spec.BoundCategoryNames.Any())
+                            { foreach (var cat in spec.BoundCategoryNames) { <span class="bd-cat">@cat</span> } }
+                            else
+                            { <span style="color:#ccc;font-size:.8rem">尚未綁定</span> }
+                        </td>
+                        <td style="color:#aaa">@spec.SortOrder</td>
+                        <td>
+                            <a href="@Url.Action("Edit", new { id = spec.Id })"
+                               class="btn btn-primary btn-sm me-1">編輯</a>
+                            <form method="post" action="@Url.Action("Delete", new { id = spec.Id })"
+                                  style="display:inline"
+                                  onsubmit="return confirm('確定刪除「@spec.Name」？')">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-danger btn-sm">刪除</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@section Scripts {
+<script>
+let MATRIX = { specs:[], categories:[], parentCategories:[], bindings:[] };
+let boundSet = new Set();   // 'catId_specId'
+let drawerCatId = null;
+
+// ── 載入矩陣資料 ──
+document.addEventListener('DOMContentLoaded', () => {
+    fetch('/CategorySpecs/GetMatrixData')
+        .then(r => r.json())
+        .then(data => {
+            MATRIX = data;
+            boundSet = new Set(data.bindings.map(b => b.categoryId + '_' + b.attributeId));
+            renderMatrix();
+        })
+        .catch(() => {
+            document.getElementById('matrixContainer').innerHTML =
+                '<div style="text-align:center;padding:30px;color:#e53935">資料載入失敗，請重新整理</div>';
+        });
+});
+
+// ── 渲染矩陣 ──
+function renderMatrix() {
+    const catQ   = document.getElementById('filterCat').value.toLowerCase();
+    const specQ  = document.getElementById('filterSpec').value.toLowerCase();
+    const boundF = document.getElementById('filterBound').value;
+
+    const visSpecs = MATRIX.specs.filter(s =>
+        !specQ || s.name.toLowerCase().includes(specQ)
+    );
+    if (!visSpecs.length) {
+        document.getElementById('matrixContainer').innerHTML =
+            '<div style="text-align:center;padding:28px;color:#aaa">沒有符合的規格</div>';
+        return;
+    }
+
+    // 依父分類分群
+    const groups = {};
+    MATRIX.categories
+        .filter(c => !catQ || c.name.toLowerCase().includes(catQ))
+        .forEach(c => {
+            const pid = c.parentId ?? 0;
+            if (!groups[pid]) groups[pid] = [];
+            groups[pid].push(c);
+        });
+
+    let html = '<table class="matrix-table"><thead><tr>';
+    html += '<th class="col-cat">分類 <span style="font-weight:400;color:#aaa;font-size:.7rem">（點擊編輯）</span></th>';
+    visSpecs.forEach(s => {
+        const preview = s.options && s.options.length
+            ? s.options.slice(0, 3).join('・') + (s.options.length > 3 ? '…' : '')
+            : (s.inputType === 'text' ? '自由輸入' : '');
+        html += `<th class="spec-head" title="${esc(s.name)}">
+            <div class="spec-head-name">${esc(s.name)}</div>
+            <div class="spec-head-opts">${esc(preview)}</div>
+        </th>`;
+    });
+    html += '</tr></thead><tbody>';
+
+    let rowCount = 0;
+    let hasVisible = false;
+
+    Object.keys(groups).forEach(pid => {
+        const cats = groups[pid];
+        if (!cats.length) return;
+
+        const filtered = cats.filter(c => {
+            if (!boundF) return true;
+            const hasBound = visSpecs.some(s => boundSet.has(c.id + '_' + s.id));
+            return boundF === 'bound' ? hasBound : !hasBound;
+        });
+        if (!filtered.length) return;
+        hasVisible = true;
+
+        const pName = (MATRIX.parentCategories.find(p => p.id === parseInt(pid)) || {}).name || '其他分類';
+        html += `<tr class="group-row"><td colspan="${visSpecs.length + 1}">📁 ${esc(pName)}</td></tr>`;
+
+        filtered.forEach(c => {
+            const boundCount = visSpecs.filter(s => boundSet.has(c.id + '_' + s.id)).length;
+            const pillHtml = boundCount > 0
+                ? `<span class="bound-count-pill" id="pill_${c.id}">${boundCount} 個規格</span>`
+                : `<span class="bound-count-pill" id="pill_${c.id}" style="display:none">0 個規格</span>`;
+            html += `<tr data-cat-id="${c.id}">
+                <td class="col-cat">
+                    <div class="cat-row-link" onclick="openDrawer(${c.id},'${c.name.replace(/'/g, "\\'")}')">
+                        <span class="cat-name">${esc(c.name)}</span>
+                        <span>${pillHtml}<span class="edit-icon">✏️</span></span>
+                    </div>
+                </td>`;
+            visSpecs.forEach(s => {
+                const on = boundSet.has(c.id + '_' + s.id);
+                html += `<td class="status-cell">
+                    <div class="status-dot ${on ? 'on' : 'off'}"
+                         id="dot_${c.id}_${s.id}"
+                         title="${on ? '已綁定' : '未綁定'}">
+                        ${on ? '✓' : '○'}
+                    </div>
+                </td>`;
+            });
+            html += '</tr>';
+            rowCount++;
+        });
+    });
+
+    if (!hasVisible) {
+        document.getElementById('matrixContainer').innerHTML =
+            '<div style="text-align:center;padding:28px;color:#aaa">沒有符合的分類</div>';
+        return;
+    }
+
+    html += '</tbody></table>';
+    document.getElementById('matrixContainer').innerHTML = html;
+    document.getElementById('matrixStatus').textContent =
+        `顯示 ${rowCount} 個分類 × ${visSpecs.length} 個規格`;
+}
+
+// ── 開啟抽屜 ──
+function openDrawer(catId, catName) {
+    drawerCatId = catId;
+    document.getElementById('drawer-title').textContent = '✏️ ' + catName;
+    document.getElementById('saveIndicator').textContent = '✅ 變更即時儲存';
+    document.getElementById('saveIndicator').className = 'save-indicator';
+    document.getElementById('drawer').classList.add('open');
+    document.getElementById('drawer-overlay').classList.add('open');
+
+    // 從本地 boundSet 取得已綁定 IDs，不額外發請求
+    const boundIds = MATRIX.specs
+        .filter(s => boundSet.has(catId + '_' + s.id))
+        .map(s => s.id);
+    renderDrawer(catId, boundIds);
+}
+
+// ── 關閉抽屜 ──
+function closeDrawer() {
+    document.getElementById('drawer').classList.remove('open');
+    document.getElementById('drawer-overlay').classList.remove('open');
+    drawerCatId = null;
+}
+
+// ── 渲染抽屜內容 ──
+function renderDrawer(catId, boundIds) {
+    const typeMap = { text:'文字輸入', select:'下拉選單', checkbox:'多選框', radio:'單選框' };
+    const typeCls = { text:'bd-text', select:'bd-select', checkbox:'bd-checkbox', radio:'bd-radio' };
+
+    if (!MATRIX.specs.length) {
+        document.getElementById('drawer-body').innerHTML =
+            '<div style="text-align:center;padding:40px;color:#aaa">尚無規格，請先新增</div>';
+        return;
+    }
+
+    document.getElementById('drawer-body').innerHTML = MATRIX.specs.map(s => {
+        const on = boundIds.includes(s.id);
+        const opts = s.options && s.options.length
+            ? s.options.map(o => `<span>${esc(o)}</span>`).join('')
+            : (s.inputType === 'text' ? '✏️ 自由輸入文字' : '<span style="color:#ccc">尚無選項</span>');
+        return `<div class="spec-toggle-item">
+            <div class="spec-toggle-info">
+                <div class="spec-toggle-name">
+                    ${esc(s.name)}
+                    <span class="bd ${typeCls[s.inputType] || 'bd-text'}" style="font-size:.68rem;padding:2px 7px">${typeMap[s.inputType] || s.inputType}</span>
+                    ${s.isRequired ? '<span class="bd bd-req" style="font-size:.68rem;padding:2px 7px">必填</span>' : ''}
+                </div>
+                <div class="spec-toggle-opts">${opts}</div>
+            </div>
+            <div class="toggle-wrap">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="tog_${s.id}" ${on ? 'checked' : ''}
+                           onchange="toggleSpec(${catId},${s.id},this.checked)">
+                    <span class="toggle-track"></span>
+                </label>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// ── 切換單一綁定（即時儲存）──
+function toggleSpec(catId, specId, isBound) {
+    const key = catId + '_' + specId;
+    const ind = document.getElementById('saveIndicator');
+    ind.className = 'save-indicator saving'; ind.textContent = '⏳ 儲存中...';
+
+    fetch('/CategorySpecs/ToggleSpec', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ categoryId: catId, attributeId: specId, isBound: isBound })
+    })
+    .then(r => r.json())
+    .then(() => {
+        // 更新本地 boundSet
+        if (isBound) boundSet.add(key);
+        else         boundSet.delete(key);
+
+        // 更新矩陣狀態點
+        const dot = document.getElementById('dot_' + catId + '_' + specId);
+        if (dot) {
+            dot.className = 'status-dot ' + (isBound ? 'on' : 'off');
+            dot.title = isBound ? '已綁定' : '未綁定';
+            dot.textContent = isBound ? '✓' : '○';
+        }
+
+        // 更新 bound-count-pill
+        const visSpecs = MATRIX.specs;
+        const cnt = visSpecs.filter(s => boundSet.has(catId + '_' + s.id)).length;
+        const pill = document.getElementById('pill_' + catId);
+        if (pill) {
+            pill.textContent = cnt + ' 個規格';
+            pill.style.display = cnt > 0 ? '' : 'none';
+        }
+
+        // 更新規格總表「已綁定分類」欄
+        updateBoundCatCell(specId);
+
+        ind.className = 'save-indicator saved'; ind.textContent = '✅ 已儲存';
+        setTimeout(() => {
+            ind.className = 'save-indicator'; ind.textContent = '✅ 變更即時儲存';
+        }, 2000);
+    })
+    .catch(() => {
+        // 還原 checkbox
+        const chk = document.getElementById('tog_' + specId);
+        if (chk) chk.checked = !isBound;
+        ind.className = 'save-indicator error'; ind.textContent = '❌ 儲存失敗';
+    });
+}
+
+// ── 更新規格總表「已綁定分類」欄 ──
+function updateBoundCatCell(specId) {
+    const cell = document.querySelector('.bound-cats-cell[data-spec-id="' + specId + '"]');
+    if (!cell) return;
+    const cats = MATRIX.categories.filter(c => boundSet.has(c.id + '_' + specId));
+    if (!cats.length) {
+        cell.innerHTML = '<span style="color:#ccc;font-size:.8rem">尚未綁定</span>';
+    } else {
+        cell.innerHTML = cats.map(c => `<span class="bd-cat">${esc(c.name)}</span>`).join('');
+    }
+}
+
+// ── 清除篩選 ──
+function resetFilter() {
+    document.getElementById('filterCat').value  = '';
+    document.getElementById('filterSpec').value = '';
+    document.getElementById('filterBound').value = '';
+    renderMatrix();
+}
+
+// ── HTML 跳脫（防 XSS）──
+function esc(str) {
+    return String(str)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showToast(msg) {
+    const t = document.getElementById('gToast');
+    t.textContent = msg; t.style.display = 'block';
+    setTimeout(() => { t.style.display = 'none'; }, 2800);
+}
+</script>
+}

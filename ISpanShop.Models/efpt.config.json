@@ -23,6 +23,14 @@
          "ObjectType": 0
       },
       {
+         "Name": "[dbo].[AttributeOptions]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Attributes]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[dbo].[BlacklistRecords]",
          "ObjectType": 0
       },
@@ -40,6 +48,10 @@
       },
       {
          "Name": "[dbo].[Categories]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[CategoryAttributes]",
          "ObjectType": 0
       },
       {
