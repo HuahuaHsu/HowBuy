@@ -28,7 +28,24 @@ namespace ISpanShop.Models.DTOs
 		public bool IsSeller { get; set; }
 
 		// 直接把 RoleName 拉平放在這裡，View 就不用再 .Role.RoleName
+	public string RoleName { get; set; }
 		[Display(Name = "權限角色")]
-		public string RoleName { get; set; }
+		
+		public string RoleNameCHN
+		{
+			get
+			{
+				return RoleName switch
+				{
+					"SuperAdmin" => "超級管理員",
+					"Admin" => "管理員",
+					"Member" => "一般會員",
+					"Seller" => "賣家",
+					_ => RoleName // 如果遇到沒看過的，就維持顯示英文
+				};
+			
+			}
+		}
 	}
+
 }

@@ -15,11 +15,11 @@
 <table class="table table-striped table-hover shadow-sm">
     <thead class="table-dark">
         <tr>
+            <th>@Html.DisplayNameFor(model => model.RoleNameCHN)</th>
             <th>@Html.DisplayNameFor(model => model.Account)</th>
             <th>@Html.DisplayNameFor(model => model.Email)</th>
             <th>狀態</th>
             <th>@Html.DisplayNameFor(model => model.IsSeller)</th>
-            <th>@Html.DisplayNameFor(model => model.RoleName)</th>
             <th>操作</th>
         </tr>
     </thead>
@@ -27,11 +27,11 @@
         @foreach (var item in Model)
         {
             <tr>
+                <td>@Html.DisplayFor(modelItem => item.RoleNameCHN)</td>
                 <td><strong>@Html.DisplayFor(modelItem => item.Account)</strong></td>
                 <td>@Html.DisplayFor(modelItem => item.Email)</td>
 
-                @* 優化狀態欄位：直接顯示漂亮的 Badge *@
-                <td>
+                    <td>
                     @if (item.IsBlacklisted == true)
                     {
                         <span class="badge bg-danger">黑名單</span>
@@ -42,7 +42,7 @@
                     }
                 </td>
 
-                @* 修正賣家欄位邏輯 *@
+                @* 賣家欄位邏輯 *@
                 <td>
                     @if (item.IsSeller)
                     {
@@ -50,7 +50,6 @@
                     }
                 </td>
 
-                <td>@Html.DisplayFor(modelItem => item.RoleName)</td>
 
                 <td>
                     <div class="btn-group btn-group-sm">

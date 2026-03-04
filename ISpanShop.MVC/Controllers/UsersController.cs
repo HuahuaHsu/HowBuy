@@ -25,7 +25,7 @@ namespace ISpanShop.Models.Dtos
 		{
 			var dtoList = _context.Users
 				.Include(u => u.Role)
-				.Select(u => new UserDto
+				.Select(static u => new UserDto
 				{
 					Id = u.Id,
 					Account = u.Account,
