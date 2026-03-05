@@ -41,12 +41,21 @@ namespace ISpanShop.MVC.Controllers
             return Json(new { categoryName, specs = result });
         }
 
-        // AJAX：儲存分類規格綁定
+        // AJAX：儲存分類規格綁定（先取得現有綁定，再逐一 Toggle 差異）
         [HttpPost]
         public IActionResult SaveBindings([FromBody] SaveBindingsDto dto)
         {
             if (dto == null) return BadRequest(new { success = false });
-            _specService.SaveCategoryBindings(dto.CategoryId, dto.AttributeIds);
+
+            var newIds     = dto.AttributeIds ?? new System.Collections.Generic.List<int>();
+            var currentIds = _specService.GetBoundAttributeIds(dto.CategoryId);
+
+            foreach (var id in newIds.Except(currentIds))
+                _specService.ToggleBinding(dto.CategoryId, id, true);
+
+            foreach (var id in currentIds.Except(newIds))
+                _specService.ToggleBinding(dto.CategoryId, id, false);
+
             return Json(new { success = true });
         }
     }

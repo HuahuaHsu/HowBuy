@@ -5,15 +5,15 @@ using System.Collections.Generic;
 
 namespace ISpanShop.Models.EfModels;
 
-public partial class CategoryAttribute
+public partial class CategorySpecMapping
 {
     public int CategoryId { get; set; }
 
-    public int AttributeId { get; set; }
+    public int CategorySpecId { get; set; }
 
     public bool IsFilterable { get; set; }
 
-    public virtual Attribute Attribute { get; set; }
-
     public virtual Category Category { get; set; }
+
+    public virtual CategorySpec CategorySpec { get; set; }
 }

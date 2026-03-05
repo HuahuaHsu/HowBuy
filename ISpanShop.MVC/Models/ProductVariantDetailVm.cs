@@ -1,33 +1,30 @@
+using System.Collections.Generic;
+
 namespace ISpanShop.MVC.Models.ViewModels
 {
-    /// <summary>
-    /// 商品規格詳情 ViewModel - 用於商品詳情頁展示
-    /// </summary>
     public class ProductVariantDetailVm
     {
-        /// <summary>
-        /// SKU 代碼
-        /// </summary>
-        public string SkuCode { get; set; }
-
-        /// <summary>
-        /// 規格名稱
-        /// </summary>
-        public string VariantName { get; set; }
-
-        /// <summary>
-        /// 價格
-        /// </summary>
+        public string? SkuCode { get; set; }
+        public string? VariantName { get; set; }
         public decimal Price { get; set; }
+        public int? Stock { get; set; }
+        public int? SafetyStock { get; set; }
+        public string? SpecValueJson { get; set; }
+        public bool IsDeleted { get; set; }
 
-        /// <summary>
-        /// 庫存量
-        /// </summary>
-        public int Stock { get; set; }
-
-        /// <summary>
-        /// 規格值 JSON (如 {"color":"黑","size":"M"})
-        /// </summary>
-        public string SpecValueJson { get; set; }
+        public Dictionary<string, string> SpecValues
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(SpecValueJson)) return new();
+                try
+                {
+                    return System.Text.Json.JsonSerializer
+                        .Deserialize<Dictionary<string, string>>(SpecValueJson)
+                        ?? new();
+                }
+                catch { return new(); }
+            }
+        }
     }
 }

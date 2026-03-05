@@ -5,15 +5,15 @@ using System.Collections.Generic;
 
 namespace ISpanShop.Models.EfModels;
 
-public partial class AttributeOption
+public partial class CategorySpecOption
 {
     public int Id { get; set; }
 
-    public int AttributeId { get; set; }
+    public int CategorySpecId { get; set; }
 
     public string OptionName { get; set; }
 
     public int SortOrder { get; set; }
 
-    public virtual Attribute Attribute { get; set; }
+    public virtual CategorySpec CategorySpec { get; set; }
 }

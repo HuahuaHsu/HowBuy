@@ -1,0 +1,16 @@
+using System.Collections.Generic;
+using ISpanShop.Models.DTOs;
+
+namespace ISpanShop.Repositories.Interfaces
+{
+    public interface ICategoryManageRepository
+    {
+        IEnumerable<CategoryManageDto> GetTree();
+        CategoryManageDto? GetById(int id);
+        void Create(string name, int? parentId, int sortOrder, string? imageUrl);
+        void Update(int id, string name, int? parentId, int sortOrder, string? imageUrl);
+        void Delete(int id);
+        void UpdateIsActive(int id, bool isActive);
+        void UpdateSortOrder(int id, int sortOrder);
+    }
+}

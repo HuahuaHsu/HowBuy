@@ -33,6 +33,11 @@ namespace ISpanShop.Models.DTOs
         public int SortOrder { get; set; }
 
         /// <summary>
+        /// 是否啟用
+        /// </summary>
+        public bool IsActive { get; set; }
+
+        /// <summary>
         /// 選項名稱列表 (僅當 InputType 為 select/checkbox/radio 時有值)
         /// </summary>
         public List<string> Options { get; set; } = new List<string>();

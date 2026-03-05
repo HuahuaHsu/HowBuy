@@ -236,26 +236,36 @@ namespace ISpanShop.Services
 
             return new ProductDetailDto
             {
-                Id = product.Id,
-                Name = product.Name,
-                StoreName = product.Store?.StoreName ?? "未知商店",
-                CategoryName = product.Category?.Name ?? "未分類",
-                BrandName = product.Brand?.Name ?? "未設定",
-                Description = product.Description,
-                Status = product.Status,
+                Id                 = product.Id,
+                Name               = product.Name,
+                StoreName          = product.Store?.StoreName ?? "未知商店",
+                CategoryName       = product.Category?.Name ?? "未分類",
+                BrandName          = product.Brand?.Name ?? "未設定",
+                Description        = product.Description,
+                Status             = product.Status,
+                MinPrice           = product.MinPrice,
+                MaxPrice           = product.MaxPrice,
+                TotalSales         = product.TotalSales,
+                ViewCount          = product.ViewCount,
+                RejectReason       = product.RejectReason,
+                SpecDefinitionJson = product.SpecDefinitionJson,
+                CreatedAt          = product.CreatedAt,
+                UpdatedAt          = product.UpdatedAt,
                 Images = product.ProductImages?
                     .OrderBy(img => img.SortOrder)
                     .Select(img => img.ImageUrl)
                     .ToList() ?? new List<string>(),
                 Variants = product.ProductVariants?
-                    .Where(v => !v.IsDeleted==false)
+                    .Where(v => v.IsDeleted != true)
                     .Select(v => new ProductVariantDetailDto
                     {
-                        SkuCode = v.SkuCode,
-                        VariantName = v.VariantName,
-                        Price = v.Price,
-                        Stock = v.Stock ?? 0,
-                        SpecValueJson = v.SpecValueJson
+                        SkuCode       = v.SkuCode,
+                        VariantName   = v.VariantName,
+                        Price         = v.Price,
+                        Stock         = v.Stock,
+                        SafetyStock   = v.SafetyStock,
+                        SpecValueJson = v.SpecValueJson,
+                        IsDeleted     = v.IsDeleted
                     })
                     .ToList() ?? new List<ProductVariantDetailDto>()
             };

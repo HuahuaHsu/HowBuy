@@ -155,9 +155,9 @@ namespace ISpanShop.MVC.Controllers
         /// [AJAX] 核准商品審核 - 將狀態設為 1 (上架)
         /// </summary>
         [HttpPost]
-        public IActionResult ApproveProduct(int id)
+        public IActionResult ApproveProduct([FromBody] RejectDto dto)
         {
-            _productService.ApproveProduct(id);
+            _productService.ApproveProduct(dto.Id);
             return Json(new { success = true, message = "商品已核准上架。" });
         }
 
@@ -165,10 +165,10 @@ namespace ISpanShop.MVC.Controllers
         /// [AJAX] 退回商品審核 - 將狀態設為 3 (審核退回)
         /// </summary>
         [HttpPost]
-        public IActionResult RejectProduct(int id, string reason)
+        public IActionResult RejectProduct([FromBody] RejectDto dto)
         {
-            _productService.RejectProduct(id, reason);
-            return Json(new { success = true, message = $"商品已退回。退回原因：{reason}" });
+            _productService.RejectProduct(dto.Id, dto.Reason);
+            return Json(new { success = true, message = $"商品已退回。退回原因：{dto.Reason}" });
         }
 
         /// <summary>
@@ -233,21 +233,31 @@ namespace ISpanShop.MVC.Controllers
             // 將 DTO 轉換為 ViewModel
             var viewModel = new ProductDetailVm
             {
-                Id = productDto.Id,
-                Name = productDto.Name,
-                StoreName = productDto.StoreName,
-                CategoryName = productDto.CategoryName,
-                BrandName = productDto.BrandName,
-                Description = productDto.Description,
-                Status = productDto.Status,
-                Images = productDto.Images,
+                Id                 = productDto.Id,
+                Name               = productDto.Name,
+                StoreName          = productDto.StoreName,
+                CategoryName       = productDto.CategoryName,
+                BrandName          = productDto.BrandName,
+                Description        = productDto.Description,
+                Status             = productDto.Status,
+                MinPrice           = productDto.MinPrice,
+                MaxPrice           = productDto.MaxPrice,
+                TotalSales         = productDto.TotalSales,
+                ViewCount          = productDto.ViewCount,
+                RejectReason       = productDto.RejectReason,
+                SpecDefinitionJson = productDto.SpecDefinitionJson,
+                CreatedAt          = productDto.CreatedAt,
+                UpdatedAt          = productDto.UpdatedAt,
+                Images             = productDto.Images,
                 Variants = productDto.Variants.Select(v => new ProductVariantDetailVm
                 {
-                    SkuCode = v.SkuCode,
-                    VariantName = v.VariantName,
-                    Price = v.Price,
-                    Stock = v.Stock,
-                    SpecValueJson = v.SpecValueJson
+                    SkuCode       = v.SkuCode,
+                    VariantName   = v.VariantName,
+                    Price         = v.Price,
+                    Stock         = v.Stock,
+                    SafetyStock   = v.SafetyStock,
+                    SpecValueJson = v.SpecValueJson,
+                    IsDeleted     = v.IsDeleted ?? false
                 }).ToList()
             };
 

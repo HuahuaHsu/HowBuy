@@ -1,6 +1,6 @@
 @model IEnumerable<ISpanShop.Models.DTOs.CategorySpecDto>
 @{
-    Layout = "_Layout";
+    Layout = "_SneatLayout";
     ViewData["Title"] = "分類規格管理";
     var specList = Model.ToList();
 }
@@ -452,14 +452,18 @@ function openDrawer(catId, catName) {
     document.getElementById('drawer-title').textContent = '✏️ ' + catName;
     document.getElementById('saveIndicator').textContent = '✅ 變更即時儲存';
     document.getElementById('saveIndicator').className = 'save-indicator';
+    document.getElementById('drawer-body').innerHTML =
+        '<div style="text-align:center;padding:40px;color:#aaa"><div class="spin" style="width:24px;height:24px;margin:0 auto 10px"></div>載入中...</div>';
     document.getElementById('drawer').classList.add('open');
     document.getElementById('drawer-overlay').classList.add('open');
 
-    // 從本地 boundSet 取得已綁定 IDs，不額外發請求
-    const boundIds = MATRIX.specs
-        .filter(s => boundSet.has(catId + '_' + s.id))
-        .map(s => s.id);
-    renderDrawer(catId, boundIds);
+    fetch('/CategorySpecs/GetBoundSpecItems?categoryId=' + catId)
+        .then(r => r.json())
+        .then(items => renderDrawer(catId, items))
+        .catch(() => {
+            document.getElementById('drawer-body').innerHTML =
+                '<div style="text-align:center;padding:40px;color:#e53935">載入失敗，請重試</div>';
+        });
 }
 
 // ── 關閉抽屜 ──
@@ -470,7 +474,8 @@ function closeDrawer() {
 }
 
 // ── 渲染抽屜內容 ──
-function renderDrawer(catId, boundIds) {
+// boundItems = [{ attributeId, isFilterable }, ...]
+function renderDrawer(catId, boundItems) {
     const typeMap = { text:'文字輸入', select:'下拉選單', checkbox:'多選框', radio:'單選框' };
     const typeCls = { text:'bd-text', select:'bd-select', checkbox:'bd-checkbox', radio:'bd-radio' };
 
@@ -480,8 +485,14 @@ function renderDrawer(catId, boundIds) {
         return;
     }
 
+    const boundMap = {};
+    (boundItems || []).forEach(item => {
+        boundMap[item.attributeId] = item.isFilterable;
+    });
+
     document.getElementById('drawer-body').innerHTML = MATRIX.specs.map(s => {
-        const on = boundIds.includes(s.id);
+        const on          = s.id in boundMap;
+        const filterable  = on ? boundMap[s.id] : false;
         const opts = s.options && s.options.length
             ? s.options.map(o => `<span>${esc(o)}</span>`).join('')
             : (s.inputType === 'text' ? '✏️ 自由輸入文字' : '<span style="color:#ccc">尚無選項</span>');
@@ -494,21 +505,37 @@ function renderDrawer(catId, boundIds) {
                 </div>
                 <div class="spec-toggle-opts">${opts}</div>
             </div>
-            <div class="toggle-wrap">
-                <label class="toggle-switch">
-                    <input type="checkbox" id="tog_${s.id}" ${on ? 'checked' : ''}
-                           onchange="toggleSpec(${catId},${s.id},this.checked)">
-                    <span class="toggle-track"></span>
-                </label>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0">
+                <div style="display:flex;align-items:center;gap:6px">
+                    <span style="font-size:.72rem;color:#888">綁定</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="tog_${s.id}" ${on ? 'checked' : ''}
+                               data-spec-id="${s.id}"
+                               onchange="toggleSpec(this)">
+                        <span class="toggle-track"></span>
+                    </label>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px">
+                    <span style="font-size:.72rem;color:#888">可篩選</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="fil_${s.id}" ${filterable ? 'checked' : ''} ${on ? '' : 'disabled'}
+                               data-spec-id="${s.id}"
+                               onchange="toggleFilterable(this)">
+                        <span class="toggle-track" style="${on ? '' : 'opacity:.4;cursor:not-allowed'}"></span>
+                    </label>
+                </div>
             </div>
         </div>`;
     }).join('');
 }
 
 // ── 切換單一綁定（即時儲存）──
-function toggleSpec(catId, specId, isBound) {
-    const key = catId + '_' + specId;
-    const ind = document.getElementById('saveIndicator');
+function toggleSpec(input) {
+    const specId  = parseInt(input.dataset.specId);
+    const isBound = input.checked;
+    const catId   = drawerCatId;
+    const key     = catId + '_' + specId;
+    const ind     = document.getElementById('saveIndicator');
     ind.className = 'save-indicator saving'; ind.textContent = '⏳ 儲存中...';
 
     fetch('/CategorySpecs/ToggleSpec', {
@@ -522,6 +549,16 @@ function toggleSpec(catId, specId, isBound) {
         if (isBound) boundSet.add(key);
         else         boundSet.delete(key);
 
+        // 連動 isFilterable Toggle 的 disabled 狀態
+        const filInput = document.getElementById('fil_' + specId);
+        if (filInput) {
+            filInput.disabled = !isBound;
+            const track = filInput.nextElementSibling;
+            if (track) track.style.opacity = isBound ? '' : '.4';
+            if (track) track.style.cursor  = isBound ? '' : 'not-allowed';
+            if (!isBound) filInput.checked = false;
+        }
+
         // 更新矩陣狀態點
         const dot = document.getElementById('dot_' + catId + '_' + specId);
         if (dot) {
@@ -531,8 +568,7 @@ function toggleSpec(catId, specId, isBound) {
         }
 
         // 更新 bound-count-pill
-        const visSpecs = MATRIX.specs;
-        const cnt = visSpecs.filter(s => boundSet.has(catId + '_' + s.id)).length;
+        const cnt = MATRIX.specs.filter(s => boundSet.has(catId + '_' + s.id)).length;
         const pill = document.getElementById('pill_' + catId);
         if (pill) {
             pill.textContent = cnt + ' 個規格';
@@ -543,14 +579,40 @@ function toggleSpec(catId, specId, isBound) {
         updateBoundCatCell(specId);
 
         ind.className = 'save-indicator saved'; ind.textContent = '✅ 已儲存';
+        showToast(isBound ? '✓ 已綁定規格' : '規格已解除綁定');
         setTimeout(() => {
             ind.className = 'save-indicator'; ind.textContent = '✅ 變更即時儲存';
         }, 2000);
     })
     .catch(() => {
-        // 還原 checkbox
-        const chk = document.getElementById('tog_' + specId);
-        if (chk) chk.checked = !isBound;
+        input.checked = !isBound;
+        ind.className = 'save-indicator error'; ind.textContent = '❌ 儲存失敗';
+    });
+}
+
+// ── 切換 IsFilterable（即時儲存）──
+function toggleFilterable(input) {
+    const specId       = parseInt(input.dataset.specId);
+    const isFilterable = input.checked;
+    const ind          = document.getElementById('saveIndicator');
+    ind.className = 'save-indicator saving'; ind.textContent = '⏳ 儲存中...';
+
+    fetch('/CategorySpecs/ToggleFilterable', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ categoryId: drawerCatId, specId: specId, isFilterable: isFilterable })
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (!d.success) throw new Error();
+        ind.className = 'save-indicator saved'; ind.textContent = '✅ 已儲存';
+        showToast(isFilterable ? '🔍 已設為可篩選' : '篩選已關閉');
+        setTimeout(() => {
+            ind.className = 'save-indicator'; ind.textContent = '✅ 變更即時儲存';
+        }, 2000);
+    })
+    .catch(() => {
+        input.checked = !isFilterable;
         ind.className = 'save-indicator error'; ind.textContent = '❌ 儲存失敗';
     });
 }

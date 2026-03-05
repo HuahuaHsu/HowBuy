@@ -29,6 +29,9 @@ namespace ISpanShop.MVC
 
 			builder.Services.AddScoped<CategorySpecService>();
 
+			builder.Services.AddScoped<ICategoryManageRepository, CategoryManageRepository>();
+			builder.Services.AddScoped<CategoryManageService>();
+
 			var app = builder.Build();
 
 			// Configure the HTTP request pipeline.

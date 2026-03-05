@@ -394,6 +394,7 @@
             justify-content: center;
             padding: 6px 4px;
             border-bottom-color: transparent;
+            margin: 0 4px;
         }
 
         /* menu-link 改成 block 置中容器，mini-wrap 控制 icon+短標籤緊靠 */
@@ -593,12 +594,20 @@
                             <li class="menu-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Products" && ViewContext.RouteData.Values["action"]?.ToString() == "PendingReview" ? "active" : "")">
                                 <a href="@Url.Action("PendingReview", "Products")" class="menu-link">待審核商品</a>
                             </li>
+                            <li class="menu-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "CategoryManage" && ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")">
+                                <a href="@Url.Action("Index", "CategoryManage")" class="menu-link">分類管理</a>
+                            </li>
+                            <li class="menu-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "CategorySpecs" && ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")">
+                                <a href="@Url.Action("Index", "CategorySpecs")" class="menu-link">分類規格</a>
+                            </li>
                         </ul>
                     </div>
                     <div class="menu-flyout">
                         <div class="menu-flyout-title">商品管理</div>
                         <a href="@Url.Action("Index", "Products")">全站商品總覽</a>
                         <a href="@Url.Action("PendingReview", "Products")">待審核商品</a>
+                        <a href="@Url.Action("Index", "CategoryManage")">分類管理</a>
+                        <a href="@Url.Action("Index", "CategorySpecs")">分類規格</a>
                     </div>
                 </li>
 
