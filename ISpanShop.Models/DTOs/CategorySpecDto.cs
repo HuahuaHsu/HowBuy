@@ -42,6 +42,11 @@ namespace ISpanShop.Models.DTOs
         /// </summary>
         public List<string> Options { get; set; } = new List<string>();
 
+        /// <summary>
+        /// 允許賣家在預設選項清單外自行輸入選項（僅適用於 select/checkbox/radio 類型）
+        /// </summary>
+        public bool AllowCustomInput { get; set; }
+
         /// <summary>已綁定的分類名稱列表</summary>
         public List<string> BoundCategoryNames { get; set; } = new List<string>();
     }

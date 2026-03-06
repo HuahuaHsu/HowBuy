@@ -131,6 +131,7 @@
                                     <th>商家</th>
                                     <th>退回原因</th>
                                     <th>退回時間</th>
+                                    <th class="text-end">操作</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -163,6 +164,13 @@
                                             }
                                         </td>
                                         <td class="fs-7" style="color:#4a5a6a;">@(item.UpdatedAt?.ToString("yyyy-MM-dd HH:mm") ?? "—")</td>
+                                        <td class="text-end">
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-primary rounded-pill px-3"
+                                                    onclick="undoReject(@item.Id, '@item.Name.Replace("'", "\\'")') ">
+                                                <i class="bx bx-revision me-1"></i>重新審核
+                                            </button>
+                                        </td>
                                     </tr>
                                 }
                             </tbody>
@@ -351,8 +359,35 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         (function () {
-            var urlApprove = '@Url.Action("ApproveProduct", "Products")';
-            var urlReject  = '@Url.Action("RejectProduct", "Products")';
+            var urlUndoReject = '@Url.Action("UndoReject", "Products")';
+            var urlApprove    = '@Url.Action("ApproveProduct", "Products")';
+            var urlReject     = '@Url.Action("RejectProduct", "Products")';
+
+            window.undoReject = function (id, name) {
+                Swal.fire({
+                    title: '移回待審核',
+                    html: '確定要將商品<br><strong>「' + name + '」</strong><br>移回待審核佇列嗎？',
+                    icon: 'question', showCancelButton: true,
+                    confirmButtonColor: '#3182ce', cancelButtonColor: '#a0aec0',
+                    confirmButtonText: '確認', cancelButtonText: '取消'
+                }).then(function (result) {
+                    if (!result.isConfirmed) return;
+                    fetch(urlUndoReject, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: parseInt(id) })
+                    })
+                    .then(r => r.json()).then(function (res) {
+                        if (res.success) {
+                            Swal.fire({ title: '已移回待審核', text: res.message, icon: 'success',
+                                        confirmButtonColor: '#1abb9c', timer: 2000, timerProgressBar: true })
+                                .then(() => location.reload());
+                        } else {
+                            Swal.fire({ title: '操作失敗', text: res.message, icon: 'error', confirmButtonColor: '#e53e3e' });
+                        }
+                    }).catch(() => Swal.fire({ title: '連線錯誤', text: '請稍後再試。', icon: 'error' }));
+                });
+            };
 
             document.addEventListener('DOMContentLoaded', function () {
                 if (window.location.hash === '#rejectedTab') {

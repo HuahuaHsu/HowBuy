@@ -7,8 +7,8 @@ namespace ISpanShop.Repositories.Interfaces
     {
         IEnumerable<CategorySpecDto> GetAll();
         CategorySpecDto? GetById(int id);
-        void Create(string name, string inputType, bool isRequired, int sortOrder, List<string> options);
-        void Update(int id, string name, string inputType, bool isRequired, int sortOrder, List<string> options);
+        void Create(string name, string inputType, bool isRequired, bool allowCustomInput, int sortOrder, List<string> options);
+        void Update(int id, string name, string inputType, bool isRequired, bool allowCustomInput, int sortOrder, List<string> options);
         void Delete(int id);
         void UpdateIsActive(int id, bool isActive);
         List<int> GetBoundAttributeIds(int categoryId);

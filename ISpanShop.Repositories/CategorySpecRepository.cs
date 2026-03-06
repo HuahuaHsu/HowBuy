@@ -27,13 +27,14 @@ namespace ISpanShop.Repositories
 
             return specs.Select(s => new CategorySpecDto
             {
-                Id         = s.Id,
-                Name       = s.Name,
-                InputType  = s.InputType,
-                IsRequired = s.IsRequired,
-                SortOrder  = s.SortOrder,
-                IsActive   = s.IsActive,
-                Options    = allOptions
+                Id               = s.Id,
+                Name             = s.Name,
+                InputType        = s.InputType,
+                IsRequired       = s.IsRequired,
+                AllowCustomInput = s.AllowCustomInput,
+                SortOrder        = s.SortOrder,
+                IsActive         = s.IsActive,
+                Options          = allOptions
                     .Where(o => o.CategorySpecId == s.Id)
                     .OrderBy(o => o.SortOrder)
                     .Select(o => o.OptionName)
@@ -53,13 +54,14 @@ namespace ISpanShop.Repositories
 
             return new CategorySpecDto
             {
-                Id         = s.Id,
-                Name       = s.Name,
-                InputType  = s.InputType,
-                IsRequired = s.IsRequired,
-                SortOrder  = s.SortOrder,
-                IsActive   = s.IsActive,
-                Options    = _db.CategorySpecOptions
+                Id               = s.Id,
+                Name             = s.Name,
+                InputType        = s.InputType,
+                IsRequired       = s.IsRequired,
+                AllowCustomInput = s.AllowCustomInput,
+                SortOrder        = s.SortOrder,
+                IsActive         = s.IsActive,
+                Options          = _db.CategorySpecOptions
                     .Where(o => o.CategorySpecId == id)
                     .OrderBy(o => o.SortOrder)
                     .Select(o => o.OptionName)
@@ -69,15 +71,16 @@ namespace ISpanShop.Repositories
 
         // ── 新增 ──
         public void Create(string name, string inputType, bool isRequired,
-                           int sortOrder, List<string> options)
+                           bool allowCustomInput, int sortOrder, List<string> options)
         {
             var spec = new CategorySpec
             {
-                Name       = name,
-                InputType  = inputType,
-                IsRequired = isRequired,
-                SortOrder  = sortOrder,
-                IsActive   = true
+                Name             = name,
+                InputType        = inputType,
+                IsRequired       = isRequired,
+                AllowCustomInput = allowCustomInput,
+                SortOrder        = sortOrder,
+                IsActive         = true
             };
             _db.CategorySpecs.Add(spec);
             _db.SaveChanges();
@@ -87,15 +90,16 @@ namespace ISpanShop.Repositories
 
         // ── 更新 ──
         public void Update(int id, string name, string inputType,
-                           bool isRequired, int sortOrder, List<string> options)
+                           bool isRequired, bool allowCustomInput, int sortOrder, List<string> options)
         {
             var spec = _db.CategorySpecs.FirstOrDefault(s => s.Id == id);
             if (spec == null) return;
 
-            spec.Name       = name;
-            spec.InputType  = inputType;
-            spec.IsRequired = isRequired;
-            spec.SortOrder  = sortOrder;
+            spec.Name             = name;
+            spec.InputType        = inputType;
+            spec.IsRequired       = isRequired;
+            spec.AllowCustomInput = allowCustomInput;
+            spec.SortOrder        = sortOrder;
 
             var old = _db.CategorySpecOptions.Where(o => o.CategorySpecId == id).ToList();
             _db.CategorySpecOptions.RemoveRange(old);
@@ -233,13 +237,14 @@ namespace ISpanShop.Repositories
                 var spec = specs.First(s => s.Id == m.CategorySpecId);
                 return new BoundSpecDetailDto
                 {
-                    SpecId       = m.CategorySpecId,
-                    Name         = spec.Name,
-                    InputType    = spec.InputType,
-                    IsRequired   = spec.IsRequired,
-                    IsFilterable = m.IsFilterable,
-                    Sort         = m.Sort,
-                    Options      = options
+                    SpecId           = m.CategorySpecId,
+                    Name             = spec.Name,
+                    InputType        = spec.InputType,
+                    IsRequired       = spec.IsRequired,
+                    AllowCustomInput = spec.AllowCustomInput,
+                    IsFilterable     = m.IsFilterable,
+                    Sort             = m.Sort,
+                    Options          = options
                         .Where(o => o.CategorySpecId == m.CategorySpecId)
                         .Select(o => o.OptionName)
                         .ToList()

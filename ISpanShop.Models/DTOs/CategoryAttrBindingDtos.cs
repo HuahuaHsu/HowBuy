@@ -14,6 +14,7 @@ namespace ISpanShop.Models.DTOs
         public string InputType    { get; set; } = string.Empty;
         public bool   IsRequired   { get; set; }
         public bool   IsFilterable { get; set; }
+        public bool   AllowCustomInput { get; set; }
         public int    Sort         { get; set; }
         public List<string> Options { get; set; } = new();
     }
@@ -36,20 +37,22 @@ namespace ISpanShop.Models.DTOs
 
     public class CreateSpecAjaxDto
     {
-        public string       Name       { get; set; } = string.Empty;
-        public string       InputType  { get; set; } = "text";
-        public bool         IsRequired { get; set; }
-        public int          SortOrder  { get; set; }
-        public List<string>? Options   { get; set; }
+        public string       Name            { get; set; } = string.Empty;
+        public string       InputType       { get; set; } = "text";
+        public bool         IsRequired      { get; set; }
+        public bool         AllowCustomInput { get; set; }
+        public int          SortOrder       { get; set; }
+        public List<string>? Options        { get; set; }
     }
 
     public class EditSpecAjaxDto
     {
-        public int          Id         { get; set; }
-        public string       Name       { get; set; } = string.Empty;
-        public string       InputType  { get; set; } = "text";
-        public bool         IsRequired { get; set; }
-        public int          SortOrder  { get; set; }
-        public List<string>? Options   { get; set; }
+        public int          Id              { get; set; }
+        public string       Name            { get; set; } = string.Empty;
+        public string       InputType       { get; set; } = "text";
+        public bool         IsRequired      { get; set; }
+        public bool         AllowCustomInput { get; set; }
+        public int          SortOrder       { get; set; }
+        public List<string>? Options        { get; set; }
     }
 }

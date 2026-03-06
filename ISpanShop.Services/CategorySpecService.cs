@@ -23,16 +23,16 @@ namespace ISpanShop.Services
             return _categorySpecRepository.GetById(id);
         }
 
-        public void Create(string name, string inputType, bool isRequired, int sortOrder, List<string> options)
+        public void Create(string name, string inputType, bool isRequired, bool allowCustomInput, int sortOrder, List<string> options)
         {
             var cleanOptions = NeedsOptions(inputType) ? options : new List<string>();
-            _categorySpecRepository.Create(name, inputType, isRequired, sortOrder, cleanOptions);
+            _categorySpecRepository.Create(name, inputType, isRequired, allowCustomInput, sortOrder, cleanOptions);
         }
 
-        public void Update(int id, string name, string inputType, bool isRequired, int sortOrder, List<string> options)
+        public void Update(int id, string name, string inputType, bool isRequired, bool allowCustomInput, int sortOrder, List<string> options)
         {
             var cleanOptions = NeedsOptions(inputType) ? options : new List<string>();
-            _categorySpecRepository.Update(id, name, inputType, isRequired, sortOrder, cleanOptions);
+            _categorySpecRepository.Update(id, name, inputType, isRequired, allowCustomInput, sortOrder, cleanOptions);
         }
 
         public void Delete(int id)

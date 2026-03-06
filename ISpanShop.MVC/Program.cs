@@ -91,6 +91,14 @@ namespace ISpanShop.MVC
 					)
 					ALTER TABLE CategorySpecMappings ADD Sort INT NOT NULL DEFAULT 0");
 
+				// 確保 CategorySpecs 資料表有 AllowCustomInput 欄位（允許賣家自填選項）
+				await context.Database.ExecuteSqlRawAsync(@"
+					IF NOT EXISTS (
+						SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+						WHERE TABLE_NAME = 'CategorySpecs' AND COLUMN_NAME = 'AllowCustomInput'
+					)
+					ALTER TABLE CategorySpecs ADD AllowCustomInput BIT NOT NULL DEFAULT 0");
+
 				// 清除歷史資料中被錯誤加上的 [待審核] 名稱前綴
 				await context.Database.ExecuteSqlRawAsync(@"
 					UPDATE Products

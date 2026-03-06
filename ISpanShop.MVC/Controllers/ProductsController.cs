@@ -230,6 +230,25 @@ namespace ISpanShop.MVC.Controllers
         }
 
         /// <summary>
+        /// [AJAX] 重新審核 - 將已退回商品 (Status=3) 的狀態重設為待審核 (Status=2)
+        /// </summary>
+        [HttpPost]
+        public IActionResult UndoReject([FromBody] RejectDto dto)
+        {
+            if (dto == null || dto.Id <= 0)
+                return Json(new { success = false, message = "無效的請求資料。" });
+            try
+            {
+                _productService.ChangeProductStatus(dto.Id, 2);
+                return Json(new { success = true, message = "商品已移回待審核佇列。" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"操作失敗：{ex.Message}" });
+            }
+        }
+
+        /// <summary>
         /// [AJAX] 根據主分類取得對應子分類清單，供篩選器連動使用
         /// </summary>
         /// <param name="parentId">主分類 ID</param>

@@ -110,6 +110,7 @@ namespace ISpanShop.MVC.Controllers
                 vm.Name,
                 vm.InputType,
                 vm.IsRequired,
+                vm.AllowCustomInput,
                 vm.SortOrder,
                 vm.Options
             );
@@ -125,12 +126,13 @@ namespace ISpanShop.MVC.Controllers
 
             var vm = new CategorySpecEditVm
             {
-                Id         = dto.Id,
-                Name       = dto.Name,
-                InputType  = dto.InputType,
-                IsRequired = dto.IsRequired,
-                SortOrder  = dto.SortOrder,
-                Options    = dto.Options
+                Id               = dto.Id,
+                Name             = dto.Name,
+                InputType        = dto.InputType,
+                IsRequired       = dto.IsRequired,
+                AllowCustomInput = dto.AllowCustomInput,
+                SortOrder        = dto.SortOrder,
+                Options          = dto.Options
             };
 
             return View(vm);
@@ -147,6 +149,7 @@ namespace ISpanShop.MVC.Controllers
                 vm.Name,
                 vm.InputType,
                 vm.IsRequired,
+                vm.AllowCustomInput,
                 vm.SortOrder,
                 vm.Options
             );
@@ -211,7 +214,7 @@ namespace ISpanShop.MVC.Controllers
                 return Json(new { success = false, message = "屬性名稱為必填" });
 
             _categorySpecService.Create(dto.Name, dto.InputType, dto.IsRequired,
-                                        dto.SortOrder, dto.Options ?? new List<string>());
+                                        dto.AllowCustomInput, dto.SortOrder, dto.Options ?? new List<string>());
 
             var newSpec = _categorySpecService.GetAll()
                 .Where(s => s.Name == dto.Name)
@@ -228,7 +231,7 @@ namespace ISpanShop.MVC.Controllers
             if (dto == null) return Json(new { success = false });
 
             _categorySpecService.Update(dto.Id, dto.Name, dto.InputType, dto.IsRequired,
-                                        dto.SortOrder, dto.Options ?? new List<string>());
+                                        dto.AllowCustomInput, dto.SortOrder, dto.Options ?? new List<string>());
             return Json(new { success = true });
         }
 

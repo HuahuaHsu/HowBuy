@@ -268,6 +268,13 @@
                         <input class="form-check-input" type="checkbox" id="createIsRequired">
                         <label class="form-check-label fw-medium" for="createIsRequired">此屬性為必填</label>
                     </div>
+                    <div class="form-check mt-2 d-none" id="createAllowCustomSection">
+                        <input class="form-check-input" type="checkbox" id="createAllowCustomInput">
+                        <label class="form-check-label fw-medium" for="createAllowCustomInput">
+                            允許使用者自填選項
+                            <span class="text-muted small fw-normal ms-1">（賣家可輸入不在清單中的選項）</span>
+                        </label>
+                    </div>
                 </div>
                 <div class="mb-1">
                     <label class="form-label fw-medium">排序值</label>
@@ -352,6 +359,13 @@
                         <input class="form-check-input" type="checkbox" id="editIsRequired">
                         <label class="form-check-label fw-medium" for="editIsRequired">此屬性為必填</label>
                     </div>
+                    <div class="form-check mt-2 d-none" id="editAllowCustomSection">
+                        <input class="form-check-input" type="checkbox" id="editAllowCustomInput">
+                        <label class="form-check-label fw-medium" for="editAllowCustomInput">
+                            允許使用者自填選項
+                            <span class="text-muted small fw-normal ms-1">（賣家可輸入不在清單中的選項）</span>
+                        </label>
+                    </div>
                 </div>
                 <div class="mb-1">
                     <label class="form-label fw-medium">排序值</label>
@@ -376,12 +390,13 @@
 <script>
 // ── 初始資料（Server 序列化）─────────────────────
 const allSpecsData = @Html.Raw(JsonSerializer.Serialize(allSpecs.Select(s => new {
-    id         = s.Id,
-    name       = s.Name,
-    inputType  = s.InputType,
-    isRequired = s.IsRequired,
-    sortOrder  = s.SortOrder,
-    options    = s.Options
+    id               = s.Id,
+    name             = s.Name,
+    inputType        = s.InputType,
+    isRequired       = s.IsRequired,
+    allowCustomInput = s.AllowCustomInput,
+    sortOrder        = s.SortOrder,
+    options          = s.Options
 })));
 
 const _bindingPairs = @Html.Raw(JsonSerializer.Serialize(
@@ -569,12 +584,14 @@ async function confirmBind() {
 
 // ── 新增屬性 Modal ────────────────────────────────
 function openCreateAttrModal() {
-    document.getElementById('createAttrName').value     = '';
-    document.getElementById('createInputType').value    = 'text';
-    document.getElementById('createIsRequired').checked = false;
-    document.getElementById('createSortOrder').value    = '0';
-    document.getElementById('createOptions').innerHTML  = '';
+    document.getElementById('createAttrName').value          = '';
+    document.getElementById('createInputType').value         = 'text';
+    document.getElementById('createIsRequired').checked      = false;
+    document.getElementById('createAllowCustomInput').checked = false;
+    document.getElementById('createSortOrder').value         = '0';
+    document.getElementById('createOptions').innerHTML       = '';
     document.getElementById('createOptionsSection').classList.add('d-none');
+    document.getElementById('createAllowCustomSection').classList.add('d-none');
     document.getElementById('createAttrName').classList.remove('is-invalid');
     new bootstrap.Modal(document.getElementById('createModal')).show();
 }
@@ -582,6 +599,7 @@ function openCreateAttrModal() {
 function onCreateTypeChange() {
     const needs = needsOptions(document.getElementById('createInputType').value);
     document.getElementById('createOptionsSection').classList.toggle('d-none', !needs);
+    document.getElementById('createAllowCustomSection').classList.toggle('d-none', !needs);
 }
 
 async function saveCreateAttr() {
@@ -591,10 +609,11 @@ async function saveCreateAttr() {
 
     const payload = {
         name,
-        inputType : document.getElementById('createInputType').value,
-        isRequired: document.getElementById('createIsRequired').checked,
-        sortOrder : +document.getElementById('createSortOrder').value || 0,
-        options   : getOpts('createOptions')
+        inputType       : document.getElementById('createInputType').value,
+        isRequired      : document.getElementById('createIsRequired').checked,
+        allowCustomInput: document.getElementById('createAllowCustomInput').checked,
+        sortOrder       : +document.getElementById('createSortOrder').value || 0,
+        options         : getOpts('createOptions')
     };
     const data = await post('/CategorySpecs/CreateAjax', payload);
     if (data.success) {
@@ -608,33 +627,37 @@ async function saveCreateAttr() {
 function openEditAttrModal(id) {
     const s = allSpecsData.find(x => x.id === id);
     if (!s) return;
-    document.getElementById('editAttrId').value         = id;
-    document.getElementById('editAttrName').value       = s.name;
-    document.getElementById('editInputType').value      = s.inputType;
-    document.getElementById('editIsRequired').checked   = s.isRequired;
-    document.getElementById('editSortOrder').value      = s.sortOrder;
+    document.getElementById('editAttrId').value              = id;
+    document.getElementById('editAttrName').value            = s.name;
+    document.getElementById('editInputType').value           = s.inputType;
+    document.getElementById('editIsRequired').checked        = s.isRequired;
+    document.getElementById('editAllowCustomInput').checked  = s.allowCustomInput;
+    document.getElementById('editSortOrder').value           = s.sortOrder;
     const needs = needsOptions(s.inputType);
     document.getElementById('editOptionsSection').classList.toggle('d-none', !needs);
+    document.getElementById('editAllowCustomSection').classList.toggle('d-none', !needs);
     document.getElementById('editOptions').innerHTML =
         (s.options || []).map(o => optRow(o, 'editOptions')).join('');
     new bootstrap.Modal(document.getElementById('editModal')).show();
 }
 
 function onEditTypeChange() {
-    document.getElementById('editOptionsSection').classList.toggle('d-none',
-        !needsOptions(document.getElementById('editInputType').value));
+    const needs = needsOptions(document.getElementById('editInputType').value);
+    document.getElementById('editOptionsSection').classList.toggle('d-none', !needs);
+    document.getElementById('editAllowCustomSection').classList.toggle('d-none', !needs);
 }
 
 async function saveEditAttr() {
     const name = document.getElementById('editAttrName').value.trim();
     if (!name) return;
     const data = await post('/CategorySpecs/EditAjax', {
-        id        : +document.getElementById('editAttrId').value,
+        id              : +document.getElementById('editAttrId').value,
         name,
-        inputType : document.getElementById('editInputType').value,
-        isRequired: document.getElementById('editIsRequired').checked,
-        sortOrder : +document.getElementById('editSortOrder').value || 0,
-        options   : getOpts('editOptions')
+        inputType       : document.getElementById('editInputType').value,
+        isRequired      : document.getElementById('editIsRequired').checked,
+        allowCustomInput: document.getElementById('editAllowCustomInput').checked,
+        sortOrder       : +document.getElementById('editSortOrder').value || 0,
+        options         : getOpts('editOptions')
     });
     if (data.success) {
         bootstrap.Modal.getInstance(document.getElementById('editModal'))?.hide();

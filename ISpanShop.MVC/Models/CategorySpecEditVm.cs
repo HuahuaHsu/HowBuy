@@ -33,6 +33,11 @@ namespace ISpanShop.Models.ViewModels
 		public bool IsRequired { get; set; } = false;
 
 		/// <summary>
+		/// 允許賣家在預設選項清單外自行輸入選項（僅適用於 select/checkbox/radio 類型）
+		/// </summary>
+		public bool AllowCustomInput { get; set; } = false;
+
+		/// <summary>
 		/// 排序順序（數字越小越前面）
 		/// </summary>
 		public int SortOrder { get; set; } = 0;
