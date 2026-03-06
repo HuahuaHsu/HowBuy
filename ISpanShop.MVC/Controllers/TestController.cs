@@ -16,8 +16,7 @@ namespace ISpanShop.Controllers
 
 		public IActionResult Index()
 		{
-			// 這一行是關鍵！它會試著去連資料庫
-			// 如果成功，會回傳 true；如果失敗，程式會直接報錯
+			//測試連線
 			bool isConnected = _context.Database.CanConnect();
 
 			if (isConnected)
