@@ -32,6 +32,13 @@ namespace ISpanShop.MVC
 			builder.Services.AddScoped<ICategoryManageRepository, CategoryManageRepository>();
 			builder.Services.AddScoped<CategoryManageService>();
 
+			// 註冊倉儲層 (Repositories)
+			builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+
+			// 註冊服務層 (Services)
+			builder.Services.AddScoped<IOrderService, OrderService>();
+
+
 			var app = builder.Build();
 
 			// Configure the HTTP request pipeline.
