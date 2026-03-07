@@ -3,53 +3,75 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - ISpanShop.MVC</title>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/ISpanShop.MVC.styles.css" asp-append-version="true" />
-    @* <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>  *@
+    <title>@ViewData["Title"] - ISpanShop 後台管理</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
-<body class="bg-gray-50 h-screen flex overflow-hidden text-gray-800>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">ISpanShop.MVC</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-                        </li>
-                        
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Users" asp-action="Index">所有使用者</a>
-                        </li>
-                    </ul>
+<body class="bg-gray-50 h-screen flex overflow-hidden text-gray-800 font-sans">
+
+    <aside class="w-64 bg-slate-800 text-white flex flex-col transition-all duration-300">
+        <div class="h-16 flex items-center justify-center border-b border-slate-700">
+            <i data-lucide="shopping-bag" class="mr-2 text-blue-400"></i>
+            <span class="text-xl font-bold tracking-wider">ISpanShop Admin</span>
+        </div>
+
+        <nav class="flex-1 overflow-y-auto py-4">
+            <div class="px-4 mb-2 text-xs text-slate-400 uppercase tracking-wider">管理模組</div>
+
+            @{
+                string currentController = ViewContext.RouteData.Values["Controller"]?.ToString();
+                string currentAction = ViewContext.RouteData.Values["Action"]?.ToString();
+
+                // 定義樣式：選中 vs 未選中
+                string activeClass = "bg-slate-700 text-white border-blue-500";
+                string inactiveClass = "text-slate-300 hover:bg-slate-700 hover:text-white border-transparent";
+            }
+
+            <a asp-controller="Member" asp-action="Index"
+               class="flex items-center px-6 py-3 border-l-4 transition-colors @(currentController == "Member" ? activeClass : inactiveClass)">
+                <i data-lucide="users" class="w-5 h-5 mr-3"></i> 會員管理
+            </a>
+
+            <a asp-controller="Admin" asp-action="Index"
+               class="flex items-center px-6 py-3 border-l-4 transition-colors @(currentController == "Admin" ? activeClass : inactiveClass)">
+                <i data-lucide="shield-check" class="w-5 h-5 mr-3"></i> 權限管理
+            </a>
+
+        </nav>
+
+        <div class="p-4 border-t border-slate-700">
+            <div class="flex items-center">
+                <img src="https://ui-avatars.com/api/?name=Admin&background=0D8ABC&color=fff" alt="Avatar" class="w-8 h-8 rounded-full mr-3">
+                <div>
+                    <div class="text-sm font-medium">管理員</div>
+                    <div class="text-xs text-slate-400">admin@ispanshop.com</div>
                 </div>
             </div>
-        </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
-
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - ISpanShop.MVC - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
         </div>
-    </footer>
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
+    </aside>
+
+    <main class="flex-1 flex flex-col h-screen overflow-hidden">
+        <header class="h-16 bg-white shadow-sm flex items-center justify-between px-6 z-10">
+            <h2 class="text-xl font-semibold text-gray-800">@ViewData["Title"]</h2>
+            <div class="flex items-center space-x-4">
+                <button class="text-gray-500 hover:text-blue-600"><i data-lucide="bell"></i></button>
+                <a asp-controller="Home" asp-action="Index" class="text-sm text-gray-500 hover:text-blue-600">回前台</a>
+                <form asp-controller="Account" asp-action="Logout" method="post" class="inline">
+                    <button type="submit" class="px-4 py-2 text-sm text-red-600 border border-red-200 rounded hover:bg-red-50 transition-colors">登出</button>
+                </form>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-auto p-6 bg-gray-50">
+            @RenderBody()
+        </div>
+    </main>
+
+    <script>
+        lucide.createIcons();
+    </script>
+
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
