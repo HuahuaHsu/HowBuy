@@ -1,9 +1,13 @@
-using ISpanShop.Models.EfModels;
-using ISpanShop.Repositories;
-using ISpanShop.Repositories.Interfaces;
-using ISpanShop.Services;
-using ISpanShop.Services.Interfaces;
+﻿using ISpanShop.Models.EfModels;
+using ISpanShop.MVC.Middleware;
+using ISpanShop.Repositories.Products;
+using ISpanShop.Repositories.Categories;
+using ISpanShop.Repositories.Inventories;
+using ISpanShop.Services.Products;
+using ISpanShop.Services.Categories;
+using ISpanShop.Services.Inventories;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
 
 namespace ISpanShop.MVC
 {
@@ -35,6 +39,29 @@ namespace ISpanShop.MVC
 			builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
 			builder.Services.AddScoped<IInventoryService, InventoryService>();
 
+			// ── CORS（開發階段允許所有來源，上線前請指定前台網域）──
+			builder.Services.AddCors(options =>
+			{
+				options.AddPolicy("FrontendPolicy", policy =>
+				{
+					policy.AllowAnyOrigin()
+					      .AllowAnyMethod()
+					      .AllowAnyHeader();
+				});
+			});
+
+			// ── Swagger / OpenAPI ──
+			builder.Services.AddEndpointsApiExplorer();
+			builder.Services.AddSwaggerGen(c =>
+			{
+				c.SwaggerDoc("v1", new OpenApiInfo
+				{
+					Title       = "ISpanShop 前台 API",
+					Version     = "v1",
+					Description = "ISpanShop 電商平台前台 RESTful API"
+				});
+			});
+
 			var app = builder.Build();
 
 			// Configure the HTTP request pipeline.
@@ -50,7 +77,28 @@ namespace ISpanShop.MVC
 
 			app.UseRouting();
 
+			// ── 全域例外處理（放在 Routing 之後，授權之前）──
+			app.UseMiddleware<ExceptionHandlingMiddleware>();
+
+			// ── CORS ──
+			app.UseCors("FrontendPolicy");
+
+			// ── Swagger UI（僅開發環境）──
+			if (app.Environment.IsDevelopment())
+			{
+				app.UseSwagger();
+				app.UseSwaggerUI(c =>
+				{
+					c.SwaggerEndpoint("/swagger/v1/swagger.json", "ISpanShop 前台 API v1");
+				});
+			}
+
 			app.UseAuthorization();
+
+			// ── Area 路由（後台 MVC，必須在 default 之前）──
+			app.MapControllerRoute(
+				name: "areas",
+				pattern: "{area:exists}/{controller=Home}/{action=Index}/{id?}");
 
 			app.MapControllerRoute(
 				name: "default",
@@ -74,6 +122,28 @@ namespace ISpanShop.MVC
 						WHERE TABLE_NAME = 'Products' AND COLUMN_NAME = 'IsDeleted'
 					)
 					ALTER TABLE Products ADD IsDeleted BIT NOT NULL DEFAULT 0");
+
+				// 確保 Products 審核機制欄位存在（ReviewStatus, ReviewedBy, RejectDate）
+				await context.Database.ExecuteSqlRawAsync(@"
+					IF NOT EXISTS (
+						SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+						WHERE TABLE_NAME = 'Products' AND COLUMN_NAME = 'ReviewStatus'
+					)
+					ALTER TABLE Products ADD ReviewStatus INT NOT NULL DEFAULT 0");
+
+				await context.Database.ExecuteSqlRawAsync(@"
+					IF NOT EXISTS (
+						SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+						WHERE TABLE_NAME = 'Products' AND COLUMN_NAME = 'ReviewedBy'
+					)
+					ALTER TABLE Products ADD ReviewedBy NVARCHAR(100) NULL");
+
+				await context.Database.ExecuteSqlRawAsync(@"
+					IF NOT EXISTS (
+						SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+						WHERE TABLE_NAME = 'Products' AND COLUMN_NAME = 'RejectDate'
+					)
+					ALTER TABLE Products ADD RejectDate DATETIME NULL");
 
 				// 確保 Categories 資料表有 NameEn 欄位（英文名稱）
 				await context.Database.ExecuteSqlRawAsync(@"

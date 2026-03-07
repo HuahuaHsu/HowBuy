@@ -1,8 +1,10 @@
-using ISpanShop.Models.EfModels;
-using ISpanShop.Repositories;
-using ISpanShop.Repositories.Interfaces;
-using ISpanShop.Services;
-using ISpanShop.Services.Interfaces;
+﻿using ISpanShop.Models.EfModels;
+using ISpanShop.Repositories.Products;
+using ISpanShop.Repositories.Categories;
+using ISpanShop.Repositories.Inventories;
+using ISpanShop.Services.Products;
+using ISpanShop.Services.Categories;
+using ISpanShop.Services.Inventories;
 using ISpanShop.WebAPI.Middleware;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;

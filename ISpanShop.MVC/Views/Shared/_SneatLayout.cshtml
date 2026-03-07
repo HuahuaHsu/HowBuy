@@ -594,17 +594,17 @@
                     <div class="menu-sub">
                         <ul>
                             <li class="menu-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Products" && ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")">
-                                <a href="@Url.Action("Index", "Products")" class="menu-link">商品總覽</a>
+                                <a href="@Url.Action("Index", "Products", new { area = "Admin" })" class="menu-link">商品總覽</a>
                             </li>
                             <li class="menu-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Products" && ViewContext.RouteData.Values["action"]?.ToString() == "PendingReview" ? "active" : "")">
-                                <a href="@Url.Action("PendingReview", "Products")" class="menu-link">商品審核</a>
+                                <a href="@Url.Action("PendingReview", "Products", new { area = "Admin" })" class="menu-link">商品審核</a>
                             </li>
                         </ul>
                     </div>
                     <div class="menu-flyout">
                         <div class="menu-flyout-title">商品監管</div>
-                        <a href="@Url.Action("Index", "Products")">商品總覽</a>
-                        <a href="@Url.Action("PendingReview", "Products")">商品審核</a>
+                        <a href="@Url.Action("Index", "Products", new { area = "Admin" })">商品總覽</a>
+                        <a href="@Url.Action("PendingReview", "Products", new { area = "Admin" })">商品審核</a>
                     </div>
                 </li>
 
@@ -621,17 +621,17 @@
                     <div class="menu-sub">
                         <ul>
                             <li class="menu-item @(catCtrl == "CategoryManage" ? "active" : "")">
-                                <a href="@Url.Action("Index", "CategoryManage")" class="menu-link">分類總覽</a>
+                                <a href="@Url.Action("Index", "CategoryManage", new { area = "Admin" })" class="menu-link">分類總覽</a>
                             </li>
                             <li class="menu-item @(catCtrl == "CategorySpecs" ? "active" : "")">
-                                <a href="@Url.Action("Index", "CategorySpecs")" class="menu-link">分類屬性</a>
+                                <a href="@Url.Action("Index", "CategorySpecs", new { area = "Admin" })" class="menu-link">分類屬性</a>
                             </li>
                         </ul>
                     </div>
                     <div class="menu-flyout">
                         <div class="menu-flyout-title">分類管理</div>
-                        <a href="@Url.Action("Index", "CategoryManage")">分類總覽</a>
-                        <a href="@Url.Action("Index", "CategorySpecs")">分類屬性</a>
+                        <a href="@Url.Action("Index", "CategoryManage", new { area = "Admin" })">分類總覽</a>
+                        <a href="@Url.Action("Index", "CategorySpecs", new { area = "Admin" })">分類屬性</a>
                     </div>
                 </li>
 
@@ -648,13 +648,13 @@
                     <div class="menu-sub">
                         <ul>
                             <li class="menu-item @(isInvActive && ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")">
-                                <a href="@Url.Action("Index", "Inventory")" class="menu-link">庫存監控</a>
+                                <a href="@Url.Action("Index", "Inventory", new { area = "Admin" })" class="menu-link">庫存監控</a>
                             </li>
                         </ul>
                     </div>
                     <div class="menu-flyout">
                         <div class="menu-flyout-title">庫存監控</div>
-                        <a href="@Url.Action("Index", "Inventory")">庫存監控</a>
+                        <a href="@Url.Action("Index", "Inventory", new { area = "Admin" })">庫存監控</a>
                     </div>
                 </li>
 

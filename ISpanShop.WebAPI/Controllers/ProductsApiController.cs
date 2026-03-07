@@ -1,7 +1,8 @@
-using Microsoft.AspNetCore.Mvc;
-using ISpanShop.Models.DTOs;
-using ISpanShop.Services;
-using ISpanShop.Services.Interfaces;
+﻿using Microsoft.AspNetCore.Mvc;
+using ISpanShop.Models.DTOs.Products;
+using ISpanShop.Services.Products;
+using ISpanShop.Services.Categories;
+using ISpanShop.Services.Inventories;
 
 namespace ISpanShop.WebAPI.Controllers
 {

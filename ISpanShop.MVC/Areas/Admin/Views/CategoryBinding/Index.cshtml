@@ -1,0 +1,194 @@
+﻿@model IEnumerable<ISpanShop.Models.DTOs.Categories.CategoryDto>
+@{
+    Layout = "~/Views/Shared/_SneatLayout.cshtml";
+    ViewData["Title"] = "分類屬性綁定";
+    var parents  = Model.Where(c => c.ParentId == null).ToList();
+    var children = Model.Where(c => c.ParentId != null).ToList();
+}
+
+<style>
+.two-panel { display:flex; gap:16px; height:calc(100vh - 170px); }
+.left-panel { width:300px; flex-shrink:0; border:none; border-radius:12px; box-shadow:0 2px 12px rgba(0,0,0,.08); display:flex; flex-direction:column; background:white; overflow:hidden; }
+.right-panel { flex:1; border:none; border-radius:12px; box-shadow:0 2px 12px rgba(0,0,0,.08); display:flex; flex-direction:column; background:white; overflow:hidden; }
+.panel-head { padding:14px 18px; font-weight:700; font-size:.9rem; background:#f8f9fc; border-bottom:1px solid #eee; flex-shrink:0; }
+.panel-scroll { flex:1; overflow-y:auto; }
+.search-inp { width:100%; border:none; border-bottom:1px solid #eee; padding:9px 16px; font-size:.85rem; outline:none; background:#fafafa; }
+.cat-group { padding:6px 14px; font-size:.72rem; font-weight:700; color:#999; letter-spacing:.6px; background:#f4f4f4; border-bottom:1px solid #eee; text-transform:uppercase; }
+.cat-item { padding:10px 18px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #f2f2f2; font-size:.88rem; transition:background .12s; }
+.cat-item:hover { background:#f0f7ff; }
+.cat-item.active { background:#e8f0fe; border-left:3px solid #1a73e8; font-weight:600; color:#1a73e8; }
+.cnt-badge { font-size:.72rem; background:#1a73e8; color:white; border-radius:10px; padding:2px 7px; min-width:20px; text-align:center; }
+.cnt-badge.zero { background:#ddd; color:#999; }
+.spec-card { border:1px solid #e8e8e8; border-radius:10px; padding:14px 16px; margin-bottom:10px; cursor:pointer; transition:all .18s; }
+.spec-card:hover { border-color:#1a73e8; box-shadow:0 2px 8px rgba(26,115,232,.1); }
+.spec-card.on { border-left:4px solid #34a853; background:#f0faf4; border-color:#34a853; }
+.spec-name { font-weight:700; font-size:.92rem; }
+.opt-tag { display:inline-block; background:#e3f0ff; color:#1a6cc4; padding:2px 8px; border-radius:10px; font-size:.75rem; margin:2px; }
+.type-badge { font-size:.73rem; padding:2px 8px; border-radius:10px; }
+.t-select { background:#1a73e8; color:white; }
+.t-text { background:#9e9e9e; color:white; }
+.t-checkbox { background:#ff9800; color:white; }
+.t-radio { background:#9c27b0; color:white; }
+.empty-hint { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:#bbb; gap:8px; }
+.save-bar { padding:12px 16px; border-top:1px solid #eee; background:white; flex-shrink:0; }
+#toast { position:fixed; top:22px; right:22px; z-index:9999; display:none; background:#323232; color:white; padding:11px 22px; border-radius:10px; font-size:.86rem; box-shadow:0 4px 16px rgba(0,0,0,.22); }
+</style>
+
+<div class="d-flex align-items-center mb-3">
+    <div>
+        <h4 class="fw-bold mb-0">分類屬性綁定</h4>
+        <small class="text-muted">從左側選擇分類，再勾選該分類需要的規格</small>
+    </div>
+</div>
+
+<div class="two-panel">
+    <!-- 左側分類列表 -->
+    <div class="left-panel">
+        <div class="panel-head">📂 選擇分類</div>
+        <input class="search-inp" id="srch" placeholder="搜尋分類...">
+        <div class="panel-scroll" id="catList">
+            @foreach (var p in parents)
+            {
+                var subs = children.Where(c => c.ParentId == p.Id).ToList();
+                if (subs.Any())
+                {
+                    <div class="cat-group">@p.Name</div>
+                    @foreach (var s in subs)
+                    {
+                        <div class="cat-item" data-id="@s.Id" data-name="@s.Name" onclick="pickCat(this)">
+                            <span>@s.Name</span>
+                            <span class="cnt-badge zero" id="cnt-@s.Id">0</span>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="cat-item" data-id="@p.Id" data-name="@p.Name" onclick="pickCat(this)">
+                        <span>@p.Name</span>
+                        <span class="cnt-badge zero" id="cnt-@p.Id">0</span>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+
+    <!-- 右側規格設定 -->
+    <div class="right-panel">
+        <div class="panel-head" id="rTitle">規格設定</div>
+        <div class="panel-scroll" id="rBody">
+            <div class="empty-hint">
+                <div style="font-size:2.2rem">👈</div>
+                <div>請先從左側選擇一個分類</div>
+            </div>
+        </div>
+        <div class="save-bar d-none" id="saveBar">
+            <button class="btn btn-primary px-4" id="saveBtn" onclick="save()">
+                💾 儲存此分類的規格設定
+            </button>
+            <small class="text-muted ms-3" id="saveHint"></small>
+        </div>
+    </div>
+</div>
+
+<div id="toast"></div>
+
+@section Scripts {
+<script>
+let curCatId = null;
+
+// 搜尋
+document.getElementById('srch').oninput = function(){
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('#catList .cat-item').forEach(el=>{
+        el.style.display = el.dataset.name.toLowerCase().includes(q)?'':'none';
+    });
+};
+
+// 點選分類
+function pickCat(el){
+    document.querySelectorAll('.cat-item').forEach(i=>i.classList.remove('active'));
+    el.classList.add('active');
+    curCatId = +el.dataset.id;
+    document.getElementById('rTitle').textContent = '📋 ' + el.dataset.name + ' 的規格設定';
+    document.getElementById('rBody').innerHTML = '<div class="empty-hint"><div>⏳</div><div>載入中...</div></div>';
+    document.getElementById('saveBar').classList.add('d-none');
+
+    fetch('/CategoryBinding/GetSpecsForCategory?categoryId=' + curCatId)
+        .then(r=>r.json())
+        .then(d=>{
+            renderSpecs(d.specs);
+            document.getElementById('saveBar').classList.remove('d-none');
+        })
+        .catch(()=>{ document.getElementById('rBody').innerHTML='<div class="empty-hint">載入失敗，請重試</div>'; });
+}
+
+// 渲染規格卡片
+function renderSpecs(specs){
+    const body = document.getElementById('rBody');
+    if(!specs||specs.length===0){
+        body.innerHTML='<div class="empty-hint"><div>尚無規格可設定</div><div style="font-size:.8rem;color:#ccc">請先到「分類屬性管理」新增規格</div></div>';
+        return;
+    }
+    const typeMap = {text:'文字輸入',select:'下拉選單',checkbox:'多選框',radio:'單選框'};
+    const clsMap  = {text:'t-text',select:'t-select',checkbox:'t-checkbox',radio:'t-radio'};
+    body.innerHTML = '<div style="padding:16px">' +
+        specs.map(s=>{
+            const opts = (s.options||[]).length>0
+                ? s.options.map(o=>'<span class="opt-tag">'+o+'</span>').join('')
+                : s.inputType==='text'
+                    ? '<span style="color:#aaa;font-size:.78rem">✏️ 自由輸入</span>'
+                    : '<span style="color:#ccc;font-size:.78rem">尚無選項</span>';
+            return `<div class="spec-card ${s.isBound?'on':''}" data-id="${s.attributeId}" onclick="toggle(this)">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <div class="spec-name">
+                        <input type="checkbox" ${s.isBound?'checked':''} style="width:15px;height:15px;margin-right:7px;vertical-align:middle" onclick="event.stopPropagation()">
+                        ${s.attributeName}
+                    </div>
+                    <div>
+                        <span class="type-badge ${clsMap[s.inputType]||''}">${typeMap[s.inputType]||s.inputType}</span>
+                        ${s.isRequired?'<span class="type-badge ms-1" style="background:#e8f5e9;color:#2e7d32">必填</span>':''}
+                    </div>
+                </div>
+                <div style="padding-left:22px">${opts}</div>
+            </div>`;
+        }).join('')
+    + '</div>';
+}
+
+// 勾選/取消
+function toggle(card){
+    card.classList.toggle('on');
+    card.querySelector('input[type=checkbox]').checked = card.classList.contains('on');
+    const n = document.querySelectorAll('.spec-card.on').length;
+    document.getElementById('saveHint').textContent = '已選 '+n+' 個規格';
+}
+
+// 儲存
+function save(){
+    const ids = [...document.querySelectorAll('.spec-card.on')].map(c=>+c.dataset.id);
+    const btn = document.getElementById('saveBtn');
+    btn.disabled=true; btn.textContent='儲存中...';
+
+    fetch('/CategoryBinding/SaveBindings',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({categoryId:curCatId, attributeIds:ids})
+    })
+    .then(r=>r.json())
+    .then(()=>{
+        btn.disabled=false; btn.textContent='💾 儲存此分類的規格設定';
+        const cnt = document.getElementById('cnt-'+curCatId);
+        if(cnt){ cnt.textContent=ids.length; cnt.className='cnt-badge'+(ids.length===0?' zero':''); }
+        toast('✅ 儲存成功！');
+    })
+    .catch(()=>{ btn.disabled=false; btn.textContent='💾 儲存此分類的規格設定'; toast('❌ 儲存失敗'); });
+}
+
+function toast(msg){
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.display = 'block';
+    setTimeout(()=>{ t.style.display='none'; }, 2800);
+}
+</script>
+}
