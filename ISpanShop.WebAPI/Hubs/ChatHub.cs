@@ -1,54 +1,49 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using System.Threading.Tasks;
 using System;
-using ISpanShop.Services; // 引用你的 Service 層
+using ISpanShop.Services;
 
 namespace ISpanShop.WebAPI.Hubs
 {
-	// 必須繼承 SignalR 的 Hub 類別
 	public class ChatHub : Hub
 	{
-		// 宣告我們剛剛寫好的 ChatService
 		private readonly IChatService _chatService;
 
-		// 透過依賴注入 (DI) 把 Service 帶進來
 		public ChatHub(IChatService chatService)
 		{
 			_chatService = chatService;
 		}
 
-		// 這個方法名稱 "SendPrivateMessage" 就是前端 JavaScript 要呼叫的名稱
-		public async Task SendPrivateMessage(int receiverId, string content, byte type)
+		// 整合後的發送方法：接收前端傳來的 myId
+		public async Task SendPrivateMessage(int myId, int receiverId, string content, byte type)
 		{
-			// 1. 取得當下發送者的 ID
-			// (實務上，使用者登入後 SignalR 會把 ID 放在 Context.UserIdentifier)
-			// 這裡我們先假設已經成功取得使用者的 ID
-			//int senderId = int.Parse(Context.UserIdentifier ?? "0");
-			int senderId = 1;
-
-			if (senderId == 0)
+			// 基本檢查：確保 ID 不是 0
+			if (myId == 0)
 			{
-				await Clients.Caller.SendAsync("ErrorMessage", "請先登入！");
+				await Clients.Caller.SendAsync("ErrorMessage", "請輸入有效的發送者 ID！");
 				return;
 			}
 
 			try
 			{
-				// 2. 呼叫 Service 執行核心邏輯 (包含：過濾髒話、存入 ChatMessages 資料庫)
-				await _chatService.SendMessageAsync(senderId, receiverId, content, type);
+				// 1. 執行存檔：這會將資料寫入 dbo.ChatMessages
+				// 對應你資料表的欄位：SenderId = myId, ReceiverId = receiverId
+				await _chatService.SendMessageAsync(myId, receiverId, content, type);
 
-				// 3. 發送成功後，透過 SignalR 即時推播訊息！
+				// 2. 即時推播給雙方
+				string timeString = DateTime.Now.ToString("HH:mm");
+
 				// 推播給接收者
-				await Clients.User(receiverId.ToString()).SendAsync("ReceiveMessage", senderId, content, type, DateTime.Now.ToString("HH:mm"));
+				await Clients.User(receiverId.ToString()).SendAsync("ReceiveMessage", myId, content, type, timeString);
 
-				// 也推播給發送者自己 (讓自己的對話框顯示剛剛發出的訊息)
-				await Clients.Caller.SendAsync("ReceiveMessage", senderId, content, type, DateTime.Now.ToString("HH:mm"));
+				// 推播給發送者 (自己)
+				await Clients.Caller.SendAsync("ReceiveMessage", myId, content, type, timeString);
 			}
 			catch (Exception ex)
 			{
-				// 把真正的 Exception 錯誤細節 (包含內部錯誤) 傳給前端，方便我們抓蟲.
+				// 抓取詳細錯誤 (例如 Foreign Key 衝突) 並回傳給網頁
 				string realError = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
-				await Clients.Caller.SendAsync("ErrorMessage", $"系統出錯啦：{realError}");
+				await Clients.Caller.SendAsync("ErrorMessage", $"資料庫寫入失敗：{realError}");
 			}
 		}
 	}

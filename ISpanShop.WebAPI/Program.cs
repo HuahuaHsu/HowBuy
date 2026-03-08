@@ -33,12 +33,12 @@ namespace ISpanShop.WebAPI
 			// 因為你的前端 (MVC) 呼叫 WebAPI 時會跨網域，SignalR 需要允許傳遞憑證
 			builder.Services.AddCors(options =>
 			{
-				options.AddPolicy("AllowAll", policy =>
+				options.AddPolicy("AllowSignalR", policy =>
 				{
-					policy.AllowAnyMethod()
+					policy.WithOrigins("http://localhost:7125", "https://localhost:7125") // 明確指定 MVC 的網址
+						  .AllowAnyMethod()
 						  .AllowAnyHeader()
-						  .SetIsOriginAllowed(origin => true) // 允許任何來源 (開發階段方便測試)
-						  .AllowCredentials();                // SignalR 必須允許憑證
+						  .AllowCredentials(); // SignalR 必須允許憑證
 				});
 			});
 
@@ -56,7 +56,7 @@ namespace ISpanShop.WebAPI
 			// ==========================================
 			// 3. 啟用 CORS (必須放在 UseAuthorization 之前)
 			// ==========================================
-			app.UseCors("AllowAll");
+			app.UseCors("AllowSignalR");
 
 			app.UseAuthorization();
 

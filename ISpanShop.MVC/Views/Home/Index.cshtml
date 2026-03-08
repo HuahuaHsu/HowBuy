@@ -4,14 +4,20 @@
     <h3 class="text-primary">⚡ SignalR 即時通訊測試區</h3>
 
     <div class="row">
+        <div class="col-md-3">
+            <label class="small text-muted">我的 ID (Sender)</label>
+            <input type="number" id="myId" class="form-control mb-2" value="9" />
+        </div>
+        <div class="col-md-3">
+            <label class="small text-muted">對象 ID (Receiver)</label>
+            <input type="number" id="receiverId" class="form-control mb-2" value="14" />
+        </div>
         <div class="col-md-4">
-            <input type="number" id="receiverId" placeholder="要傳給誰? (輸入接收者 User ID)" class="form-control mb-2" value="2" />
+            <label class="small text-muted">測試訊息</label>
+            <input type="text" id="messageInput" placeholder="輸入訊息..." class="form-control mb-2" />
         </div>
-        <div class="col-md-6">
-            <input type="text" id="messageInput" placeholder="輸入測試訊息 (例如: 有沒有免運?)" class="form-control mb-2" />
-        </div>
-        <div class="col-md-2">
-            <button id="sendButton" class="btn btn-primary w-100">發送</button>
+        <div class="col-md-2 d-flex align-items-end">
+            <button id="sendButton" class="btn btn-primary w-100 mb-2">發送</button>
         </div>
     </div>
     <hr />
@@ -20,21 +26,20 @@
 </div>
 
 <script>
-    // 1. 建立連線 (⚠️ 記得把下面的 URL 換成你剛剛在步驟 1 找到的 WebAPI 網址！)
+    // 1. 建立連線 (確保 Port 7028 是正確的 HTTPS Port)
     const connection = new signalR.HubConnectionBuilder()
-    .withUrl("https://localhost:7028/chatHub") // 改成這行
+    .withUrl("https://localhost:7028/chatHub")
     .withAutomaticReconnect()
     .build();
 
-    // 2. 接收後端推播的訊息 (對應 ChatHub 裡的 "ReceiveMessage")
+    // 2. 接收後端推播
     connection.on("ReceiveMessage", function (senderId, content, type, time) {
         const li = document.createElement("li");
         li.className = "list-group-item list-group-item-info";
         li.textContent = `[${time}] 用戶 ${senderId} 說: ${content}`;
-        document.getElementById("messagesList").prepend(li); // 把新訊息塞到最上面
+        document.getElementById("messagesList").prepend(li);
     });
 
-    // 如果發生錯誤的推播 (對應 ChatHub 裡的 "ErrorMessage")
     connection.on("ErrorMessage", function (errorMsg) {
         alert("系統提示：" + errorMsg);
     });
@@ -42,7 +47,6 @@
     // 3. 啟動連線
     connection.start().then(function () {
         console.log("🟢 SignalR 連線成功！");
-        // 可以在畫面上加個小提示
         const li = document.createElement("li");
         li.className = "list-group-item list-group-item-success";
         li.textContent = "已成功連線到通訊伺服器！";
@@ -51,24 +55,24 @@
         return console.error("🔴 連線失敗: ", err.toString());
     });
 
-    // 4. 綁定發送按鈕事件
+    // 4. 綁定發送按鈕
     document.getElementById("sendButton").addEventListener("click", function (event) {
+        // 抓取畫面上三個數值
+        const myId = parseInt(document.getElementById("myId").value);
         const receiverId = parseInt(document.getElementById("receiverId").value);
         const message = document.getElementById("messageInput").value;
         const type = 1; // 1 代表文字
 
-        // 呼叫後端 WebAPI 的 SendPrivateMessage 方法
-        connection.invoke("SendPrivateMessage", receiverId, message, type)
+        // ⚠️ 呼叫後端方法，傳入 4 個參數
+        connection.invoke("SendPrivateMessage", myId, receiverId, message, type)
             .catch(function (err) {
                 return console.error("發送失敗: ", err.toString());
             });
 
-        // 清空輸入框
         document.getElementById("messageInput").value = '';
         event.preventDefault();
     });
 </script>
-
 
 @{
     ViewData["Title"] = "Home Page";
