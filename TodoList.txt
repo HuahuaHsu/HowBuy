@@ -58,42 +58,96 @@
 
     1: 定義資料傳輸物件 (ISpanShop.Models)
         目的：對應 Admins 資料表與權限顯示
-        [ ] 建立 AdminsDto 與 AdminsRoleDto
+        [ V] 建立 AdminsDto 與 AdminsRoleDto
         - 位置：ISpanShop.Models/DTOs/AdminsDtos.cs
         - 內容：AdminsDto (AdminId, Account, Email, RoleId, RoleName)
         - 內容：AdminsRoleDto (RoleId, RoleName) - 用於下拉選單
 
-     2: 資料存取層 (ISpanShop.Repositories)
-        目的：直接操作 Admins 資料表
-        [ ] 建立介面 IAdminsRepository
-            - 位置：ISpanShop.Repositories/Interfaces/IAdminsRepository.cs
-            - 方法：GetAllAdmins(), UpdateAdminRole(int adminId, int roleId)
-        [ ] 實作 AdminsRepository (ADO.NET)
-            - 位置：ISpanShop.Repositories/AdminsRepository.cs
-            - 實作：
-                - SQL Select: SELECT A.*, R.RoleName FROM Admins A JOIN Roles R ON A.RoleId = R.Id
-                - SQL Update: UPDATE Admins SET RoleId = @RoleId WHERE Id = @Id
+  
+    2：資料存取層 (ISpanShop.Repositories)
+        目的：直接操作 Admins 資料表 (ADO.NET)
+        [V] 建立介面 IAdminRepository
+            - 位置：ISpanShop.Repositories/Interfaces/IAdminRepository.cs
+            - 方法：
+                IEnumerable<AdminDto> GetAllAdmins()
+                bool UpdateAdminRole(int adminId, int roleId)
+        [V] 實作 AdminRepository
+            - 位置：ISpanShop.Repositories/AdminRepository.cs
+            - SQL GetAllAdmins：
+                SELECT A.Id AS AdminId, A.Account, A.Email,
+                       A.RoleId, R.RoleName
+                FROM Admins A
+                JOIN Roles R ON A.RoleId = R.Id
+            - SQL UpdateAdminRole：
+                UPDATE Admins SET RoleId = @RoleId WHERE Id = @AdminId
+        [V] 建立介面 IAdminRoleRepository（若角色列表需獨立查詢）
+            - 位置：ISpanShop.Repositories/Interfaces/IAdminRoleRepository.cs
+            - 方法：
+                IEnumerable<AdminRoleDto> GetAllRoles()
+        [V] 實作 AdminRoleRepository
+            - 位置：ISpanShop.Repositories/AdminRoleRepository.cs
+            - SQL GetAllRoles：
+                SELECT Id AS RoleId, RoleName FROM Roles
 
-     3: 商務邏輯層 (ISpanShop.Services)
-        目的：處理 Admins 的邏輯 (如: 不能修改自己的權限)
-        [ ] 建立介面 IAdminsService
-            - 位置：ISpanShop.Services/Interfaces/IAdminsService.cs
-        [ ] 實作 AdminsService
-            - 位置：ISpanShop.Services/AdminsService.cs
-            - 邏輯：檢查 CurrentUser 是否嘗試修改自己的權限 (Self-Lockout Prevention)
+        ------------------------------------------------------------
+        STEP 3：商務邏輯層 (ISpanShop.Services)
+        ------------------------------------------------------------
+        目的：處理管理員相關業務邏輯
 
-     4: 依賴注入設定 (ISpanShop.MVC)
-        [ ] 註冊 Admins 相關服務
+        [ V] 建立介面 IAdminService
+            - 位置：ISpanShop.Services/Interfaces/IAdminService.cs
+            - 方法：
+                IEnumerable<AdminDto> GetAllAdmins() 
+                IEnumerable<AdminRoleDto> GetAllRoles()
+                bool UpdateAdminRole(int adminId, int roleId, int currentAdminId)
+
+        [ V   ] 實作 AdminService
+            - 位置：ISpanShop.Services/AdminService.cs
+            - 邏輯：
+                UpdateAdminRole 執行前，檢查
+                adminId != currentAdminId
+                （Self-Lockout Prevention：禁止管理員修改自己的權限）
+                若相同則 throw 或回傳失敗訊息
+
+        ------------------------------------------------------------
+        STEP 4：依賴注入設定 (ISpanShop.MVC)
+        ------------------------------------------------------------
+
+        [v ] 在 Program.cs 註冊 Admin 相關服務
             - 位置：ISpanShop.MVC/Program.cs
-            - 動作：AddScoped<IAdminsRepository, AdminsRepository>
+            - 新增：
+                builder.Services.AddScoped<IAdminRepository, AdminRepository>();
+                builder.Services.AddScoped<IAdminRoleRepository, AdminRoleRepository>();
+                builder.Services.AddScoped<IAdminService, AdminService>();
 
-     5: 展示層 (ISpanShop.MVC)
-        目的：管理員專用的管理介面
-        [ ] 建立 ViewModel (AdminsListVm)
-            - 位置：ISpanShop.MVC/Models/ViewModels/AdminsListVm.cs
-        [ ] 建立 Controller (AdminsController)
+        ------------------------------------------------------------
+        STEP 5：展示層 (ISpanShop.MVC)
+        ------------------------------------------------------------
+        目的：超級管理員專用的管理介面
+
+        [v] 建立 ViewModel AdminIndexVm
+            - 位置：ISpanShop.MVC/Models/Admins/AdminIndexVm.cs
+            - 內容：
+                List<AdminDto>     Admins       // 管理員列表
+                List<AdminRoleDto> RoleOptions  // 角色下拉選單來源
+                string             Message      // 操作結果訊息（成功/失敗）
+
+        [ ] 建立 AdminsController
             - 位置：ISpanShop.MVC/Controllers/AdminsController.cs
             - 權限：[Authorize(Roles = "SuperAdmin")]
-        [ ] 建立 View (Index.cshtml)
+            - Actions：
+                GET  Index()
+                     → 取得所有管理員列表 + 角色選單，回傳 AdminIndexVm
+                POST UpdateRole(int adminId, int roleId)
+                     → 呼叫 AdminService.UpdateAdminRole()
+                     → 操作完成後 RedirectToAction("Index")
+
+        [ ] 建立 View Index.cshtml
             - 位置：ISpanShop.MVC/Views/Admins/Index.cshtml
-            - 功能：列表顯示 Admins，包含 <select> 更改角色
+            - 功能：
+                - 表格列出所有管理員（帳號、Email、目前角色）
+                - 每列包含 <select> 下拉選單（來源：RoleOptions）
+                - 每列包含「更新」按鈕，POST 至 UpdateRole
+                - 頁面頂端顯示 Message（操作結果提示）
+               // - 自己那列的 <select> 與按鈕設為 disabled
+                 // （前端保護，防止自己修改自己）

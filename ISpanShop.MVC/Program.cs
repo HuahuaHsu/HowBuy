@@ -1,7 +1,9 @@
 using ISpanShop.Models.EfModels;
+using ISpanShop.Repositories;
 using ISpanShop.Repositories.Implementations;
 using ISpanShop.Repositories.Interfaces;
 using ISpanShop.Services;
+using ISpanShop.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace ISpanShop.MVC
@@ -21,6 +23,9 @@ namespace ISpanShop.MVC
 				);
 			builder.Services.AddScoped<IMemberRepository, MemberRepository>();
 			builder.Services.AddScoped<MemberService>();
+			builder.Services.AddScoped<IAdminRepository, AdminRepository>();
+			builder.Services.AddScoped<IAdminRoleRepository, AdminRoleRepository>();
+			builder.Services.AddScoped<IAdminService, AdminService>();
 
 
 			var app = builder.Build();
@@ -38,7 +43,7 @@ namespace ISpanShop.MVC
 
 			app.UseRouting();
 
-			app.UseAuthorization();
+			//app.UseAuthorization();
 
 			app.MapControllerRoute(
 				name: "default",

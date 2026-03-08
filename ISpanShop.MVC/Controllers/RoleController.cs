@@ -9,11 +9,11 @@ using ISpanShop.Models.EfModels;
 
 namespace ISpanShop.MVC.Controllers
 {
-    public class RolesController : Controller
+    public class RoleController : Controller
     {
         private readonly ISpanShopDBContext _context;
 
-        public RolesController(ISpanShopDBContext context)
+        public RoleController(ISpanShopDBContext context)
         {
             _context = context;
         }
