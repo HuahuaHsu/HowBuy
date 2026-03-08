@@ -35,7 +35,12 @@
 
             <a asp-controller="Admin" asp-action="Index"
                class="flex items-center px-6 py-3 border-l-4 transition-colors @(currentController == "Admin" ? activeClass : inactiveClass)">
-                <i data-lucide="shield-check" class="w-5 h-5 mr-3"></i> 權限管理
+                <i data-lucide="user-round-key" class="w-5 h-5 mr-3"></i> 管理員權限
+            </a>
+            <a asp-controller="Product" asp-action="Index"
+               class="flex items-center px-6 py-3 border-l-4 transition-colors @(currentController == "Product" ? activeClass : inactiveClass)">
+                <i data-lucide="store" class="w-5 h-5 mr-3"></i> 商店管理
+
             </a>
 
         </nav>
