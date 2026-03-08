@@ -39,6 +39,43 @@ namespace ISpanShop.Services.Inventories
             return PagedResult<InventoryListDto>.Create(dtos, total, criteria.PageNumber, criteria.PageSize);
         }
 
+        public PagedResult<ProductInventoryVm> GetInventoryGroupedPaged(InventorySearchCriteria criteria)
+        {
+            var (variants, totalProducts) = _inventoryRepository.GetVariantsGroupedPaged(criteria);
+
+            var groups = variants
+                .GroupBy(v => v.ProductId)
+                .Select(g =>
+                {
+                    var first = g.First();
+                    var skus  = g.OrderBy(v => v.VariantName).ToList();
+                    bool hasZero = skus.Any(v => (v.Stock ?? 0) == 0);
+                    bool hasLow  = skus.Any(v => (v.Stock ?? 0) > 0 && (v.Stock ?? 0) <= (v.SafetyStock ?? 0));
+
+                    return new ProductInventoryVm
+                    {
+                        ProductId     = g.Key,
+                        ProductName   = first.Product?.Name              ?? string.Empty,
+                        StoreName     = first.Product?.Store?.StoreName  ?? string.Empty,
+                        CategoryName  = first.Product?.Category?.Name    ?? string.Empty,
+                        TotalStock    = skus.Sum(v => v.Stock ?? 0),
+                        SkuCount      = skus.Count,
+                        OverallStatus = hasZero ? "zero" : hasLow ? "low" : "normal",
+                        Skus = skus.Select(v => new SkuInventoryVm
+                        {
+                            VariantId   = v.Id,
+                            VariantName = v.VariantName ?? string.Empty,
+                            SkuCode     = v.SkuCode     ?? string.Empty,
+                            Stock       = v.Stock       ?? 0,
+                            SafetyStock = v.SafetyStock ?? 0
+                        }).ToList()
+                    };
+                })
+                .ToList();
+
+            return PagedResult<ProductInventoryVm>.Create(groups, totalProducts, criteria.PageNumber, criteria.PageSize);
+        }
+
         public int GetLowStockCount()
             => _inventoryRepository.GetLowStockCount();
 

@@ -17,7 +17,7 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Inventories
         }
 
         /// <summary>
-        /// 庫存監控（唯讀）：支援關鍵字搜尋、庫存狀態篩選、分類/賣家/庫存範圍篩選、排序、分頁
+        /// 庫存監控（唯讀）：以商品為群組的收合式列表，支援篩選、排序、分頁
         /// </summary>
         public IActionResult Index(
             string? stockStatus,
@@ -39,10 +39,10 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Inventories
                 MaxStock    = maxStock,
                 SortBy      = sortBy,
                 PageNumber  = page,
-                PageSize    = 20
+                PageSize    = 10   // 商品層級分頁，每頁 10 筆商品
             };
 
-            var result = _inventoryService.GetInventoryPaged(criteria);
+            var result = _inventoryService.GetInventoryGroupedPaged(criteria);
 
             var totalVariants   = _inventoryService.GetTotalVariantCount();
             var lowStockCount   = _inventoryService.GetLowStockCount();

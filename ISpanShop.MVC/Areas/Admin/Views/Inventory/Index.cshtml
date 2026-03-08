@@ -1,4 +1,4 @@
-﻿@model ISpanShop.Models.DTOs.Common.PagedResult<ISpanShop.Models.DTOs.Inventories.InventoryListDto>
+@model ISpanShop.Models.DTOs.Common.PagedResult<ISpanShop.Models.DTOs.Inventories.ProductInventoryVm>
 @{
     Layout = "~/Views/Shared/_SneatLayout.cshtml";
     ViewData["Title"] = "庫存監控";
@@ -158,19 +158,17 @@
         </p>
     </div>
 
-    @* ── 庫存表格 ── *@
+    @* ── 庫存表格（Accordion 收合式） ── *@
     <div class="table-responsive px-1 pb-3">
         <table class="table table-inv align-middle">
             <thead>
                 <tr>
+                    <th style="width:42px;"></th>
                     <th style="min-width:180px;">商品名稱</th>
                     <th style="min-width:100px;">賣家</th>
                     <th style="min-width:90px;">分類</th>
-                    <th style="min-width:130px;">規格名稱</th>
-                    <th>SKU 代碼</th>
-                    <th class="text-center" style="min-width:110px;">現有庫存</th>
-                    <th class="text-center">安全庫存</th>
-                    <th class="text-center">狀態</th>
+                    <th class="text-center" style="min-width:140px;">總庫存 / 規格數</th>
+                    <th class="text-center" style="min-width:110px;">供貨狀態</th>
                     <th class="text-end">詳情</th>
                 </tr>
             </thead>
@@ -179,10 +177,21 @@
                 {
                     foreach (var item in Model.Data)
                     {
-                        string rowClass = item.IsZeroStock ? "zero-stock-row" : item.IsLowStock ? "low-stock-row" : "";
-                        <tr class="@rowClass">
+                        string rowCls = item.IsZeroStatus ? "zero-stock-row"
+                                      : item.IsLowStatus  ? "low-stock-row" : "";
+                        <tr class="product-row @rowCls">
+                            <td class="text-center">
+                                <button class="btn btn-sm btn-link p-0 toggle-btn"
+                                        type="button"
+                                        data-bs-toggle="collapse"
+                                        data-bs-target="#sku-@item.ProductId"
+                                        aria-expanded="false"
+                                        title="展開 / 收合規格明細">
+                                    <i class="bx bx-chevron-right fs-5 text-muted"></i>
+                                </button>
+                            </td>
                             <td>
-                                <a href="@Url.Action("Details", "Products", new { id = item.ProductId, returnUrl = Url.Action("Index", "Inventory") })"
+                                <a href="@Url.Action("Details", "Products", new { area = "Admin", id = item.ProductId, returnUrl = Url.Action("Index", "Inventory") })"
                                    class="fw-bold text-decoration-none" style="color:#1e2d3d;">
                                     @item.ProductName
                                 </a>
@@ -199,48 +208,90 @@
                                     <span class="cat-badge">@item.CategoryName</span>
                                 }
                             </td>
-                            <td class="fw-medium">@item.VariantName</td>
-                            <td><code class="sku-code">@item.SkuCode</code></td>
                             <td class="text-center">
                                 @{
-                                    string stockClass = item.IsZeroStock ? "stock-zero"
-                                                      : item.IsLowStock  ? "stock-low"
-                                                      : item.Stock > 10   ? "stock-ok"
-                                                                          : "stock-warn";
+                                    string totalCls = item.IsZeroStatus ? "stock-zero"
+                                                    : item.IsLowStatus  ? "stock-low"
+                                                    : item.TotalStock > 10 ? "stock-ok" : "stock-warn";
                                 }
-                                <span class="stock-badge @stockClass">
-                                    @item.Stock 件
-                                </span>
+                                <span class="stock-badge @totalCls">@item.TotalStock 件</span>
+                                <span class="text-muted small ms-1">/ @item.SkuCount 規格</span>
                             </td>
-                            <td class="text-center text-muted">@item.SafetyStock</td>
                             <td class="text-center">
-                                @if (item.IsZeroStock)
+                                @if (item.IsZeroStatus)
                                 {
-                                    <span class="badge rounded-pill px-3 py-2"
-                                          style="background:#f0f0f0;color:#555;border:1px solid #ddd;font-size:.8rem;">
-                                        <i class="bx bx-x-circle me-1"></i>已售罄
-                                    </span>
+                                    <span class="badge bg-danger">已售罄</span>
                                 }
-                                else if (item.IsLowStock)
+                                else if (item.IsLowStatus)
                                 {
-                                    <span class="badge rounded-pill px-3 py-2"
-                                          style="background:#fde8e8;color:#c53030;border:1px solid #fed7d7;font-size:.8rem;">
-                                        <i class="bx bx-error-circle me-1"></i>低庫存
-                                    </span>
+                                    <span class="badge bg-warning text-dark">低庫存</span>
                                 }
                                 else
                                 {
-                                    <span class="badge rounded-pill px-3 py-2"
-                                          style="background:#e6f4ea;color:#1b5e20;border:1px solid #c8e6c9;font-size:.8rem;">
-                                        <i class="bx bx-check-circle me-1"></i>正常
-                                    </span>
+                                    <span class="badge bg-success">正常供貨</span>
                                 }
                             </td>
                             <td class="text-end">
-                                <a href="@Url.Action("Details", "Products", new { id = item.ProductId, returnUrl = Url.Action("Index", "Inventory") })"
+                                <a href="@Url.Action("Details", "Products", new { area = "Admin", id = item.ProductId, returnUrl = Url.Action("Index", "Inventory") })"
                                    class="btn btn-sm btn-outline-secondary rounded-pill px-3" title="查看商品詳情">
                                     <i class="bx bx-show me-1"></i>查看
                                 </a>
+                            </td>
+                        </tr>
+                        @* ── 子層：收合的 SKU 明細列 ── *@
+                        <tr class="collapse sku-collapse-row" id="sku-@item.ProductId">
+                            <td colspan="7" class="p-0 border-0">
+                                <div class="sku-detail-wrap">
+                                    <table class="table table-sm table-borderless table-light mb-0" style="border-style:hidden;">
+                                        <thead class="sku-thead">
+                                            <tr>
+                                                <th style="width:200px;">規格名稱</th>
+                                                <th>SKU 代碼</th>
+                                                <th class="text-center">現有庫存</th>
+                                                <th class="text-center">安全庫存</th>
+                                                <th class="text-center">狀態</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var sku in item.Skus)
+                                            {
+                                                <tr>
+                                                    <td class="fw-medium">@sku.VariantName</td>
+                                                    <td><code class="sku-code">@sku.SkuCode</code></td>
+                                                    <td class="text-center">
+                                                        @{
+                                                            string skuCls = sku.IsLowStock ? "stock-low"
+                                                                          : sku.Stock > 10  ? "stock-ok" : "stock-warn";
+                                                        }
+                                                        @if (sku.IsZeroStock)
+                                                        {
+                                                            <span class="text-danger fw-bold">@sku.Stock 件</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="stock-badge @skuCls">@sku.Stock 件</span>
+                                                        }
+                                                    </td>
+                                                    <td class="text-center text-muted">@sku.SafetyStock</td>
+                                                    <td class="text-center">
+                                                        @if (sku.IsZeroStock)
+                                                        {
+                                                            <span class="text-danger border border-danger px-2 py-1 rounded" style="font-size:0.85em;">缺貨</span>
+                                                        }
+                                                        else if (sku.IsLowStock)
+                                                        {
+                                                            <span class="text-dark border border-warning px-2 py-1 rounded" style="background-color:#fff3cd;font-size:0.85em;">低庫存</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="text-success"><i class="bx bx-check"></i> 正常</span>
+                                                        }
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
                             </td>
                         </tr>
                     }
@@ -248,13 +299,13 @@
                 else
                 {
                     <tr>
-                        <td colspan="9" class="text-center py-5">
+                        <td colspan="7" class="text-center py-5">
                             <div class="mb-2" style="color:#a0aec0;font-size:2.5rem;"><i class="bx bx-package"></i></div>
                             <h5 class="fw-normal" style="color:#718096;">
-                                @(stockStatus == "low"    ? "目前沒有低庫存規格" :
-                                  stockStatus == "zero"   ? "目前沒有零庫存規格" :
-                                  stockStatus == "normal" ? "目前沒有正常庫存規格" :
-                                                            "找不到符合條件的規格")
+                                @(stockStatus == "low"    ? "目前沒有低庫存商品" :
+                                  stockStatus == "zero"   ? "目前沒有零庫存商品" :
+                                  stockStatus == "normal" ? "目前沒有正常庫存商品" :
+                                                            "找不到符合條件的商品")
                             </h5>
                         </td>
                     </tr>
@@ -395,8 +446,8 @@
     .table-inv tbody tr { box-shadow: 0 3px 10px rgba(0,0,0,.04); transition: all .2s; }
     .table-inv tbody tr:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,.07); }
 
-    .low-stock-row td  { border-left: 3px solid #fc8181 !important; }
-    .zero-stock-row td { border-left: 3px solid #a0aec0 !important; }
+    .low-stock-row  td:first-child { border-left: 3px solid #fc8181 !important; }
+    .zero-stock-row td:first-child { border-left: 3px solid #a0aec0 !important; }
     .low-stock-row  td:first-child,
     .zero-stock-row td:first-child { border-top-left-radius: 12px; border-bottom-left-radius: 12px; }
 
@@ -419,4 +470,51 @@
         0%,100% { box-shadow: 0 0 0 0 rgba(197,48,48,.3); }
         50%      { box-shadow: 0 0 0 6px rgba(197,48,48,0); }
     }
+
+    /* ── Accordion status badges ── */
+    .status-badge {
+        display: inline-flex; align-items: center;
+        padding: .28em .85em; border-radius: 20px;
+        font-size: .8rem; font-weight: 600;
+    }
+    .status-zero { background:#f0f0f0; color:#555;    border:1px solid #ccc; }
+    .status-low  { background:#fde8e8; color:#c53030; border:1px solid #fed7d7; }
+    .status-ok   { background:#e6f4ea; color:#1b5e20; border:1px solid #c8e6c9; }
+
+    /* ── Accordion rows ── */
+    tr.collapse.show { display: table-row !important; }
+    .sku-collapse-row > td { padding: 0 !important; border-top: none !important; border-left: none !important; }
+    .sku-detail-wrap {
+        background: #f8f9fc;
+        border-left: 3px solid #c7d2fe;
+        padding: .6rem 1rem 1rem 2.5rem;
+    }
+    /* Prevent .table-inv td rules from bleeding into the inner SKU table */
+    .sku-detail-wrap td {
+        background: transparent !important;
+        border: none !important;
+        padding: .4rem .7rem !important;
+        font-size: .85rem !important;
+        box-shadow: none !important;
+    }
+    .sku-thead th {
+        font-size: .73rem; text-transform: uppercase;
+        color: #8592a3; letter-spacing: .04em;
+        background: transparent; border-bottom: 1px solid #e9ecef;
+    }
+
+    /* ── Toggle chevron animation ── */
+    .toggle-btn .bx-chevron-right { transition: transform .2s ease; display: inline-block; }
+    .toggle-btn[aria-expanded="true"] .bx-chevron-right { transform: rotate(90deg); }
 </style>
+
+@section Scripts {
+<script>
+    // Sync aria-expanded on toggle buttons so the CSS chevron rotation works
+    document.querySelectorAll('.sku-collapse-row').forEach(function (collapseEl) {
+        var btn = document.querySelector('[data-bs-target="#' + collapseEl.id + '"]');
+        collapseEl.addEventListener('show.bs.collapse', function () { btn && btn.setAttribute('aria-expanded', 'true'); });
+        collapseEl.addEventListener('hide.bs.collapse', function () { btn && btn.setAttribute('aria-expanded', 'false'); });
+    });
+</script>
+}

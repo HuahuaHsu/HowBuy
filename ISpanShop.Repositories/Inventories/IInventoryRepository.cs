@@ -8,6 +8,7 @@ namespace ISpanShop.Repositories.Inventories
     public interface IInventoryRepository
     {
         (IEnumerable<ProductVariant> Items, int TotalCount) GetVariantsPaged(InventorySearchCriteria criteria);
+        (IEnumerable<ProductVariant> Variants, int TotalProductCount) GetVariantsGroupedPaged(InventorySearchCriteria criteria);
         int GetLowStockCount();
         int GetZeroStockCount();
         int GetTotalVariantCount();

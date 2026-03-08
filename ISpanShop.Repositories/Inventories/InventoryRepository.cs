@@ -78,6 +78,97 @@ namespace ISpanShop.Repositories.Inventories
             return (items, total);
         }
 
+        public (IEnumerable<ProductVariant> Variants, int TotalProductCount)
+            GetVariantsGroupedPaged(InventorySearchCriteria criteria)
+        {
+            // ── Step 1：建立篩選查詢（不 Include 導覽屬性，只取輕量欄位）──────────
+            var baseQuery = _context.ProductVariants
+                .Where(v => v.IsDeleted != true && v.Product != null && v.Product.IsDeleted != true)
+                .Include(v => v.Product)
+                .AsQueryable();
+
+            if (criteria.LowStockOnly)
+                baseQuery = baseQuery.Where(v => (v.Stock ?? 0) <= (v.SafetyStock ?? 0));
+            else if (criteria.ZeroStockOnly)
+                baseQuery = baseQuery.Where(v => (v.Stock ?? 0) == 0);
+            else if (criteria.NormalStockOnly)
+                baseQuery = baseQuery.Where(v => (v.Stock ?? 0) > (v.SafetyStock ?? 0));
+
+            if (!string.IsNullOrWhiteSpace(criteria.Keyword))
+            {
+                var kw = criteria.Keyword.Trim();
+                baseQuery = baseQuery.Where(v =>
+                    v.Product.Name.Contains(kw) ||
+                    v.VariantName.Contains(kw)  ||
+                    v.SkuCode.Contains(kw));
+            }
+
+            if (criteria.CategoryId.HasValue)
+                baseQuery = baseQuery.Where(v => v.Product.CategoryId == criteria.CategoryId.Value);
+
+            if (criteria.StoreId.HasValue)
+                baseQuery = baseQuery.Where(v => v.Product.StoreId == criteria.StoreId.Value);
+
+            if (criteria.MinStock.HasValue)
+                baseQuery = baseQuery.Where(v => (v.Stock ?? 0) >= criteria.MinStock.Value);
+
+            if (criteria.MaxStock.HasValue)
+                baseQuery = baseQuery.Where(v => (v.Stock ?? 0) <= criteria.MaxStock.Value);
+
+            // ── Step 2：輕量投影到記憶體，依商品分組計算排序指標 ────────────────
+            var flat = baseQuery.Select(v => new
+            {
+                v.ProductId,
+                ProductName = v.Product.Name,
+                Stock       = v.Stock       ?? 0,
+                SafetyStock = v.SafetyStock ?? 0
+            }).ToList();
+
+            var productGroups = flat
+                .GroupBy(v => v.ProductId)
+                .Select(g => new
+                {
+                    ProductId   = g.Key,
+                    ProductName = g.First().ProductName,
+                    MinStock    = g.Min(v => v.Stock),
+                    TotalStock  = g.Sum(v => v.Stock),
+                    HasIssue    = g.Any(v => v.Stock <= v.SafetyStock)
+                })
+                .ToList();
+
+            var totalProductCount = productGroups.Count;
+
+            // ── Step 3：商品層級排序 + 分頁，取出分頁後的 ProductId 清單 ──────────
+            IEnumerable<int> pagedIds = ((criteria.SortBy ?? "") switch
+            {
+                "name_asc"   => productGroups.OrderBy(p => p.ProductName),
+                "stock_asc"  => productGroups.OrderBy(p => p.MinStock).ThenBy(p => p.ProductName),
+                "stock_desc" => productGroups.OrderByDescending(p => p.TotalStock).ThenBy(p => p.ProductName),
+                "safety_asc" => productGroups.OrderBy(p => p.MinStock).ThenBy(p => p.ProductName),
+                _            => productGroups
+                                    .OrderByDescending(p => p.HasIssue ? 1 : 0)
+                                    .ThenBy(p => p.ProductName)
+            })
+            .Skip((criteria.PageNumber - 1) * criteria.PageSize)
+            .Take(criteria.PageSize)
+            .Select(p => p.ProductId)
+            .ToList();
+
+            // ── Step 4：以 ProductId 二次查詢完整 Variants（含 Store / Category）─
+            var variants = _context.ProductVariants
+                .Include(v => v.Product)
+                    .ThenInclude(p => p.Store)
+                .Include(v => v.Product)
+                    .ThenInclude(p => p.Category)
+                .Where(v => pagedIds.Contains(v.ProductId)
+                         && v.IsDeleted != true
+                         && v.Product.IsDeleted != true)
+                .OrderBy(v => v.VariantName)
+                .ToList();
+
+            return (variants, totalProductCount);
+        }
+
         public int GetLowStockCount()
             => _context.ProductVariants
                 .Count(v => v.IsDeleted != true &&

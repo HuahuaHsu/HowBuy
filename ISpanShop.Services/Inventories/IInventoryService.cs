@@ -7,6 +7,7 @@ namespace ISpanShop.Services.Inventories
     public interface IInventoryService
     {
         PagedResult<InventoryListDto> GetInventoryPaged(InventorySearchCriteria criteria);
+        PagedResult<ProductInventoryVm> GetInventoryGroupedPaged(InventorySearchCriteria criteria);
         int GetLowStockCount();
         int GetZeroStockCount();
         int GetTotalVariantCount();
