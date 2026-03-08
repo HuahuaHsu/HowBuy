@@ -1,7 +1,7 @@
-﻿using ISpanShop.Models.DTOs;
+﻿using ISpanShop.Models.DTOs.Orders;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
-namespace ISpanShop.MVC.Models.Orders
+namespace ISpanShop.MVC.Areas.Admin.Models.Orders
 {
 	public class OrderIndexVm
 	{

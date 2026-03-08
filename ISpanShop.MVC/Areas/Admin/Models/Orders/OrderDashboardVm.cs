@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc.Rendering;
 
-namespace ISpanShop.MVC.Models.Orders
+namespace ISpanShop.MVC.Areas.Admin.Models.Orders
 {
 	public class OrderDashboardVm
 	{

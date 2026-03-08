@@ -1,11 +1,11 @@
 ﻿using ISpanShop.Common.Enums;
-using ISpanShop.Models.DTOs;
-using ISpanShop.MVC.Models.Orders;
-using ISpanShop.Services.Interfaces;
+using ISpanShop.Models.DTOs.Orders;
+using ISpanShop.MVC.Areas.Admin.Models.Orders;
+using ISpanShop.Services.Orders;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
-namespace ISpanShop.MVC.Controllers
+namespace ISpanShop.MVC.Areas.Admin.Controllers.Orders
 {
 	public class OrdersController : Controller
 	{

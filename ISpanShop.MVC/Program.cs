@@ -8,6 +8,8 @@ using ISpanShop.Services.Categories;
 using ISpanShop.Services.Inventories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
+using ISpanShop.Repositories.Orders;
+using ISpanShop.Services.Orders;
 
 namespace ISpanShop.MVC
 {

@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using ISpanShop.Common.Enums;
 
-namespace ISpanShop.Models.DTOs
+namespace ISpanShop.Models.DTOs.Orders
 {
 	public class OrderDto
 	{

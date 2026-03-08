@@ -1,4 +1,5 @@
 ﻿using ISpanShop.Models.DTOs;
+using ISpanShop.Models.DTOs.Orders;
 using ISpanShop.Models.EfModels;
 using System;
 using System.Collections.Generic;
@@ -6,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ISpanShop.Repositories.Interfaces
+namespace ISpanShop.Repositories.Orders
 {
 	public interface IOrderRepository
 	{

@@ -1,14 +1,14 @@
 ﻿using ISpanShop.Models.DTOs;
+using ISpanShop.Models.DTOs.Orders;
 using ISpanShop.Repositories;
-using ISpanShop.Repositories.Interfaces;
-using ISpanShop.Services.Interfaces;
+using ISpanShop.Repositories.Orders;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ISpanShop.Services
+namespace ISpanShop.Services.Orders
 {
 	public class OrderDashboardService : IOrderDashboardService
 	{

@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ISpanShop.Models.DTOs
+namespace ISpanShop.Models.DTOs.Orders
 {
 	public class OrderSearchDto
 	{
