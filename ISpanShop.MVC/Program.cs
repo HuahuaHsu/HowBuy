@@ -36,6 +36,14 @@ namespace ISpanShop.MVC
 			builder.Services.AddScoped<ICategoryManageRepository, CategoryManageRepository>();
 			builder.Services.AddScoped<CategoryManageService>();
 
+			// 註冊倉儲層 (Repositories)
+			builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+
+			// 註冊服務層 (Services)
+			builder.Services.AddScoped<IOrderService, OrderService>();
+			builder.Services.AddScoped<IOrderDashboardService, OrderDashboardService>();
+
+
 			builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
 			builder.Services.AddScoped<IInventoryService, InventoryService>();
 
@@ -102,7 +110,7 @@ namespace ISpanShop.MVC
 
 			app.MapControllerRoute(
 				name: "default",
-				pattern: "{controller=Home}/{action=Index}/{id?}");
+				pattern: "{controller=Orders}/{action=Dashboard}/{id?}");
 
 
 			using (var scope = app.Services.CreateScope())
