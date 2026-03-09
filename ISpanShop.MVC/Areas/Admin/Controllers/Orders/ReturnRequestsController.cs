@@ -35,6 +35,45 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Orders
             return View(vm);
         }
 
+        public async Task<IActionResult> Review(long id)
+        {
+            var order = await _orderService.GetOrderDetailAsync(id);
+            if (order == null || (order.Status != OrderStatus.Returning && order.Status != OrderStatus.Refunded))
+            {
+                return NotFound();
+            }
+            return View(order);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Approve(long id)
+        {
+            try
+            {
+                await _orderService.UpdateStatusAsync(id, OrderStatus.Refunded);
+                return Json(new { success = true, message = "已核准退款" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Reject(long id)
+        {
+            try
+            {
+                // 拒絕退款，暫時恢復為已完成
+                await _orderService.UpdateStatusAsync(id, OrderStatus.Completed);
+                return Json(new { success = true, message = "已拒絕退款申請" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
         [HttpPost]
         public async Task<IActionResult> GetReturnListAjax([FromBody] OrderSearchDto searchParams)
         {

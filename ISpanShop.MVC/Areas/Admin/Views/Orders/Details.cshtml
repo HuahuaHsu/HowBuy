@@ -158,36 +158,23 @@
             {
                 <div class="card shadow-sm border-danger mb-4 overflow-hidden animate__animated animate__fadeInRight">
                     <div class="card-header bg-danger text-white py-3">
-                        <h6 class="mb-0 fw-bold"><i class="bx bx-error-circle me-1"></i>售後退款審核</h6>
+                        <h6 class="mb-0 fw-bold"><i class="bx bx-error-circle me-1"></i>售後退款申請</h6>
                     </div>
                     <div class="card-body">
                         <div class="mb-3 bg-light p-3 rounded-3 border-start border-danger border-4">
                             <label class="text-muted small fw-bold text-uppercase d-block mb-1">買家退貨原因</label>
-                            <p class="mb-0 text-dark">@(string.IsNullOrEmpty(Model.Order.Note) ? "未填寫原因 (請聯繫買家)" : Model.Order.Note)</p>
+                            <p class="mb-0 text-dark">@(string.IsNullOrEmpty(Model.Order.Note) ? "未填寫原因 (請點擊下方按鈕查看詳情)" : Model.Order.Note)</p>
                         </div>
                         
-                        <div class="mb-4">
-                            <label class="form-label fw-bold">退款金額預覽</label>
-                            <div class="h4 fw-bold text-danger">@Model.Order.FinalAmount.ToString("C0")</div>
-                            <small class="text-muted">預設為全額退款</small>
+                        <div class="mb-4 text-center">
+                            <p class="text-muted small mb-2">本訂單目前有待處理的退貨申請，請前往專用審核頁面進行處理。</p>
+                            <div class="h5 fw-bold text-danger mb-0">待審核金額: @Model.Order.FinalAmount.ToString("C0")</div>
                         </div>
 
-                        <div class="d-grid gap-2">
-                            <form asp-action="UpdateStatus" method="post">
-                                <input type="hidden" name="id" value="@Model.Order.Id" />
-                                <input type="hidden" name="status" value="6" /> <!-- 6 = Refunded -->
-                                <button type="submit" class="btn btn-danger w-100 rounded-pill py-2" onclick="return confirm('確定要執行撥款(退款)嗎？此操作不可逆。')">
-                                    <i class="bx bx-check-double me-1"></i> 同意退貨並撥款
-                                </button>
-                            </form>
-                            
-                            <form asp-action="UpdateStatus" method="post">
-                                <input type="hidden" name="id" value="@Model.Order.Id" />
-                                <input type="hidden" name="status" value="3" /> <!-- 3 = Completed (駁回回原本狀態) -->
-                                <button type="submit" class="btn btn-outline-secondary w-100 rounded-pill py-2" onclick="return confirm('確定要駁回退貨申請嗎？訂單將恢復為已完成狀態。')">
-                                    <i class="bx bx-x me-1"></i> 駁回申請
-                                </button>
-                            </form>
+                        <div class="d-grid">
+                            <a asp-area="Admin" asp-controller="ReturnRequests" asp-action="Review" asp-route-id="@Model.Order.Id" class="btn btn-primary btn-lg rounded-pill shadow-sm">
+                                <i class="bx bx-link-external me-1"></i> 前往售後審核中心
+                            </a>
                         </div>
                     </div>
                     <div class="card-footer bg-light border-top-0 small text-center text-muted py-2">
