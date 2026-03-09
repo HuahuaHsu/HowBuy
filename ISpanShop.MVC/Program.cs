@@ -14,18 +14,19 @@ namespace ISpanShop.MVC
 			// Add services to the container.
 			builder.Services.AddControllersWithViews();
 
-			// ³o¸Ìªº "DefaultConnection" ¥²¶·¸ò±z appsettings.json©Îappsettings.Development¸Ìªº¦W¦r¤@¼Ò¤@¼Ë
+			// ï¿½oï¿½Ìªï¿½ "DefaultConnection" ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½z appsettings.jsonï¿½ï¿½appsettings.Developmentï¿½Ìªï¿½ï¿½Wï¿½rï¿½@ï¿½Ò¤@ï¿½ï¿½
 			builder.Services.AddDbContext<ISpanShopDBContext>(options =>
 				options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-			//2¸¹ ¨Ì¿àª`¤J (Dependency Injection)¡G§O§Ñ¤F¦b Program.cs ¤¤µù¥U³o¨Ç Service¡A§_«h°õ¦æ®É·|³ø¿ù¡G
+			//2ï¿½ï¿½ ï¿½Ì¿ï¿½`ï¿½J (Dependency Injection)ï¿½Gï¿½Oï¿½Ñ¤Fï¿½b Program.cs ï¿½ï¿½ï¿½ï¿½ï¿½Uï¿½oï¿½ï¿½ Serviceï¿½Aï¿½_ï¿½hï¿½ï¿½ï¿½ï¿½É·|ï¿½ï¿½ï¿½ï¿½ï¿½G
 
 			builder.Services.AddScoped<PointService>();
 			builder.Services.AddScoped<PaymentService>();
 			builder.Services.AddScoped<CheckoutService>();
+			builder.Services.AddScoped<NewebPayService>();
 
 
-			//2¸¹ §À§a
+			//2ï¿½ï¿½ ï¿½ï¿½ï¿½a
 
 
 			var app = builder.Build();

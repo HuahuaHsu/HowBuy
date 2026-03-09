@@ -38,5 +38,16 @@ namespace ISpanShop.Services
 			parameters.Add("CheckMacValue", EcpayHelper.GenerateCheckMacValue(parameters));
 			return parameters;
 		}
+
+        // 驗證綠界回傳的 CheckMacValue
+        public bool ValidateCheckMacValue(Dictionary<string, string> parameters)
+        {
+            if (!parameters.ContainsKey("CheckMacValue")) return false;
+
+            string originalCheckMacValue = parameters["CheckMacValue"];
+            string calculatedCheckMacValue = EcpayHelper.GenerateCheckMacValue(parameters);
+
+            return string.Equals(originalCheckMacValue, calculatedCheckMacValue, StringComparison.OrdinalIgnoreCase);
+        }
 	}
 }
