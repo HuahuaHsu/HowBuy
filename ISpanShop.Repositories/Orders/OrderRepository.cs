@@ -34,19 +34,32 @@ namespace ISpanShop.Repositories.Orders
 				.Include(o => o.Store)
 				.Include(o => o.OrderDetails)
 					.ThenInclude(od => od.Product)
+				.Include(o => o.ReturnRequests)
+					.ThenInclude(rr => rr.ReturnRequestImages)
 				.FirstOrDefaultAsync(o => o.Id == id);
 		}
 
 		public async Task UpdateStatusAsync(long id, byte status)
 		{
-			var order = await _context.Orders.FindAsync(id);
+			var order = await _context.Orders.Include(o => o.ReturnRequests).FirstOrDefaultAsync(o => o.Id == id);
 			if (order != null)
 			{
 				order.Status = status;
 				if (status == 3) // 已完成 (Completed = 3)
 				{
 					order.CompletedAt = DateTime.Now;
+					
+					// 如果有退貨申請，標記為已拒絕 (2: Rejected)
+					var rr = order.ReturnRequests.OrderByDescending(x => x.CreatedAt).FirstOrDefault();
+					if (rr != null && rr.Status == 0) rr.Status = 2;
 				}
+				else if (status == 6) // 已退款 (Refunded = 6)
+				{
+					// 如果有退貨申請，標記為已核准 (1: Approved)
+					var rr = order.ReturnRequests.OrderByDescending(x => x.CreatedAt).FirstOrDefault();
+					if (rr != null && rr.Status == 0) rr.Status = 1;
+				}
+
 				await _context.SaveChangesAsync();
 			}
 		}

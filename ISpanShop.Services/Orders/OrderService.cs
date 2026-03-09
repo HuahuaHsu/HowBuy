@@ -52,6 +52,10 @@ namespace ISpanShop.Services.Orders
 				PaymentDate = o.PaymentDate,
 				CompletedAt = o.CompletedAt,
 				Note = o.Note,
+				ReturnRequestImages = o.ReturnRequests
+					.SelectMany(rr => rr.ReturnRequestImages)
+					.Select(rri => rri.ImageUrl)
+					.ToList(),
 				Details = o.OrderDetails.Select(od => new OrderDetailDto
 				{
 					Id = od.Id,

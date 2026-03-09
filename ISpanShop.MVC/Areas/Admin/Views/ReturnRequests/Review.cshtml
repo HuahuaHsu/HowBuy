@@ -175,15 +175,14 @@
                     <div class="mb-4">
                         <label class="info-label d-block mb-2">退貨憑證圖片</label>
                         <div class="d-flex flex-wrap gap-2" id="evidence-images">
-                            @* 這裡未來對接資料庫圖片列表 *@
-                            @if(true) // 暫時模擬一張圖片，實際應從 Model 讀取圖片清單
+                            @if(Model.ReturnRequestImages != null && Model.ReturnRequestImages.Any())
                             {
-                                <div class="position-relative">
-                                    <img src="https://via.placeholder.com/100x100?text=Evidence+1" class="rounded border cursor-pointer img-thumbnail" style="width:100px; height:100px; object-fit:cover;" onclick="zoomImage(this.src)">
-                                </div>
-                                <div class="position-relative">
-                                    <img src="https://via.placeholder.com/100x100?text=Evidence+2" class="rounded border cursor-pointer img-thumbnail" style="width:100px; height:100px; object-fit:cover;" onclick="zoomImage(this.src)">
-                                </div>
+                                foreach (var img in Model.ReturnRequestImages)
+                                {
+                                    <div class="position-relative">
+                                        <img src="@img" class="rounded border cursor-pointer img-thumbnail" style="width:100px; height:100px; object-fit:cover;" onclick="zoomImage(this.src)">
+                                    </div>
+                                }
                             }
                             else
                             {
