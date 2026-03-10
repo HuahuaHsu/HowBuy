@@ -89,19 +89,16 @@
             - SQL GetAllRoles：
                 SELECT Id AS RoleId, RoleName FROM Roles
 
-        ------------------------------------------------------------
-        STEP 3：商務邏輯層 (ISpanShop.Services)
-        ------------------------------------------------------------
-        目的：處理管理員相關業務邏輯
 
+      3：商務邏輯層 (ISpanShop.Services)
+        目的：處理管理員相關業務邏輯
         [ V] 建立介面 IAdminService
             - 位置：ISpanShop.Services/Interfaces/IAdminService.cs
             - 方法：
                 IEnumerable<AdminDto> GetAllAdmins() 
                 IEnumerable<AdminRoleDto> GetAllRoles()
                 bool UpdateAdminRole(int adminId, int roleId, int currentAdminId)
-
-        [ V   ] 實作 AdminService
+        [ V   ] 實作 AdminService 
             - 位置：ISpanShop.Services/AdminService.cs
             - 邏輯：
                 UpdateAdminRole 執行前，檢查
@@ -109,10 +106,7 @@
                 （Self-Lockout Prevention：禁止管理員修改自己的權限）
                 若相同則 throw 或回傳失敗訊息
 
-        ------------------------------------------------------------
-        STEP 4：依賴注入設定 (ISpanShop.MVC)
-        ------------------------------------------------------------
-
+        4：依賴注入設定 (ISpanShop.MVC)
         [v ] 在 Program.cs 註冊 Admin 相關服務
             - 位置：ISpanShop.MVC/Program.cs
             - 新增：
@@ -120,11 +114,8 @@
                 builder.Services.AddScoped<IAdminRoleRepository, AdminRoleRepository>();
                 builder.Services.AddScoped<IAdminService, AdminService>();
 
-        ------------------------------------------------------------
-        STEP 5：展示層 (ISpanShop.MVC)
-        ------------------------------------------------------------
+        5：展示層 (ISpanShop.MVC)
         目的：超級管理員專用的管理介面
-
         [v] 建立 ViewModel AdminIndexVm
             - 位置：ISpanShop.MVC/Models/Admins/AdminIndexVm.cs
             - 內容：
@@ -132,7 +123,7 @@
                 List<AdminRoleDto> RoleOptions  // 角色下拉選單來源
                 string             Message      // 操作結果訊息（成功/失敗）
 
-        [ ] 建立 AdminsController
+        [V] 建立 AdminsController
             - 位置：ISpanShop.MVC/Controllers/AdminsController.cs
             - 權限：[Authorize(Roles = "SuperAdmin")]
             - Actions：
@@ -142,7 +133,7 @@
                      → 呼叫 AdminService.UpdateAdminRole()
                      → 操作完成後 RedirectToAction("Index")
 
-        [ ] 建立 View Index.cshtml
+        [V] 建立 View Index.cshtml
             - 位置：ISpanShop.MVC/Views/Admins/Index.cshtml
             - 功能：
                 - 表格列出所有管理員（帳號、Email、目前角色）
@@ -151,3 +142,6 @@
                 - 頁面頂端顯示 Message（操作結果提示）
                // - 自己那列的 <select> 與按鈕設為 disabled
                  // （前端保護，防止自己修改自己）
+
+   
+   

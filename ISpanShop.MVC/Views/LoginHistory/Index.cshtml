@@ -1,0 +1,78 @@
+﻿@model ISpanShop.MVC.Models.LoginHistories.LoginHistoryIndexVm
+
+@{
+    ViewData["Title"] = "登入紀錄管理";
+}
+
+<div class="p-6">
+    <div class="mb-6">
+        <h2 class="text-2xl font-bold text-gray-800">登入紀錄管理</h2>
+        <p class="text-sm text-gray-600 mt-1">系統使用者的登入歷史紀錄</p>
+    </div>
+
+    @* 操作結果提示訊息 *@
+    @if (!string.IsNullOrEmpty(Model.Message))
+    {
+        <div class="mb-6 p-4 rounded-lg @(Model.Message.Contains("成功") ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200")">
+            <p class="@(Model.Message.Contains("成功") ? "text-green-800" : "text-red-800")">
+                @Model.Message
+            </p>
+        </div>
+    }
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="bg-gray-50 border-b border-gray-100 text-gray-500 text-xs uppercase tracking-wider">
+                    <th class="p-4 font-medium">紀錄ID</th>
+                    <th class="p-4 font-medium">使用者帳號</th>
+                    <th class="p-4 font-medium">登入時間</th>
+                    <th class="p-4 font-medium">IP位址</th>
+                    <th class="p-4 font-medium">登入狀態</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                @if (Model.LoginHistories != null && Model.LoginHistories.Count > 0)
+                {
+                    @foreach (var record in Model.LoginHistories)
+                    {
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="p-4 font-medium text-gray-900">
+                                @record.Id
+                            </td>
+                            <td class="p-4 text-gray-700">
+                                @record.UserAccount
+                            </td>
+                            <td class="p-4 text-gray-600 text-sm">
+                                @record.LoginTimeFormatted
+                            </td>
+                            <td class="p-4 text-gray-600 text-sm">
+                                @record.IpAddress
+                            </td>
+                            <td class="p-4">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium @record.StatusClass">
+                                    @record.StatusText
+                                </span>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="5" class="p-8 text-center text-gray-500">
+                            沒有登入紀錄資料
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @* 頁面說明 *@
+    <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <p class="text-sm text-blue-800">
+            <strong>說明：</strong> 此頁面顯示系統所有使用者的登入歷史紀錄，包括登入時間、IP位址及登入結果。記錄按時間由新至舊排序。
+        </p>
+    </div>
+</div>

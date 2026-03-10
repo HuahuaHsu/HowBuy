@@ -17,7 +17,7 @@ namespace ISpanShop.MVC
 			// Add services to the container.
 			builder.Services.AddControllersWithViews();
 
-			// ³o¸Ìªº "DefaultConnection" ¥²¶·¸ò appsettings.json©Îappsettings.Development¸Ìªº¦W¦r¤@¼Ò¤@¼Ë
+			// ï¿½oï¿½Ìªï¿½ "DefaultConnection" ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ appsettings.jsonï¿½ï¿½appsettings.Developmentï¿½Ìªï¿½ï¿½Wï¿½rï¿½@ï¿½Ò¤@ï¿½ï¿½
 			builder.Services.AddDbContext<ISpanShopDBContext>
 				(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
 				);
@@ -26,6 +26,8 @@ namespace ISpanShop.MVC
 			builder.Services.AddScoped<IAdminRepository, AdminRepository>();
 			builder.Services.AddScoped<IAdminRoleRepository, AdminRoleRepository>();
 			builder.Services.AddScoped<IAdminService, AdminService>();
+			builder.Services.AddScoped<ILoginHistoryRepository, LoginHistoryRepository>();
+			builder.Services.AddScoped<ILoginHistoryService, LoginHistoryService>();
 
 
 			var app = builder.Build();
