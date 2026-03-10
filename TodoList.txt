@@ -143,5 +143,55 @@
                // - 自己那列的 <select> 與按鈕設為 disabled
                  // （前端保護，防止自己修改自己）
 
-   
-   
+ ==================================================================================================================
+   【登入紀錄管理實作與進階列表功能】
+[V] 1. 建立 DTO
+    位置：ISpanShop.Models 專案 -> DTOs 資料夾
+    - 資料傳輸層 (ISpanShop.Models)
+    目的：定義資料庫模型與各層級傳遞用的資料結構。
+    - [V] 建立 LoginHistoryDto.cs，加入 UserAccount 欄位。
+
+[V] 2. 建立 Repository
+    位置：ISpanShop.Repositories 專案 -> Interfaces 與根目錄
+    - 資料存取層 (ISpanShop.Repositories)
+    目的：直接與資料庫對話，負責寫 LINQ 指令。
+    實作細項：
+    - [V] 建立介面 ILoginHistoryRepository.cs。
+    - [V] 實作 LoginHistoryRepository.cs，使用 EF Core (Include/Join) 取得關聯的使用者帳號。
+
+[V] 3. 建立 Service
+    位置：ISpanShop.Services 專案 -> Interfaces 與根目錄
+    - 商務邏輯層 (ISpanShop.Services)
+    目的：處理資料轉換 (Entity -> DTO) 與商業規則。
+    實作細項：
+    - [V] 建立介面 ILoginHistoryService.cs。
+    - [V] 實作 LoginHistoryService.cs，注入 Repository，取得資料後回傳。
+
+[V] 4. 建立 MVC ViewModel
+    位置：ISpanShop.MVC 專案 -> Models/LoginHistories 資料夾
+    - 網頁展示層 (ISpanShop.MVC)
+    目的：將 DTO 封裝進 Vm，準備給 View 渲染畫面。
+    實作細項：
+    - [V] 建立 LoginHistoryIndexVm.cs，加入畫面顯示用的格式化欄位 (如時間字串、狀態文字轉換)。
+
+[V] 5. 建立 MVC Controller 與 View
+    位置：ISpanShop.MVC 專案 -> Controllers 與 Views/LoginHistory 資料夾
+    - 網頁展示層 (ISpanShop.MVC)
+    目的：接收請求，調用 Service 並渲染最終 HTML 介面。
+    實作細項：
+    - [V] 建立 Controller (LoginHistoryController.cs)，調用 Service 並返回視圖。
+    - [V] 建立 View (Index.cshtml)，使用 Bootstrap 5 繪製基本的資料表格。
+
+[ ] 6. 加入進階列表功能 (搜尋、排序與分頁)
+    位置：跨層級擴充 (Models, Repositories, Services, MVC)
+    - 全端功能擴充
+    目的：實作動態查詢、分頁邏輯與前端 UI 互動狀態保持。
+    實作細項：
+    - [ ] (DTO) 建立 LoginHistoryCriteria.cs，定義搜尋條件 (Keyword, IsSuccessful, SortColumn, IsAscending, PageNumber, PageSize)。
+    - [ ] (Repository) 擴充查詢邏輯，動態套用 .Where, .OrderBy, .Skip().Take()，並回傳總筆數。
+    - [ ] (Service) 擴充邏輯，傳遞 Criteria 給 Repository 並包裝分頁結果給上層。
+    - [ ] (ViewModel) 擴充 Vm，加入分頁資訊 (總頁數、目前頁碼、總筆數) 及保留目前搜尋與排序狀態。
+    - [ ] (View) 擴充搜尋區塊：建立 <form> 表單，包含文字搜尋框與 Checkbox 狀態篩選。
+    - [ ] (View) 擴充下拉式分頁：在表格外側左上角，加入每頁筆數 <select> 切換。
+    - [ ] (View) 擴充表頭點擊排序：將表格 <th> 改為可點擊連結，支援升降冪切換與箭頭圖示顯示。
+    - [ ] (View) 擴充底部導覽分頁：在表格外側右下角，加入 Bootstrap 分頁按鈕元件，點擊時帶上目前的搜尋與排序狀態。
