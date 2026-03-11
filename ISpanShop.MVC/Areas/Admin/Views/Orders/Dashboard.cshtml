@@ -460,11 +460,21 @@
                         legend: { show: false },
                         dataLabels: { 
                             enabled: true, 
-                            formatter: (val) => '$' + formatRevenue(val),
-                            offsetY: -20,
-                            style: { colors: ['#a1acb8'] }
+                            formatter: function(val, opts) {
+                                // 從原始數據集中抓取真正的金額，避免顯示對數值
+                                const realVal = opts.w.config.series[opts.seriesIndex].data[opts.dataPointIndex];
+                                return '$' + formatRevenue(realVal);
+                            },
+                            offsetY: -25,
+                            style: { 
+                                fontSize: '12px',
+                                colors: ['#32475c'],
+                                fontWeight: 600
+                            }
                         },
                         yaxis: {
+                            logarithmic: true,
+                            forceNiceScale: true,
                             labels: { formatter: (val) => formatRevenue(val) }
                         },
                         tooltip: {
