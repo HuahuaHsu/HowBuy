@@ -33,7 +33,7 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Members
 			try
 			{
 				// 建立查詢條件
-				var criteria = new LoginHistoryCriteria
+				var criteria = new ISpanShop.Models.DTOs.Members.LoginHistoryCriteria
 				{
 					Keyword = keyword,
 					IsSuccessful = isSuccessful switch
