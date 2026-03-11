@@ -51,6 +51,12 @@ namespace ISpanShop.Services.Orders
 					prevStart = start.AddMonths(-3);
 					prevEnd = start.AddTicks(-1);
 					break;
+				case "6months":
+					start = now.AddMonths(-6).Date;
+					end = now;
+					prevStart = start.AddMonths(-6);
+					prevEnd = start.AddTicks(-1);
+					break;
 				case "year":
 					start = now.AddYears(-1).Date;
 					end = now;

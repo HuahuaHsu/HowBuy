@@ -89,7 +89,9 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Orders
 				{
 					new SelectListItem { Value = "7days", Text = "近 7 天" },
 					new SelectListItem { Value = "month", Text = "近一個月" },
-					new SelectListItem { Value = "3months", Text = "近三個月" }
+					new SelectListItem { Value = "3months", Text = "近三個月" },
+					new SelectListItem { Value = "6months", Text = "近六個月" },
+					new SelectListItem { Value = "year", Text = "近一年" }
 				}
 			};
 			return View(vm);
