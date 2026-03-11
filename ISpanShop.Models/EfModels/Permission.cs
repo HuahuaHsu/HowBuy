@@ -11,5 +11,9 @@ public partial class Permission
 
     public string PermissionKey { get; set; }
 
+    public string DisplayName { get; set; }
+
     public string Description { get; set; }
+
+    public virtual ICollection<AdminLevel> AdminLevels { get; set; } = new List<AdminLevel>();
 }

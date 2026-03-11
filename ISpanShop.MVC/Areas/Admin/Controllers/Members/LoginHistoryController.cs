@@ -1,7 +1,7 @@
 using ISpanShop.Models.DTOs.Members;
 using ISpanShop.Models.DTOs.Common;
-using ISpanShop.MVC.Models.LoginHistories;
-using ISpanShop.Services.Interfaces;
+using ISpanShop.MVC.Areas.Admin.Models.Admins;
+using ISpanShop.Services.Members;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ISpanShop.MVC.Areas.Admin.Controllers.Members

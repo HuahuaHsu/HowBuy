@@ -1,22 +1,33 @@
 ﻿using ISpanShop.Models.EfModels;
 using ISpanShop.Models.Seeding;
 using ISpanShop.MVC.Middleware;
-using ISpanShop.Repositories;
-using ISpanShop.Repositories.Interfaces;
-using ISpanShop.Repositories.Implementations;
+
+// Repository namespaces
+using ISpanShop.Repositories.Admins;
+using ISpanShop.Repositories.Members;
 using ISpanShop.Repositories.Products;
 using ISpanShop.Repositories.Categories;
+using ISpanShop.Repositories.Orders;
 using ISpanShop.Repositories.Inventories;
-using ISpanShop.Services;
-using ISpanShop.Services.Interfaces;
+using ISpanShop.Repositories.ContentModeration;
+using ISpanShop.Repositories.Support;
+
+// Service namespaces
+using ISpanShop.Services.Admins;
+using ISpanShop.Services.Members;
 using ISpanShop.Services.Products;
 using ISpanShop.Services.Categories;
+using ISpanShop.Services.Orders;
 using ISpanShop.Services.Inventories;
+using ISpanShop.Services.ContentModeration;
+using ISpanShop.Services.Support;
+using ISpanShop.Services.Payments;
+
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
-using ISpanShop.Repositories.Orders;
-using ISpanShop.Services.Orders;
+using ISpanShop.Repositories.Members.Implementations;
+using ISpanShop.Services;
 
 namespace ISpanShop.MVC
 {

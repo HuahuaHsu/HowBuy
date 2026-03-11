@@ -582,6 +582,8 @@
                     var isCatActive = ctrl == "CategoryManage" || ctrl == "CategorySpecs";
                     var isInvActive = ctrl == "Inventory";
                     var isOrderActive = ctrl == "Orders" || ctrl == "ShipmentWorkstation" || ctrl == "ReturnRequests" || ctrl == "OrderTracking";
+                    var isContentSupportActive = ctrl == "SupportTickets" || ctrl == "SensitiveWords" || ctrl == "SensitiveWordCategories";
+                    var isPaymentActive = ctrl == "PaymentManagement";
                 }
                 <li class="menu-header"><span>營運管理</span></li>
 
@@ -702,7 +704,47 @@
                         <a href="@Url.Action("Index", "OrderTracking", new { area = "Admin" })" class="text-info fw-bold">訂單追蹤(測試)</a>
                     </div>
                 </li>
+                <li class="menu-item @(isPaymentActive ? "active" : "")">
+                    <a href="@Url.Action("Index", "PaymentManagement", new { area = "Admin" })" class="menu-link">
+                        <span class="mini-wrap">
+                            <i class="menu-icon bx bx-dollar-circle"></i>
+                            <span class="menu-short">金流</span>
+                        </span>
+                        <i class="menu-icon bx bx-dollar-circle"></i>
+                        <span class="menu-label">金流紀錄</span>
+                    </a>
+                </li>
 
+                <li class="menu-item has-sub @(isContentSupportActive ? "active" : "")">
+                    <span class="menu-link">
+                        <span class="mini-wrap">
+                            <i class="menu-icon bx bx-support"></i>
+                            <span class="menu-short">客服</span>
+                        </span>
+                        <i class="menu-icon bx bx-support"></i>
+                        <span class="menu-label">內容與客服管理</span>
+                        <i class="menu-arrow bx bx-chevron-right"></i>
+                    </span>
+                    <div class="menu-sub">
+                        <ul>
+                            <li class="menu-item @(ctrl == "SupportTickets" ? "active" : "")">
+                                <a href="@Url.Action("Index", "SupportTickets", new { area = "Admin" })" class="menu-link">客服中心</a>
+                            </li>
+                            <li class="menu-item @(ctrl == "SensitiveWords" ? "active" : "")">
+                                <a href="@Url.Action("Index", "SensitiveWords", new { area = "Admin" })" class="menu-link">敏感字管理</a>
+                            </li>
+                            <li class="menu-item @(ctrl == "SensitiveWordCategories" ? "active" : "")">
+                                <a href="@Url.Action("Index", "SensitiveWordCategories", new { area = "Admin" })" class="menu-link">敏感字分類管理</a>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="menu-flyout">
+                        <div class="menu-flyout-title">內容與客服管理</div>
+                        <a href="@Url.Action("Index", "SupportTickets", new { area = "Admin" })">客服中心</a>
+                        <a href="@Url.Action("Index", "SensitiveWords", new { area = "Admin" })">敏感字管理</a>
+                        <a href="@Url.Action("Index", "SensitiveWordCategories", new { area = "Admin" })">敏感字分類管理</a>
+                    </div>
+                </li>
                 <li class="menu-header"><span>帳號管理</span></li>
 
                 <li class="menu-item @(ctrl == "Member" ? "active" : "")">
@@ -730,11 +772,10 @@
                 <li class="menu-item @(ctrl == "Role" ? "active" : "")">
                     <a href="@Url.Action("Index", "Role", new { area = "Admin" })" class="menu-link">
                         <span class="mini-wrap">
-                            <i class="menu-icon bx bx-key"></i>
-                            <span class="menu-short">角色</span>
+                            <i class="menu-icon bx bx-check-shield"></i> <span class="menu-short">權限</span>
                         </span>
-                        <i class="menu-icon bx bx-key"></i>
-                        <span class="menu-label">角色管理</span>
+                        <i class="menu-icon bx bx-check-shield"></i>
+                        <span class="menu-label">管理員權限</span>
                     </a>
                 </li>
 

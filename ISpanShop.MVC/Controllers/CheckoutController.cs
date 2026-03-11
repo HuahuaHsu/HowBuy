@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using ISpanShop.Services.Payments;
+using ISpanShop.Models.DTOs.Orders;
 using ISpanShop.Services;
-using ISpanShop.Models.DTOs;
 
 namespace ISpanShop.WebAPI.Controllers
 {

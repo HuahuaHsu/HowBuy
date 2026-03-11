@@ -33,7 +33,11 @@ public partial class User
 
     public bool? IsSeller { get; set; }
 
+    public int? AdminLevelId { get; set; }
+
     public virtual ICollection<Address> Addresses { get; set; } = new List<Address>();
+
+    public virtual AdminLevel AdminLevel { get; set; }
 
     public virtual ICollection<BlacklistRecord> BlacklistRecordAdminUsers { get; set; } = new List<BlacklistRecord>();
 

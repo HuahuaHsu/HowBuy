@@ -23,6 +23,14 @@
          "ObjectType": 0
       },
       {
+         "Name": "[dbo].[AdminLevelPermissions]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[AdminLevels]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[dbo].[BlacklistRecords]",
          "ObjectType": 0
       },
@@ -119,11 +127,11 @@
          "ObjectType": 0
       },
       {
-         "Name": "[dbo].[RolePermissions]",
+         "Name": "[dbo].[Roles]",
          "ObjectType": 0
       },
       {
-         "Name": "[dbo].[Roles]",
+         "Name": "[dbo].[SensitiveWordCategories]",
          "ObjectType": 0
       },
       {
@@ -169,5 +177,6 @@
    "UseSchemaNamespaces": false,
    "UseSpatial": false,
    "UseT4": false,
-   "UseT4Split": false
+   "UseT4Split": false,
+   "UseTypedTvpParameters": true
 }

@@ -1,6 +1,6 @@
 using ISpanShop.Models.DTOs.Admins;
-using ISpanShop.MVC.Models.Admins;
-using ISpanShop.Services.Interfaces;
+using ISpanShop.MVC.Areas.Admin.Models.Admins;
+using ISpanShop.Services.Admins;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ISpanShop.MVC.Areas.Admin.Controllers.Identities
