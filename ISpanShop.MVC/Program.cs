@@ -1,4 +1,5 @@
 ﻿using ISpanShop.Models.EfModels;
+using ISpanShop.Models.Seeding;
 using ISpanShop.MVC.Middleware;
 using ISpanShop.Repositories.Products;
 using ISpanShop.Repositories.Categories;
@@ -142,13 +143,13 @@ namespace ISpanShop.MVC
 				var context = services.GetRequiredService<ISpanShop.Models.EfModels.ISpanShopDBContext>();
 
 
-				await ISpanShop.Models.DataSeeder.SeedAsync(context);
+				await DataSeeder.SeedAsync(context);
 				// 補充歷史商品缺少的審核人 / 審核時間（只對 ReviewStatus=1 且 ReviewDate=null 執行一次）
-				await ISpanShop.Models.DataSeeder.PatchMissingReviewDataAsync(context);
+				await DataSeeder.PatchMissingReviewDataAsync(context);
 				// 每次啟動確保有 15 筆待審核商品（供測試使用）
-				await ISpanShop.Models.DataSeeder.EnsurePendingProductsAsync(context);
+				await DataSeeder.EnsurePendingProductsAsync(context);
 				// 確保後台管理員帳號存在
-				await ISpanShop.Models.DataSeeder.EnsureAdminUserAsync(context);
+				await DataSeeder.EnsureAdminUserAsync(context);
 
 				// 確保 Products 資料表有 IsDeleted 欄位（軟刪除用）
 				await context.Database.ExecuteSqlRawAsync(@"

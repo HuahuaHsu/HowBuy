@@ -1,173 +1,22 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
-using System.Text.Json.Serialization;
-using System.Threading.Tasks;
-using ISpanShop.Models.EfModels; // 確保對應到你的 EF Models 命名空間
 
-namespace ISpanShop.Models
+namespace ISpanShop.Models.Seeding
 {
 	/// <summary>
-	/// 電商資料播種程式 - 從公開 API (DummyJSON) 串接真實商品資料
-	/// ★ 已升級：每筆商品依分類自動產生多組「規格變體」(ProductVariant)
+	/// 播種程式的靜態對照表 (從 DataSeeder 抽離，遵循單一職責原則)
+	/// 包含：分類規格、分類階層、品牌翻譯、商品翻譯
 	/// </summary>
-	public class DataSeeder
+	public static class SeederMappings
 	{
-		private static readonly Random _random = new Random();
-		private const string DUMMYJSON_URL = "https://dummyjson.com/products?limit=194";
-		private const decimal USD_TO_TWD = 30;
-
 		// ====================================================================
-		// ★★★ 新增：按分類定義規格選項 ★★★
-		// 每個分類對應一組「規格維度」，每個維度有多個可選值
-		// 系統會自動排列組合產生 ProductVariant
+		// ★ 規格維度定義 (供 ProductVariantHelper 使用)
 		// ====================================================================
-		private static readonly Dictionary<string, List<SpecDimension>> CategorySpecMap = new()
-		{
-			// === 💄 美妝 ===
-			{ "beauty", new List<SpecDimension> {
-				new("色號", new[] { "自然色", "象牙白", "蜜桃粉", "玫瑰紅" }),
-				new("容量", new[] { "標準裝", "加大版" })
-			}},
-			
-			// === 🌸 香水 ===
-			{ "fragrances", new List<SpecDimension> {
-				new("容量", new[] { "30ml", "50ml", "100ml" })
-			}},
-			
-			// === 🧴 護膚 ===
-			{ "skin-care", new List<SpecDimension> {
-				new("容量", new[] { "200ml", "400ml", "家庭號 750ml" }),
-				new("膚質", new[] { "一般膚質", "敏感肌專用" })
-			}},
-			
-			// === 🛋️ 家具 ===
-			{ "furniture", new List<SpecDimension> {
-				new("顏色", new[] { "胡桃木色", "橡木原色", "極簡白" }),
-				new("尺寸", new[] { "標準尺寸", "加大尺寸" })
-			}},
-			
-			// === 🏠 居家裝飾 ===
-			{ "home-decoration", new List<SpecDimension> {
-				new("款式", new[] { "經典款", "北歐風", "日式禪風" })
-			}},
-			
-			// === 🍳 廚房用品 ===
-			{ "kitchen-accessories", new List<SpecDimension> {
-				new("顏色", new[] { "經典黑", "奶油白", "霧灰藍" }),
-				new("材質", new[] { "不鏽鋼", "矽膠", "竹木" })
-			}},
-			
-			// === 🥩 生鮮食品 ===
-			{ "groceries", new List<SpecDimension> {
-				new("規格", new[] { "小份量", "標準包", "家庭號", "量販箱" })
-			}},
-			
-			// === 💻 筆電 ===
-			{ "laptops", new List<SpecDimension> {
-				new("記憶體", new[] { "8GB", "16GB", "32GB" }),
-				new("儲存空間", new[] { "256GB SSD", "512GB SSD", "1TB SSD" })
-			}},
-			
-			// === 📱 智慧型手機 ===
-			{ "smartphones", new List<SpecDimension> {
-				new("容量", new[] { "64GB", "128GB", "256GB", "512GB" }),
-				new("顏色", new[] { "午夜黑", "星光白", "海洋藍" })
-			}},
-			
-			// === 📟 平板 ===
-			{ "tablets", new List<SpecDimension> {
-				new("容量", new[] { "64GB", "128GB", "256GB" }),
-				new("連線", new[] { "Wi-Fi 版", "Wi-Fi + 行動網路" })
-			}},
-			
-			// === 🔌 手機周邊 ===
-			{ "mobile-accessories", new List<SpecDimension> {
-				new("顏色", new[] { "太空灰", "銀色", "午夜黑" })
-			}},
-			
-			// === 👔 男裝上衣 ===
-			{ "mens-shirts", new List<SpecDimension> {
-				new("尺寸", new[] { "S", "M", "L", "XL", "2XL" }),
-				new("顏色", new[] { "白色", "黑色", "藍色" })
-			}},
-			
-			// === 👟 男鞋 ===
-			{ "mens-shoes", new List<SpecDimension> {
-				new("尺寸", new[] { "US 7", "US 8", "US 9", "US 10", "US 11" }),
-				new("顏色", new[] { "黑色", "白色", "紅色" })
-			}},
-			
-			// === ⌚ 男錶 ===
-			{ "mens-watches", new List<SpecDimension> {
-				new("錶帶", new[] { "真皮錶帶", "不鏽鋼鍊帶", "橡膠運動帶" }),
-				new("錶面", new[] { "黑面", "白面", "藍面" })
-			}},
-			
-			// === 👗 女裝上衣 ===
-			{ "tops", new List<SpecDimension> {
-				new("尺寸", new[] { "XS", "S", "M", "L", "XL" }),
-				new("顏色", new[] { "黑色", "白色", "粉色", "藍色" })
-			}},
-			
-			// === 👠 女裝洋裝 ===
-			{ "womens-dresses", new List<SpecDimension> {
-				new("尺寸", new[] { "XS", "S", "M", "L" }),
-				new("顏色", new[] { "經典黑", "酒紅", "深藍" })
-			}},
-			
-			// === 👜 女包 ===
-			{ "womens-bags", new List<SpecDimension> {
-				new("顏色", new[] { "經典黑", "焦糖棕", "奶油白", "酒紅" }),
-				new("尺寸", new[] { "迷你款", "標準款" })
-			}},
-			
-			// === 👠 女鞋 ===
-			{ "womens-shoes", new List<SpecDimension> {
-				new("尺寸", new[] { "US 5", "US 6", "US 7", "US 8" }),
-				new("顏色", new[] { "黑色", "裸膚色", "紅色" })
-			}},
-			
-			// === ⌚ 女錶 ===
-			{ "womens-watches", new List<SpecDimension> {
-				new("錶帶", new[] { "真皮錶帶", "米蘭編織帶", "陶瓷錶帶" }),
-				new("錶面", new[] { "珍珠白面", "玫瑰金面" })
-			}},
-			
-			// === 💎 女性珠寶 ===
-			{ "womens-jewellery", new List<SpecDimension> {
-				new("材質", new[] { "925純銀", "18K鍍金", "玫瑰金" }),
-				new("款式", new[] { "耳針款", "耳夾款" })
-			}},
-			
-			// === 🕶️ 太陽眼鏡 ===
-			{ "sunglasses", new List<SpecDimension> {
-				new("鏡片顏色", new[] { "煙燻灰", "漸層棕", "偏光墨綠" }),
-				new("框型", new[] { "方框", "圓框", "飛行員" })
-			}},
-			
-			// === 🏀 運動器材 ===
-			{ "sports-accessories", new List<SpecDimension> {
-				new("規格", new[] { "標準款", "比賽用", "練習用" })
-			}},
-			
-			// === 🏍️ 機車 ===
-			{ "motorcycle", new List<SpecDimension> {
-				new("顏色", new[] { "極速黑", "珍珠白", "賽車紅", "消光灰" })
-			}},
-			
-			// === 🚗 汽車 ===
-			{ "vehicle", new List<SpecDimension> {
-				new("外觀色", new[] { "星曜黑", "冰川白", "鈦灰銀", "烈焰紅" }),
-				new("內裝", new[] { "黑色皮革", "米色皮革" })
-			}}
-		};
 
 		/// <summary>
 		/// 規格維度定義 (例如：「顏色」有「黑/白/紅」三個值)
 		/// </summary>
-		private class SpecDimension
+		public class SpecDimension
 		{
 			public string Name { get; }
 			public string[] Values { get; }
@@ -178,108 +27,154 @@ namespace ISpanShop.Models
 			}
 		}
 
-		/// <summary>
-		/// ★ 核心方法：根據分類產生所有規格組合的 ProductVariant 清單
-		/// 例如：手機 (容量 x 顏色) = 4x3 = 12 種組合
-		/// 為了避免爆量，最多取 maxCombinations 組
-		/// </summary>
-		private static List<ProductVariant> GenerateVariants(string apiCategory, int basePriceTwd, int maxCombinations = 6)
+		// ====================================================================
+		// ★ 按分類定義規格選項
+		// ====================================================================
+		public static readonly Dictionary<string, List<SpecDimension>> CategorySpecMap = new()
 		{
-			var variants = new List<ProductVariant>();
+			// === 💄 美妝 ===
+			{ "beauty", new List<SpecDimension> {
+				new("色號", new[] { "自然色", "象牙白", "蜜桃粉", "玫瑰紅" }),
+				new("容量", new[] { "標準裝", "加大版" })
+			}},
 
-			if (!CategorySpecMap.ContainsKey(apiCategory))
-			{
-				// 沒有定義規格的分類 → 只給一個「標準版」
-				variants.Add(new ProductVariant
-				{
-					SkuCode = Guid.NewGuid().ToString().Substring(0, 8).ToUpper(),
-					VariantName = "標準版",
-					SpecValueJson = System.Text.Json.JsonSerializer.Serialize(new Dictionary<string, string> { { "規格", "標準版" } }),
-					Price = basePriceTwd,
-					Stock = _random.Next(50, 201),
-					SafetyStock = 10,
-					IsDeleted = false
-				});
-				return variants;
-			}
+			// === 🌸 香水 ===
+			{ "fragrances", new List<SpecDimension> {
+				new("容量", new[] { "30ml", "50ml", "100ml" })
+			}},
 
-			var dimensions = CategorySpecMap[apiCategory];
+			// === 🧴 護膚 ===
+			{ "skin-care", new List<SpecDimension> {
+				new("容量", new[] { "200ml", "400ml", "家庭號 750ml" }),
+				new("膚質", new[] { "一般膚質", "敏感肌專用" })
+			}},
 
-			// 用遞迴產生笛卡兒積 (所有組合)
-			var allCombinations = CartesianProduct(dimensions);
+			// === 🛋️ 家具 ===
+			{ "furniture", new List<SpecDimension> {
+				new("顏色", new[] { "胡桃木色", "橡木原色", "極簡白" }),
+				new("尺寸", new[] { "標準尺寸", "加大尺寸" })
+			}},
 
-			// 隨機打亂後取前 maxCombinations 個，避免組合太多
-			var selected = allCombinations.OrderBy(_ => _random.Next()).Take(maxCombinations).ToList();
+			// === 🏠 居家裝飾 ===
+			{ "home-decoration", new List<SpecDimension> {
+				new("款式", new[] { "經典款", "北歐風", "日式禪風" })
+			}},
 
-			for (int i = 0; i < selected.Count; i++)
-			{
-				var combo = selected[i];
+			// === 🍳 廚房用品 ===
+			{ "kitchen-accessories", new List<SpecDimension> {
+				new("顏色", new[] { "經典黑", "奶油白", "霧灰藍" }),
+				new("材質", new[] { "不鏽鋼", "矽膠", "竹木" })
+			}},
 
-				// 組合名稱，例如「128GB / 午夜黑」
-				var variantName = string.Join(" / ", combo.Values);
+			// === 🥩 生鮮食品 ===
+			{ "groceries", new List<SpecDimension> {
+				new("規格", new[] { "小份量", "標準包", "家庭號", "量販箱" })
+			}},
 
-				// 規格 JSON，例如 {"容量":"128GB","顏色":"午夜黑"}
-				var specDict = new Dictionary<string, string>();
-				for (int d = 0; d < dimensions.Count; d++)
-				{
-					specDict[dimensions[d].Name] = combo.Values[d];
-				}
-				var specJson = System.Text.Json.JsonSerializer.Serialize(specDict);
+			// === 💻 筆電 ===
+			{ "laptops", new List<SpecDimension> {
+				new("記憶體", new[] { "8GB", "16GB", "32GB" }),
+				new("儲存空間", new[] { "256GB SSD", "512GB SSD", "1TB SSD" })
+			}},
 
-				// 價格浮動：根據組合索引加一些差價 (模擬真實情況，容量越大越貴)
-				int priceOffset = i * _random.Next(50, 300);
+			// === 📱 智慧型手機 ===
+			{ "smartphones", new List<SpecDimension> {
+				new("容量", new[] { "64GB", "128GB", "256GB", "512GB" }),
+				new("顏色", new[] { "午夜黑", "星光白", "海洋藍" })
+			}},
 
-				variants.Add(new ProductVariant
-				{
-					SkuCode = Guid.NewGuid().ToString().Substring(0, 8).ToUpper(),
-					VariantName = variantName,
-					SpecValueJson = specJson,
-					Price = basePriceTwd + priceOffset,
-					Stock = _random.Next(20, 300),
-					SafetyStock = _random.Next(5, 20),
-					IsDeleted = false
-				});
-			}
+			// === 📟 平板 ===
+			{ "tablets", new List<SpecDimension> {
+				new("容量", new[] { "64GB", "128GB", "256GB" }),
+				new("連線", new[] { "Wi-Fi 版", "Wi-Fi + 行動網路" })
+			}},
 
-			return variants;
-		}
+			// === 🔌 手機周邊 ===
+			{ "mobile-accessories", new List<SpecDimension> {
+				new("顏色", new[] { "太空灰", "銀色", "午夜黑" })
+			}},
 
-		/// <summary>
-		/// 笛卡兒積：將多個維度的所有值做排列組合
-		/// 例如：[["S","M"],["黑","白"]] → [("S","黑"),("S","白"),("M","黑"),("M","白")]
-		/// </summary>
-		private class Combination
-		{
-			public List<string> Values { get; set; } = new();
-		}
+			// === 👔 男裝上衣 ===
+			{ "mens-shirts", new List<SpecDimension> {
+				new("尺寸", new[] { "S", "M", "L", "XL", "2XL" }),
+				new("顏色", new[] { "白色", "黑色", "藍色" })
+			}},
 
-		private static List<Combination> CartesianProduct(List<SpecDimension> dimensions)
-		{
-			var result = new List<Combination> { new Combination() };
+			// === 👟 男鞋 ===
+			{ "mens-shoes", new List<SpecDimension> {
+				new("尺寸", new[] { "US 7", "US 8", "US 9", "US 10", "US 11" }),
+				new("顏色", new[] { "黑色", "白色", "紅色" })
+			}},
 
-			foreach (var dim in dimensions)
-			{
-				var newResult = new List<Combination>();
-				foreach (var existing in result)
-				{
-					foreach (var val in dim.Values)
-					{
-						var newCombo = new Combination { Values = new List<string>(existing.Values) };
-						newCombo.Values.Add(val);
-						newResult.Add(newCombo);
-					}
-				}
-				result = newResult;
-			}
+			// === ⌚ 男錶 ===
+			{ "mens-watches", new List<SpecDimension> {
+				new("錶帶", new[] { "真皮錶帶", "不鏽鋼鍊帶", "橡膠運動帶" }),
+				new("錶面", new[] { "黑面", "白面", "藍面" })
+			}},
 
-			return result;
-		}
+			// === 👗 女裝上衣 ===
+			{ "tops", new List<SpecDimension> {
+				new("尺寸", new[] { "XS", "S", "M", "L", "XL" }),
+				new("顏色", new[] { "黑色", "白色", "粉色", "藍色" })
+			}},
+
+			// === 👠 女裝洋裝 ===
+			{ "womens-dresses", new List<SpecDimension> {
+				new("尺寸", new[] { "XS", "S", "M", "L" }),
+				new("顏色", new[] { "經典黑", "酒紅", "深藍" })
+			}},
+
+			// === 👜 女包 ===
+			{ "womens-bags", new List<SpecDimension> {
+				new("顏色", new[] { "經典黑", "焦糖棕", "奶油白", "酒紅" }),
+				new("尺寸", new[] { "迷你款", "標準款" })
+			}},
+
+			// === 👠 女鞋 ===
+			{ "womens-shoes", new List<SpecDimension> {
+				new("尺寸", new[] { "US 5", "US 6", "US 7", "US 8" }),
+				new("顏色", new[] { "黑色", "裸膚色", "紅色" })
+			}},
+
+			// === ⌚ 女錶 ===
+			{ "womens-watches", new List<SpecDimension> {
+				new("錶帶", new[] { "真皮錶帶", "米蘭編織帶", "陶瓷錶帶" }),
+				new("錶面", new[] { "珍珠白面", "玫瑰金面" })
+			}},
+
+			// === 💎 女性珠寶 ===
+			{ "womens-jewellery", new List<SpecDimension> {
+				new("材質", new[] { "925純銀", "18K鍍金", "玫瑰金" }),
+				new("款式", new[] { "耳針款", "耳夾款" })
+			}},
+
+			// === 🕶️ 太陽眼鏡 ===
+			{ "sunglasses", new List<SpecDimension> {
+				new("鏡片顏色", new[] { "煙燻灰", "漸層棕", "偏光墨綠" }),
+				new("框型", new[] { "方框", "圓框", "飛行員" })
+			}},
+
+			// === 🏀 運動器材 ===
+			{ "sports-accessories", new List<SpecDimension> {
+				new("規格", new[] { "標準款", "比賽用", "練習用" })
+			}},
+
+			// === 🏍️ 機車 ===
+			{ "motorcycle", new List<SpecDimension> {
+				new("顏色", new[] { "極速黑", "珍珠白", "賽車紅", "消光灰" })
+			}},
+
+			// === 🚗 汽車 ===
+			{ "vehicle", new List<SpecDimension> {
+				new("外觀色", new[] { "星曜黑", "冰川白", "鈦灰銀", "烈焰紅" }),
+				new("內裝", new[] { "黑色皮革", "米色皮革" })
+			}}
+		};
 
 		// ====================================================================
-		// 以下是原有的分類/品牌/翻譯對照表 (保持不變)
+		// ★ 分類階層對照表 (API分類 → 主分類/子分類)
 		// ====================================================================
-
-		private static readonly Dictionary<string, (string ParentName, string ChildName)> CategoryHierarchyMap = new()
+		public static readonly Dictionary<string, (string ParentName, string ChildName)> CategoryHierarchyMap = new()
 		{
 			{ "beauty", ("美妝與保養", "彩妝與修容") },
 			{ "fragrances", ("美妝與保養", "香水與香氛") },
@@ -307,7 +202,10 @@ namespace ISpanShop.Models
 			{ "vehicle", ("汽機車百貨", "汽車與周邊配件") }
 		};
 
-		private static readonly Dictionary<string, string> BrandTranslationMap = new(StringComparer.OrdinalIgnoreCase)
+		// ====================================================================
+		// ★ 品牌翻譯對照表
+		// ====================================================================
+		public static readonly Dictionary<string, string> BrandTranslationMap = new(StringComparer.OrdinalIgnoreCase)
 		{
 			{ "Apple", "蘋果 (Apple)" },
 			{ "Samsung", "三星 (Samsung)" },
@@ -342,7 +240,10 @@ namespace ISpanShop.Models
 			{ "Essence", "Essence 艾森絲" }
 		};
 
-		private static readonly Dictionary<string, (string Title, string Description)> ProductTranslationMap = new()
+		// ====================================================================
+		// ★ 商品名稱與描述翻譯對照表
+		// ====================================================================
+		public static readonly Dictionary<string, (string Title, string Description)> ProductTranslationMap = new()
 		{
 			{"Essence Mascara Lash Princess", ("精華纖長睫毛膏", "超人氣濃密纖長睫毛膏，持久防水配方讓您輕鬆打造無死角的迷人電眼。")},
 			{"Eyeshadow Palette with Mirror", ("自帶補妝鏡多色眼影盤", "百搭實用色系一次擁有！粉質細膩服貼，內附實用化妝鏡，隨時隨地保持完美妝容。")},
@@ -539,397 +440,7 @@ namespace ISpanShop.Models
 			{"Tartan Dress", ("英倫風格紋毛呢洋裝", "經典蘇格蘭格紋配上保暖毛呢面料，秋冬季節最具辨識度的優雅穿搭。")}
 		};
 
-		private const string FALLBACK_DESCRIPTION_TEMPLATE = "我們嚴選的 {0}，為您帶來獨特的生活體驗。原廠特色介紹：{1}";
-
-		private class DummyJsonResponse
-		{
-			[JsonPropertyName("products")]
-			public List<DummyProduct> Products { get; set; }
-		}
-
-		private class DummyProduct
-		{
-			[JsonPropertyName("title")] public string Title { get; set; }
-			[JsonPropertyName("description")] public string Description { get; set; }
-			[JsonPropertyName("price")] public decimal Price { get; set; }
-			[JsonPropertyName("stock")] public int Stock { get; set; }
-			[JsonPropertyName("category")] public string Category { get; set; }
-			[JsonPropertyName("brand")] public string Brand { get; set; }
-			[JsonPropertyName("images")] public List<string> Images { get; set; } = new();
-		}
-
-		// ====================================================================
-		// ★★★ 核心播種方法 (已升級支援規格變體) ★★★
-		// ====================================================================
-		public static async Task SeedAsync(ISpanShopDBContext context)
-		{
-			if (context.Products.Any()) return;
-
-			try
-			{
-				var dummyProducts = await FetchProductsFromApiAsync();
-				if (dummyProducts == null || dummyProducts.Count == 0) return;
-
-				var store = EnsureStoreExists(context);
-				var categories = ExtractAndCreateHierarchyCategories(context, dummyProducts);
-				var brands = ExtractAndCreateBrands(context, dummyProducts);
-				context.SaveChanges();
-
-				var products = new List<Product>();
-
-				foreach (var dummy in dummyProducts)
-				{
-					// 取得子分類
-					var childCatName = CategoryHierarchyMap.ContainsKey(dummy.Category)
-						? CategoryHierarchyMap[dummy.Category].ChildName
-						: char.ToUpper(dummy.Category[0]) + dummy.Category.Substring(1);
-					var category = categories.FirstOrDefault(c => c.Name == childCatName);
-
-					// 取得翻譯後的品牌
-					var rawBrand = dummy.Brand ?? "原廠直營";
-					var translatedBrandName = BrandTranslationMap.ContainsKey(rawBrand)
-						? BrandTranslationMap[rawBrand]
-						: rawBrand;
-					var brand = brands.FirstOrDefault(b => b.Name == translatedBrandName);
-
-					int priceInTwd = (int)(dummy.Price * USD_TO_TWD);
-
-					// 翻譯商品名稱與描述
-					string productName;
-					string productDescription;
-					if (ProductTranslationMap.ContainsKey(dummy.Title))
-					{
-						var translation = ProductTranslationMap[dummy.Title];
-						productName = translation.Title;
-						productDescription = translation.Description;
-					}
-					else
-					{
-						productName = dummy.Title;
-						productDescription = string.Format(FALLBACK_DESCRIPTION_TEMPLATE, dummy.Title, dummy.Description);
-					}
-
-					// ★★★ 產生規格變體 ★★★
-					var variants = GenerateVariants(dummy.Category, priceInTwd, maxCombinations: 6);
-
-					// 計算 MinPrice / MaxPrice
-					var minPrice = variants.Min(v => v.Price);
-					var maxPrice = variants.Max(v => v.Price);
-
-					var product = new Product
-					{
-						StoreId = store.Id,
-						CategoryId = category?.Id ?? categories.First().Id,
-						BrandId = brand?.Id ?? brands.First().Id,
-						Name = productName,
-						Description = productDescription,
-						MinPrice = minPrice,
-						MaxPrice = maxPrice,
-						Status = 1,
-						CreatedAt = DateTime.Now,
-						UpdatedAt = DateTime.Now,
-						ProductImages = new List<ProductImage>(),
-						ProductVariants = variants // ★ 直接掛上多組規格
-					};
-
-					// 處理圖片
-					if (dummy.Images != null && dummy.Images.Count > 0)
-					{
-						for (int i = 0; i < dummy.Images.Count; i++)
-						{
-							product.ProductImages.Add(new ProductImage
-							{
-								ImageUrl = dummy.Images[i],
-								IsMain = (i == 0),
-								SortOrder = i
-							});
-						}
-					}
-
-					// === 資料倍增術：將 1 筆真實商品變種成 5 筆 ===
-					string[] suffixes = { "", " (2025 全新升級版)", " (特仕限量版)", " (海外平輸版)", " - 聯名精裝版" };
-
-					for (int k = 0; k < suffixes.Length; k++)
-					{
-						// ★ 為每個克隆版本重新產生一組規格 (避免 EF 追蹤衝突)
-						var cloneVariants = GenerateVariants(dummy.Category, priceInTwd + (k * 150), maxCombinations: 6);
-						var cloneMinPrice = cloneVariants.Min(v => v.Price);
-						var cloneMaxPrice = cloneVariants.Max(v => v.Price);
-
-						var clonedProduct = new Product
-						{
-							StoreId = product.StoreId,
-							CategoryId = product.CategoryId,
-							BrandId = product.BrandId,
-							Name = product.Name + suffixes[k],
-							Description = product.Description,
-							MinPrice = cloneMinPrice,
-							MaxPrice = cloneMaxPrice,
-							Status = (byte)_random.Next(0, 2),
-							CreatedAt = DateTime.Now.AddDays(-_random.Next(1, 100)),
-							UpdatedAt = DateTime.Now,
-							ProductImages = product.ProductImages.Select(img => new ProductImage
-							{
-								ImageUrl = img.ImageUrl,
-								IsMain = img.IsMain,
-								SortOrder = img.SortOrder
-							}).ToList(),
-							ProductVariants = cloneVariants // ★ 每個克隆版有自己的規格組合
-						};
-						products.Add(clonedProduct);
-					}
-				}
-
-				// 將最後 15 筆設為「待審核」測試資料
-				var pendingReviewProducts = products.Skip(Math.Max(0, products.Count - 15)).ToList();
-				foreach (var p in pendingReviewProducts)
-				{
-					p.Status = 2;
-				}
-
-				context.Products.AddRange(products);
-				await context.SaveChangesAsync();
-				Console.WriteLine($"✅ 成功匯入 {products.Count} 筆商品 (含多規格變體) 到資料庫");
-			}
-			catch (Exception ex)
-			{
-				Console.WriteLine($"❌ 播種過程出錯：{ex.Message}");
-				throw;
-			}
-		}
-
-		/// <summary>
-	/// 一次性補充歷史商品的審核人 / 審核時間（只對 ReviewStatus=1 且 ReviewDate=null 的商品執行）
-	/// </summary>
-	public static async Task PatchMissingReviewDataAsync(ISpanShopDBContext context)
-	{
-		var products = context.Products
-			.Where(p => p.ReviewStatus == 1 && p.ReviewDate == null && p.IsDeleted != true)
-			.ToList();
-
-		if (!products.Any())
-		{
-			Console.WriteLine("ℹ️  審核資料補充：無需修補，所有已審核商品均有審核時間。");
-			return;
-		}
-
-		foreach (var product in products)
-		{
-			var baseTime = product.CreatedAt ?? DateTime.Now.AddDays(-30);
-			product.ReviewDate = baseTime.AddMinutes(_random.Next(1, 31));
-			if (string.IsNullOrWhiteSpace(product.ReviewedBy))
-				product.ReviewedBy = "系統自動審核";
-		}
-
-		await context.SaveChangesAsync();
-		Console.WriteLine($"✅ 審核資料補充：已修補 {products.Count} 筆商品的審核人 / 審核時間。");
-	}
-
-	/// <summary>
-	/// 確保資料庫中有一個預設管理員帳號（Admin role + admin user）。
-	/// 帳號：admin　密碼：Admin@1234
-	/// </summary>
-	public static async Task EnsureAdminUserAsync(ISpanShopDBContext context)
-	{
-		// 確保 Admin 角色存在
-		var adminRole = context.Roles.FirstOrDefault(r => r.RoleName == "Admin");
-		if (adminRole == null)
-		{
-			adminRole = new Role { RoleName = "Admin", Description = "後台管理員" };
-			context.Roles.Add(adminRole);
-			await context.SaveChangesAsync();
-			Console.WriteLine("✅ 已建立 Admin 角色");
-		}
-
-		// 確保預設管理員帳號存在
-		var adminUser = context.Users.FirstOrDefault(u => u.Account == "admin");
-		if (adminUser == null)
-		{
-			adminUser = new User
-			{
-				RoleId      = adminRole.Id,
-				Account     = "admin",
-				Password    = "Admin@1234",
-				Email       = "admin@ispanshop.com",
-				IsConfirmed = true,
-				IsBlacklisted = false,
-				IsSeller    = false,
-				CreatedAt   = DateTime.Now,
-				UpdatedAt   = DateTime.Now
-			};
-			context.Users.Add(adminUser);
-			await context.SaveChangesAsync();
-			Console.WriteLine("✅ 已建立預設管理員帳號：admin / Admin@1234");
-		}
-	}
-
-	public static async Task EnsurePendingProductsAsync(ISpanShopDBContext context)
-		{
-			var currentCount = context.Products.Count(p => p.Status == 2);
-			if (currentCount >= 15)
-			{
-				Console.WriteLine($"ℹ️  待審核商品已有 {currentCount} 筆，無需補充。");
-				return;
-			}
-
-			var needed = 15 - currentCount;
-			var candidates = context.Products
-				.Where(p => p.Status != 2 && p.IsDeleted != true)
-				.Take(needed)
-				.ToList();
-
-			foreach (var p in candidates)
-			{
-				p.Status = 2;
-				p.UpdatedAt = DateTime.Now;
-			}
-
-			await context.SaveChangesAsync();
-			Console.WriteLine($"✅ 已補充 {candidates.Count} 筆待審核商品，目前共 {currentCount + candidates.Count} 筆");
-		}
-
-		// ====================================================================
-		// 以下是不變的基礎建設方法
-		// ====================================================================
-
-		private static async Task<List<DummyProduct>> FetchProductsFromApiAsync()
-		{
-			using var client = new HttpClient();
-			var response = await client.GetAsync(DUMMYJSON_URL);
-			response.EnsureSuccessStatusCode();
-			var jsonContent = await response.Content.ReadAsStringAsync();
-			var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-			var dummyResponse = System.Text.Json.JsonSerializer.Deserialize<DummyJsonResponse>(jsonContent, options);
-			return dummyResponse?.Products ?? new List<DummyProduct>();
-		}
-
-		private static Store EnsureStoreExists(ISpanShopDBContext context)
-		{
-			var store = context.Stores.FirstOrDefault();
-			if (store != null) return store;
-
-			var role = context.Roles.FirstOrDefault();
-			if (role == null)
-			{
-				role = new Role { RoleName = "Seller", Description = "賣家角色" };
-				context.Roles.Add(role);
-				context.SaveChanges();
-			}
-
-			var user = new User
-			{
-				RoleId = role.Id,
-				Account = "dataseed_seller",
-				Password = "hashed_password_placeholder",
-				Email = "dataseed@example.com",
-				IsConfirmed = true,
-				IsBlacklisted = false,
-				IsSeller = true,
-				CreatedAt = DateTime.Now,
-				UpdatedAt = DateTime.Now
-			};
-			context.Users.Add(user);
-			context.SaveChanges();
-
-			store = new Store
-			{
-				UserId = user.Id,
-				StoreName = "原廠直營",
-				Description = "精選商品，品質保證",
-				IsVerified = true,
-				CreatedAt = DateTime.Now
-			};
-			context.Stores.Add(store);
-			context.SaveChanges();
-			return store;
-		}
-
-		private static List<Category> ExtractAndCreateHierarchyCategories(ISpanShopDBContext context, List<DummyProduct> dummyProducts)
-		{
-			var flatCategoryList = new List<Category>();
-			var apiCategories = dummyProducts.Select(p => p.Category).Distinct().ToList();
-
-			foreach (var apiCat in apiCategories)
-			{
-				string parentName = apiCat;
-				string childName = apiCat;
-
-				if (CategoryHierarchyMap.ContainsKey(apiCat))
-				{
-					parentName = CategoryHierarchyMap[apiCat].ParentName;
-					childName = CategoryHierarchyMap[apiCat].ChildName;
-				}
-
-				var parentCategory = context.Categories.FirstOrDefault(c => c.Name == parentName);
-				if (parentCategory == null)
-				{
-					parentCategory = new Category
-					{
-						Name = parentName,
-						Sort = 0,
-						IsVisible = true,
-						ParentId = null
-					};
-					context.Categories.Add(parentCategory);
-					context.SaveChanges();
-				}
-				if (!flatCategoryList.Any(c => c.Name == parentName))
-					flatCategoryList.Add(parentCategory);
-
-				var childCategory = context.Categories.FirstOrDefault(c => c.Name == childName);
-				if (childCategory == null)
-				{
-					childCategory = new Category
-					{
-						Name = childName,
-						Sort = 0,
-						IsVisible = true,
-						ParentId = parentCategory.Id
-					};
-					context.Categories.Add(childCategory);
-					context.SaveChanges();
-				}
-				if (!flatCategoryList.Any(c => c.Name == childName))
-					flatCategoryList.Add(childCategory);
-			}
-
-			return flatCategoryList;
-		}
-
-		private static List<Brand> ExtractAndCreateBrands(ISpanShopDBContext context, List<DummyProduct> dummyProducts)
-		{
-			var brands = new List<Brand>();
-			var rawBrandNames = dummyProducts.Select(p => p.Brand ?? "原廠直營").Distinct().ToList();
-
-			foreach (var rawName in rawBrandNames)
-			{
-				var translatedName = BrandTranslationMap.ContainsKey(rawName)
-					? BrandTranslationMap[rawName]
-					: rawName;
-
-				var existing = context.Brands.FirstOrDefault(b => b.Name == translatedName);
-				if (existing == null)
-				{
-					var brand = new Brand
-					{
-						Name = translatedName,
-						Description = $"{translatedName} 官方直營品牌",
-						LogoUrl = "https://via.placeholder.com/64x64",
-						Sort = 0,
-						IsVisible = true,
-						IsDeleted = false
-					};
-					context.Brands.Add(brand);
-					context.SaveChanges();
-					brands.Add(brand);
-				}
-				else
-				{
-					if (!brands.Any(b => b.Id == existing.Id))
-						brands.Add(existing);
-				}
-			}
-			return brands;
-		}
+		/// <summary>商品描述的備用模板</summary>
+		public const string FALLBACK_DESCRIPTION_TEMPLATE = "我們嚴選的 {0}，為您帶來獨特的生活體驗。原廠特色介紹：{1}";
 	}
 }
