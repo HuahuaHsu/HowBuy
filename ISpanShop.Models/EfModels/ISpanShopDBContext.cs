@@ -53,6 +53,8 @@ public partial class ISpanShopDBContext : DbContext
 
     public virtual DbSet<Role> Roles { get; set; }
 
+    public virtual DbSet<SensitiveWordCategory> SensitiveWordCategories { get; set; }
+
     public virtual DbSet<SensitiveWord> SensitiveWords { get; set; }
 
     public virtual DbSet<Store> Stores { get; set; }
@@ -485,7 +487,6 @@ public partial class ISpanShopDBContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("PK__Sensitiv__3214EC0724499AB4");
 
-            entity.Property(e => e.Category).HasMaxLength(50);
             entity.Property(e => e.CreatedTime)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
@@ -493,7 +494,22 @@ public partial class ISpanShopDBContext : DbContext
             entity.Property(e => e.Word)
                 .IsRequired()
                 .HasMaxLength(100);
+
+            // 設定與 Category 的關聯
+            entity.HasOne(d => d.Category)
+                .WithMany(p => p.SensitiveWords)
+                .HasForeignKey(d => d.CategoryId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_SensitiveWords_Categories");
         });
+
+        // 加入 SensitiveWordCategory 的預設資料 (種子資料)
+        modelBuilder.Entity<SensitiveWordCategory>().HasData(
+            new SensitiveWordCategory { Id = 1, Name = "髒話" },
+            new SensitiveWordCategory { Id = 2, Name = "政治" },
+            new SensitiveWordCategory { Id = 3, Name = "詐騙" },
+            new SensitiveWordCategory { Id = 4, Name = "廣告" }
+        );
 
         modelBuilder.Entity<Store>(entity =>
         {
