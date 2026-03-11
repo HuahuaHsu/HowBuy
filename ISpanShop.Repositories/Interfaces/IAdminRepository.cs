@@ -1,24 +1,20 @@
-using ISpanShop.Models.DTOs;
+using ISpanShop.Models.DTOs.Admins;
 using System.Collections.Generic;
-
-// ¦ì¸m¡GISpanShop.Repositories/Interfaces/IAdminRepository.cs
-
-using ISpanShop.Models.DTOs;
 
 namespace ISpanShop.Repositories.Interfaces
 {
 	/// <summary>
-	/// ºÞ²z­û¸ê®Æ¦s¨ú¤¶­±
+	/// ï¿½Þ²zï¿½ï¿½ï¿½ï¿½Æ¦sï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	/// </summary>
 	public interface IAdminRepository
 	{
-		/// <summary>¨ú±o©Ò¦³ºÞ²z­û¡]§t¨¤¦â¦WºÙ¡^</summary>
+		/// <summary>ï¿½ï¿½ï¿½oï¿½Ò¦ï¿½ï¿½Þ²zï¿½ï¿½ï¿½]ï¿½tï¿½ï¿½ï¿½ï¿½Wï¿½Ù¡^</summary>
 		IEnumerable<AdminDto> GetAllAdmins();
 
-		/// <summary>¨Ì ID ¨ú±o³æ¤@ºÞ²z­û</summary>
+		/// <summary>ï¿½ï¿½ ID ï¿½ï¿½ï¿½oï¿½ï¿½@ï¿½Þ²zï¿½ï¿½</summary>
 		AdminDto? GetAdminById(int adminId);
 
-		/// <summary>§ó·sºÞ²z­û¨¤¦â</summary>
+		/// <summary>ï¿½ï¿½sï¿½Þ²zï¿½ï¿½ï¿½ï¿½ï¿½ï¿½</summary>
 		bool UpdateAdminRole(int adminId, int roleId);
 	}
 }

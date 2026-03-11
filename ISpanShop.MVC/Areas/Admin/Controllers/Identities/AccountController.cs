@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
-namespace ISpanShop.MVC.Areas.Admin.Controllers
+namespace ISpanShop.MVC.Areas.Admin.Controllers.Identities
 {
     [Area("Admin")]
     public class AccountController : Controller

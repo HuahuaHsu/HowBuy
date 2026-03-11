@@ -1,4 +1,4 @@
-using ISpanShop.Models.DTOs;
+using ISpanShop.Models.DTOs.Admins;
 using System.Collections.Generic;
 
 namespace ISpanShop.MVC.Models.Admins

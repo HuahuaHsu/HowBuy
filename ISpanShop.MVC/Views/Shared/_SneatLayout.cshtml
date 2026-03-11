@@ -566,7 +566,7 @@
             <ul class="menu-inner">
 
                 <li class="menu-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Orders" && ViewContext.RouteData.Values["action"]?.ToString() == "Dashboard" ? "active" : "")">
-                    <a href="@Url.Action("Dashboard", "Orders")" class="menu-link">
+                    <a href="@Url.Action("Dashboard", "Orders", new { area = "Admin" })" class="menu-link">
                         <span class="mini-wrap">
                             <i class="menu-icon bx bx-home-circle"></i>
                             <span class="menu-short">首頁</span>
@@ -577,12 +577,15 @@
                 </li>
 
                 @{
-                    var catCtrl   = ViewContext.RouteData.Values["controller"]?.ToString();
-                    var isCatActive = catCtrl == "CategoryManage" || catCtrl == "CategorySpecs";
-                    var isInvActive = catCtrl == "Inventory";
+                    var ctrl = ViewContext.RouteData.Values["controller"]?.ToString();
+                    var action = ViewContext.RouteData.Values["action"]?.ToString();
+                    var isCatActive = ctrl == "CategoryManage" || ctrl == "CategorySpecs";
+                    var isInvActive = ctrl == "Inventory";
+                    var isOrderActive = ctrl == "Orders" || ctrl == "ShipmentWorkstation" || ctrl == "ReturnRequests" || ctrl == "OrderTracking";
                 }
                 <li class="menu-header"><span>營運管理</span></li>
-                <li class="menu-item has-sub @(ViewContext.RouteData.Values["controller"]?.ToString() == "Products" ? "active" : "")">
+
+                <li class="menu-item has-sub @(ctrl == "Products" ? "active" : "")">
                     <span class="menu-link">
                         <span class="mini-wrap">
                             <i class="menu-icon bx bx-store"></i>
@@ -594,10 +597,10 @@
                     </span>
                     <div class="menu-sub">
                         <ul>
-                            <li class="menu-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Products" && ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")">
+                            <li class="menu-item @(ctrl == "Products" && action == "Index" ? "active" : "")">
                                 <a href="@Url.Action("Index", "Products", new { area = "Admin" })" class="menu-link">商品總覽</a>
                             </li>
-                            <li class="menu-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Products" && ViewContext.RouteData.Values["action"]?.ToString() == "PendingReview" ? "active" : "")">
+                            <li class="menu-item @(ctrl == "Products" && action == "PendingReview" ? "active" : "")">
                                 <a href="@Url.Action("PendingReview", "Products", new { area = "Admin" })" class="menu-link">商品審核</a>
                             </li>
                         </ul>
@@ -621,10 +624,10 @@
                     </span>
                     <div class="menu-sub">
                         <ul>
-                            <li class="menu-item @(catCtrl == "CategoryManage" ? "active" : "")">
+                            <li class="menu-item @(ctrl == "CategoryManage" ? "active" : "")">
                                 <a href="@Url.Action("Index", "CategoryManage", new { area = "Admin" })" class="menu-link">分類總覽</a>
                             </li>
-                            <li class="menu-item @(catCtrl == "CategorySpecs" ? "active" : "")">
+                            <li class="menu-item @(ctrl == "CategorySpecs" ? "active" : "")">
                                 <a href="@Url.Action("Index", "CategorySpecs", new { area = "Admin" })" class="menu-link">分類屬性</a>
                             </li>
                         </ul>
@@ -648,7 +651,7 @@
                     </span>
                     <div class="menu-sub">
                         <ul>
-                            <li class="menu-item @(isInvActive && ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")">
+                            <li class="menu-item @(isInvActive && action == "Index" ? "active" : "")">
                                 <a href="@Url.Action("Index", "Inventory", new { area = "Admin" })" class="menu-link">庫存監控</a>
                             </li>
                         </ul>
@@ -659,58 +662,7 @@
                     </div>
                 </li>
 
-                <li class="menu-header"><span>示範頁面</span></li>
-                <li class="menu-item has-sub">
-                    <span class="menu-link">
-                        <span class="mini-wrap">
-                            <i class="menu-icon bx bx-grid-alt"></i>
-                            <span class="menu-short">報表</span>
-                        </span>
-                        <i class="menu-icon bx bx-grid-alt"></i>
-                        <span class="menu-label">Dashboard</span>
-                        <i class="menu-arrow bx bx-chevron-right"></i>
-                    </span>
-                    <div class="menu-sub">
-                        <ul>
-                            <li class="menu-item">
-                                <a href="#" class="menu-link">Dashboard 1</a>
-                            </li>
-                            <li class="menu-item"><a href="#" class="menu-link">Dashboard 2</a></li>
-                            <li class="menu-item"><a href="#" class="menu-link">Dashboard 3</a></li>
-                        </ul>
-                    </div>
-                    <div class="menu-flyout">
-                        <div class="menu-flyout-title">Dashboard</div>
-                        <a href="#">Dashboard 1</a>
-                        <a href="#">Dashboard 2</a>
-                        <a href="#">Dashboard 3</a>
-                    </div>
-                </li>
-
-                <li class="menu-item has-sub">
-                    <span class="menu-link">
-                        <span class="mini-wrap">
-                            <i class="menu-icon bx bx-user"></i>
-                            <span class="menu-short">會員</span>
-                        </span>
-                        <i class="menu-icon bx bx-user"></i>
-                        <span class="menu-label">會員管理</span>
-                        <i class="menu-arrow bx bx-chevron-right"></i>
-                    </span>
-                    <div class="menu-sub">
-                        <ul>
-                            <li class="menu-item"><a href="#" class="menu-link">會員列表</a></li>
-                            <li class="menu-item"><a href="#" class="menu-link">黑名單管理</a></li>
-                        </ul>
-                    </div>
-                    <div class="menu-flyout">
-                        <div class="menu-flyout-title">會員管理</div>
-                        <a href="#">會員列表</a>
-                        <a href="#">黑名單管理</a>
-                    </div>
-                </li>
-
-                <li class="menu-item has-sub">
+                <li class="menu-item has-sub @(isOrderActive ? "active" : "")">
                     <span class="menu-link">
                         <span class="mini-wrap">
                             <i class="menu-icon bx bx-receipt"></i>
@@ -722,20 +674,20 @@
                     </span>
                     <div class="menu-sub">
                         <ul>
-                            <li class="menu-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Orders" && ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")">
-                                <a href="@Url.Action("Index", "Orders")" class="menu-link">全部訂單</a>
+                            <li class="menu-item @(ctrl == "Orders" && action == "Index" ? "active" : "")">
+                                <a href="@Url.Action("Index", "Orders", new { area = "Admin" })" class="menu-link">全部訂單</a>
                             </li>
-                            <li class="menu-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "ShipmentWorkstation" ? "active" : "")">
-                                <a href="@Url.Action("Index", "ShipmentWorkstation")" class="menu-link">待出貨</a>
+                            <li class="menu-item @(ctrl == "ShipmentWorkstation" ? "active" : "")">
+                                <a href="@Url.Action("Index", "ShipmentWorkstation", new { area = "Admin" })" class="menu-link">待出貨</a>
                             </li>
-                            <li class="menu-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "ReturnRequests" ? "active" : "")">
-                                <a href="@Url.Action("Index", "ReturnRequests")" class="menu-link">退貨申請</a>
+                            <li class="menu-item @(ctrl == "ReturnRequests" ? "active" : "")">
+                                <a href="@Url.Action("Index", "ReturnRequests", new { area = "Admin" })" class="menu-link">退貨申請</a>
                             </li>
                             <li class="menu-item">
                                 <hr class="mx-3 my-2" style="border-top: 1px solid rgba(255,255,255,0.15);" />
                             </li>
-                            <li class="menu-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "OrderTracking" ? "active" : "")">
-                                <a href="@Url.Action("Index", "OrderTracking", new { area = "" })" class="menu-link text-info fw-bold">
+                            <li class="menu-item @(ctrl == "OrderTracking" ? "active" : "")">
+                                <a href="@Url.Action("Index", "OrderTracking", new { area = "Admin" })" class="menu-link text-info fw-bold">
                                     <i class="bx bx-search-alt-2 me-2"></i>訂單追蹤(測試)
                                 </a>
                             </li>
@@ -743,12 +695,47 @@
                     </div>
                     <div class="menu-flyout">
                         <div class="menu-flyout-title">訂單管理</div>
-                        <a href="@Url.Action("Index", "Orders")">全部訂單</a>
-                        <a href="@Url.Action("Index", "ShipmentWorkstation")">待出貨</a>
-                        <a href="@Url.Action("Index", "ReturnRequests")">退貨申請</a>
+                        <a href="@Url.Action("Index", "Orders", new { area = "Admin" })">全部訂單</a>
+                        <a href="@Url.Action("Index", "ShipmentWorkstation", new { area = "Admin" })">待出貨</a>
+                        <a href="@Url.Action("Index", "ReturnRequests", new { area = "Admin" })">退貨申請</a>
                         <hr class="my-1 border-light opacity-25" />
-                        <a href="@Url.Action("Index", "OrderTracking", new { area = "" })" class="text-info fw-bold">訂單追蹤(測試)</a>
+                        <a href="@Url.Action("Index", "OrderTracking", new { area = "Admin" })" class="text-info fw-bold">訂單追蹤(測試)</a>
                     </div>
+                </li>
+
+                <li class="menu-header"><span>帳號管理</span></li>
+
+                <li class="menu-item @(ctrl == "Member" ? "active" : "")">
+                    <a href="@Url.Action("Index", "Member", new { area = "Admin" })" class="menu-link">
+                        <span class="mini-wrap">
+                            <i class="menu-icon bx bx-user"></i>
+                            <span class="menu-short">會員</span>
+                        </span>
+                        <i class="menu-icon bx bx-user"></i>
+                        <span class="menu-label">會員管理</span>
+                    </a>
+                </li>
+
+                <li class="menu-item @(ctrl == "LoginHistory" ? "active" : "")">
+                    <a href="@Url.Action("Index", "LoginHistory", new { area = "Admin" })" class="menu-link">
+                        <span class="mini-wrap">
+                            <i class="menu-icon bx bx-shield-quarter"></i>
+                            <span class="menu-short">登入</span>
+                        </span>
+                        <i class="menu-icon bx bx-shield-quarter"></i>
+                        <span class="menu-label">登入紀錄</span>
+                    </a>
+                </li>
+
+                <li class="menu-item @(ctrl == "Role" ? "active" : "")">
+                    <a href="@Url.Action("Index", "Role", new { area = "Admin" })" class="menu-link">
+                        <span class="mini-wrap">
+                            <i class="menu-icon bx bx-key"></i>
+                            <span class="menu-short">角色</span>
+                        </span>
+                        <i class="menu-icon bx bx-key"></i>
+                        <span class="menu-label">角色管理</span>
+                    </a>
                 </li>
 
             </ul>

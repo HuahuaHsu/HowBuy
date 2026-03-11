@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace ISpanShop.Models.DTOs
+namespace ISpanShop.Models.DTOs.Members
 {
 	/// <summary>
 	/// 登入紀錄資料傳輸物件 - 用於後台管理列表

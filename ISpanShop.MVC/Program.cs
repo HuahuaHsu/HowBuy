@@ -1,9 +1,14 @@
 ﻿using ISpanShop.Models.EfModels;
 using ISpanShop.Models.Seeding;
 using ISpanShop.MVC.Middleware;
+using ISpanShop.Repositories;
+using ISpanShop.Repositories.Interfaces;
+using ISpanShop.Repositories.Implementations;
 using ISpanShop.Repositories.Products;
 using ISpanShop.Repositories.Categories;
 using ISpanShop.Repositories.Inventories;
+using ISpanShop.Services;
+using ISpanShop.Services.Interfaces;
 using ISpanShop.Services.Products;
 using ISpanShop.Services.Categories;
 using ISpanShop.Services.Inventories;
@@ -133,12 +138,6 @@ namespace ISpanShop.MVC
 
 			app.UseAuthentication();
 			app.UseAuthorization();
-
-			// ── 前台訂單追蹤路由 (放在 Area 之前) ──
-			app.MapControllerRoute(
-				name: "order_tracking",
-				pattern: "OrderTracking/{action=Index}/{id?}",
-				defaults: new { controller = "OrderTracking" });
 
 			// ── Area 路由（後台 MVC，必須在 default 之前）──
 			app.MapControllerRoute(

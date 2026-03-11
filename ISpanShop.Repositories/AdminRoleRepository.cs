@@ -1,4 +1,4 @@
-using ISpanShop.Models.DTOs;
+using ISpanShop.Models.DTOs.Admins;
 using ISpanShop.Repositories.Interfaces;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;

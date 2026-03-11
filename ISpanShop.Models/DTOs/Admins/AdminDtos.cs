@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace ISpanShop.Models.DTOs
+namespace ISpanShop.Models.DTOs.Admins
 {
 	/// <summary>
 	/// 管理員資料傳輸物件 - 用於列表、詳細資訊及編輯

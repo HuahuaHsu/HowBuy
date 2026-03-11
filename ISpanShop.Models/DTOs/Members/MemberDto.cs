@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace ISpanShop.Models.DTOs
+namespace ISpanShop.Models.DTOs.Members
 {
 	public class MemberDto
 	{

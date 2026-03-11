@@ -1,4 +1,5 @@
-using ISpanShop.Models.DTOs;
+using ISpanShop.Models.DTOs.Members;
+using ISpanShop.Models.DTOs.Common;
 using ISpanShop.Models.EfModels;
 using ISpanShop.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -86,7 +87,7 @@ namespace ISpanShop.Repositories
 				.ToList();
 
 			// 返回分頁結果
-			return new PagedResult<LoginHistoryDto>(
+			return PagedResult<LoginHistoryDto>.Create(
 				items,
 				totalCount,
 				criteria.PageNumber,

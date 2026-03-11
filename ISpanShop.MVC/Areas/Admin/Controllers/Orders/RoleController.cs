@@ -7,8 +7,9 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using ISpanShop.Models.EfModels;
 
-namespace ISpanShop.MVC.Controllers
+namespace ISpanShop.MVC.Areas.Admin.Controllers.Orders
 {
+    [Area("Admin")]
     public class RoleController : Controller
     {
         private readonly ISpanShopDBContext _context;

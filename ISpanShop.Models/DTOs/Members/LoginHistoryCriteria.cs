@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace ISpanShop.Models.DTOs
+namespace ISpanShop.Models.DTOs.Members
 {
 	/// <summary>
 	/// 登入紀錄查詢條件 - 用於搜尋、排序、分頁

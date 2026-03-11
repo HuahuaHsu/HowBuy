@@ -1,13 +1,15 @@
-using ISpanShop.Models.DTOs;
+using ISpanShop.Models.DTOs.Members;
+using ISpanShop.Models.DTOs.Common;
 using ISpanShop.MVC.Models.LoginHistories;
 using ISpanShop.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
-namespace ISpanShop.MVC.Controllers
+namespace ISpanShop.MVC.Areas.Admin.Controllers.Members
 {
 	/// <summary>
 	/// 登入紀錄管理 Controller - 處理登入紀錄的後台管理
 	/// </summary>
+	[Area("Admin")]
 	public class LoginHistoryController : Controller
 	{
 		private readonly ILoginHistoryService _loginHistoryService;

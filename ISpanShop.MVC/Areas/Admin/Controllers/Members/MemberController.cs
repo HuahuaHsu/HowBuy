@@ -1,5 +1,4 @@
-﻿using ISpanShop.Models.Dtos;
-using ISpanShop.Models.DTOs;
+﻿using ISpanShop.Models.DTOs.Members;
 using ISpanShop.Models.EfModels;
 using ISpanShop.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -10,8 +9,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace ISpanShop.Models.Dtos
+namespace ISpanShop.MVC.Areas.Admin.Controllers.Members
 {
+	[Area("Admin")]
 	public class MemberController : Controller
 	{
 		private readonly MemberService _memberService;

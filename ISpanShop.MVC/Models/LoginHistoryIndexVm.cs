@@ -1,4 +1,5 @@
-using ISpanShop.Models.DTOs;
+using ISpanShop.Models.DTOs.Members;
+using ISpanShop.Models.DTOs.Common;
 using System.Collections.Generic;
 
 namespace ISpanShop.MVC.Models.LoginHistories
@@ -172,12 +173,12 @@ namespace ISpanShop.MVC.Models.LoginHistories
 			LoginHistoryCriteria criteria)
 		{
 			// 轉換紀錄項目
-			var items = pagedResult.Items
+			var items = pagedResult.Data
 				.Select(lh => lh.ToViewModel())
 				.ToList();
 
 			// 生成頁碼清單 (顯示最多 5 個頁碼按鈕)
-			var pageNumbers = GeneratePageNumbers(pagedResult.PageNumber, pagedResult.TotalPages);
+			var pageNumbers = GeneratePageNumbers(pagedResult.CurrentPage, pagedResult.TotalPages);
 
 			var vm = new LoginHistoryIndexVm
 			{
@@ -186,10 +187,10 @@ namespace ISpanShop.MVC.Models.LoginHistories
 				{
 					TotalCount = pagedResult.TotalCount,
 					TotalPages = pagedResult.TotalPages,
-					CurrentPageNumber = pagedResult.PageNumber,
+					CurrentPageNumber = pagedResult.CurrentPage,
 					PageSize = pagedResult.PageSize,
-					HasNextPage = pagedResult.HasNextPage,
-					HasPreviousPage = pagedResult.HasPreviousPage,
+					HasNextPage = pagedResult.CurrentPage < pagedResult.TotalPages,
+					HasPreviousPage = pagedResult.CurrentPage > 1,
 					PageNumbers = pageNumbers
 				},
 				SearchCriteria = new LoginHistoryCriteriaVm

@@ -1,10 +1,11 @@
-using ISpanShop.Models.DTOs;
+using ISpanShop.Models.DTOs.Admins;
 using ISpanShop.MVC.Models.Admins;
 using ISpanShop.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
-namespace ISpanShop.MVC.Controllers
+namespace ISpanShop.MVC.Areas.Admin.Controllers.Identities
 {
+	[Area("Admin")]
 	//[Authorize(Roles = "SuperAdmin")] //測試功能階不需要權限
 	public class AdminController : Controller
 	{
@@ -66,28 +67,28 @@ namespace ISpanShop.MVC.Controllers
 
 				// 設置 userid Cookie (有效期 7 天)
 				Response.Cookies.Append("userid", adminId.ToString(),
-					new Microsoft.AspNetCore.Http.CookieOptions
+					new CookieOptions
 					{
 						HttpOnly = true,
 						Secure = true,
-						SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Strict,
+						SameSite = SameSiteMode.Strict,
 						Expires = DateTimeOffset.UtcNow.AddDays(7)
 					});
 
 				// 設置 admin_role Cookie 標記為 Super Admin (有效期 7 天)
 				Response.Cookies.Append("admin_role", "SuperAdmin",
-					new Microsoft.AspNetCore.Http.CookieOptions
+					new CookieOptions
 					{
 						HttpOnly = true,
 						Secure = true,
-						SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Strict,
+						SameSite = SameSiteMode.Strict,
 						Expires = DateTimeOffset.UtcNow.AddDays(7)
 					});
 
 				return Ok(new 
 				{ 
 					message = $"✓ Super Admin Cookie 已設置",
-					adminId = adminId,
+					adminId,
 					adminName = admin.Account,
 					role = admin.RoleName
 				});

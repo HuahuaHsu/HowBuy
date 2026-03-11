@@ -1,4 +1,5 @@
-using ISpanShop.Models.DTOs;
+using ISpanShop.Models.DTOs.Members;
+using ISpanShop.Models.DTOs.Common;
 using ISpanShop.Repositories.Interfaces;
 using ISpanShop.Services.Interfaces;
 using System.Collections.Generic;

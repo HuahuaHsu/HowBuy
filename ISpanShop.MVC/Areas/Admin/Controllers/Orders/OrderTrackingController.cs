@@ -4,8 +4,9 @@ using ISpanShop.Services.Orders;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace ISpanShop.MVC.Controllers
+namespace ISpanShop.MVC.Areas.Admin.Controllers.Orders
 {
+    [Area("Admin")]
     public class OrderTrackingController : Controller
     {
         private readonly IOrderService _orderService;
