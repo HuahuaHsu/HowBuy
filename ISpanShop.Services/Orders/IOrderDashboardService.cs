@@ -20,6 +20,7 @@ namespace ISpanShop.Services.Orders
 		Task<ApexChartDataDto> GetMonthlySalesTrendAsync(int? storeId, int? year);
 		Task<ApexChartDataDto> GetCategoryContributionAsync(int? storeId, string period);
 		Task<List<TopProductSalesDto>> GetTop10ProductsAsync(int? storeId, string period, string orderBy);
+		Task<ApexChartDataDto> GetYearlyRevenueDataAsync(int? storeId, int year);
 	}
 }
 

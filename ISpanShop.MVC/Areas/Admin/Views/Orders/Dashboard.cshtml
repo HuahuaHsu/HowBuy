@@ -175,12 +175,37 @@
             </div>
         </div>
     </div>
+
+    <!-- 年度營收對比 (Diverging Bar Chart) -->
+    <div class="col-12 mb-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0 fw-bold">年度營收雙向對比分析</h5>
+                <div class="d-flex align-items-center gap-2">
+                    <select id="compYear1" class="form-select form-select-sm w-auto" onchange="loadComparisonChart()">
+                        <option value="2026">2026</option>
+                        <option value="2025" selected>2025</option>
+                        <option value="2024">2024</option>
+                    </select>
+                    <span class="text-muted small">vs</span>
+                    <select id="compYear2" class="form-select form-select-sm w-auto" onchange="loadComparisonChart()">
+                        <option value="2026">2026</option>
+                        <option value="2025">2025</option>
+                        <option value="2024" selected>2024</option>
+                    </select>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="comparisonChart"></div>
+            </div>
+        </div>
+    </div>
 </div>
 
 @section Scripts {
     <script src="~/sneat/assets/vendor/libs/apex-charts/apexcharts.js"></script>
     <script>
-        let trendChart, pieChart, top10Chart, categoryChart;
+        let trendChart, pieChart, top10Chart, categoryChart, comparisonChart;
         let currentCategoryChartType = 'bar'; // 預設為柱狀圖
         const palette = ['#696cff', '#71dd37', '#03c3ec', '#ffab00', '#ff3e1d', '#8592a3', '#e3028a', '#00d2d3', '#54a0ff', '#5f27cd'];
         
@@ -205,6 +230,7 @@
             loadPieChart();
             loadTop10Chart();
             loadCategoryContribution();
+            loadComparisonChart();
         }
 
         function refreshMetrics() {
@@ -486,6 +512,69 @@
                 if(categoryChart) categoryChart.destroy();
                 categoryChart = new ApexCharts(document.querySelector("#categoryChart"), options);
                 categoryChart.render();
+            });
+        }
+
+        function loadComparisonChart() {
+            const y1 = $('#compYear1').val();
+            const y2 = $('#compYear2').val();
+            const storeId = $('#storeFilter').val();
+            
+            // 使用相對路徑保持與其他 API 一致
+            $.get(`/Orders/GetYearOverYearComparison?year1=${y1}&year2=${y2}&storeId=${storeId}`, function(data) {
+                if (!data || !data.series) return;
+
+                const options = {
+                    series: data.series,
+                    chart: {
+                        type: 'bar',
+                        height: 440,
+                        stacked: false, // 重要：Diverging Bar 不應 Stacked
+                        toolbar: { show: false },
+                        fontFamily: 'Public Sans, -apple-system, sans-serif'
+                    },
+                    colors: ['#696cff', '#03c3ec'],
+                    plotOptions: {
+                        bar: {
+                            horizontal: false,
+                            columnWidth: '40%',
+                            borderRadius: 4,
+                            borderRadiusApplication: 'around'
+                        }
+                    },
+                    dataLabels: { enabled: false },
+                    grid: { 
+                        borderColor: '#f1f1f1',
+                        strokeDashArray: 3,
+                        xaxis: { lines: { show: true } } 
+                    },
+                    yaxis: {
+                        labels: {
+                            formatter: function(val) { return formatRevenue(val); }
+                        }
+                    },
+                    xaxis: {
+                        categories: data.labels,
+                        axisBorder: { show: false },
+                        labels: { style: { colors: '#a1acb8' } }
+                    },
+                    legend: { position: 'top', horizontalAlign: 'right' },
+                    tooltip: {
+                        shared: true,
+                        intersect: false,
+                        y: {
+                            formatter: function(val) {
+                                return "$" + Math.abs(val).toLocaleString();
+                            }
+                        }
+                    }
+                };
+
+                if (comparisonChart) comparisonChart.destroy();
+                comparisonChart = new ApexCharts(document.querySelector("#comparisonChart"), options);
+                comparisonChart.render();
+            }).fail(function(err) {
+                console.error("Year Comparison Chart failed:", err);
             });
         }
     </script>

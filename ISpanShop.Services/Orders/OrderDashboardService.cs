@@ -138,5 +138,12 @@ namespace ISpanShop.Services.Orders
 			var (start, end, _, _) = ParsePeriod(period);
 			return await _orderRepository.GetCategoryContributionAsync(storeId, start, end);
 		}
+
+		public async Task<ApexChartDataDto> GetYearlyRevenueDataAsync(int? storeId, int year)
+		{
+			var startDate = new DateTime(year, 1, 1);
+			var endDate = new DateTime(year, 12, 31, 23, 59, 59);
+			return await _orderRepository.GetMonthlySalesTrendAsync(storeId, startDate, endDate);
+		}
 	}
 }

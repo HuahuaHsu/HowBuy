@@ -141,5 +141,39 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Orders
 			var data = await _dashboardService.GetCategoryContributionAsync(storeId, period);
 			return Json(data);
 		}
+
+		[HttpGet]
+		public async Task<IActionResult> GetYearOverYearComparison(int year1, int year2, int? storeId)
+		{
+			var data1 = await _dashboardService.GetYearlyRevenueDataAsync(storeId, year1);
+			var data2 = await _dashboardService.GetYearlyRevenueDataAsync(storeId, year2);
+
+			// 建立一個 1~12 月的容器，確保資料對齊
+			var series1 = new decimal[12];
+			var series2 = new decimal[12];
+
+			// 邏輯：從 Labels (格式 "YYYY/MM") 提取月份並填入對應位置
+			for (int i = 0; i < data1.Labels.Count; i++)
+			{
+				var month = int.Parse(data1.Labels[i].Split('/')[1]);
+				if (month >= 1 && month <= 12) series1[month - 1] = data1.Series[0].Data[i];
+			}
+
+			for (int i = 0; i < data2.Labels.Count; i++)
+			{
+				var month = int.Parse(data2.Labels[i].Split('/')[1]);
+				if (month >= 1 && month <= 12) series2[month - 1] = -data2.Series[0].Data[i]; // 轉為負值供 Diverging Bar 使用
+			}
+
+			return Json(new
+			{
+				labels = new[] { "1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月" },
+				series = new[]
+				{
+					new { name = year1.ToString(), data = series1 },
+					new { name = year2.ToString(), data = series2 }
+				}
+			});
+		}
 	}
 }
