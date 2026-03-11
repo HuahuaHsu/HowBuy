@@ -1,0 +1,453 @@
+﻿@model IEnumerable<ISpanShop.Models.DTOs.Categories.CategoryManageDto>
+@{
+    Layout = "~/Views/Shared/_SneatLayout.cshtml";
+    ViewData["Title"] = "分類管理";
+    var tree = Model.ToList();
+}
+
+<style>
+.mg-card {
+    background:#fff; border-radius:14px;
+    box-shadow:0 2px 14px rgba(0,0,0,.07);
+    border:none; margin-bottom:20px; overflow:hidden;
+}
+.mg-head {
+    padding:14px 22px; border-bottom:1px solid #f0f0f0;
+    background:#fafbfc; display:flex; align-items:center;
+    justify-content:space-between; gap:10px;
+}
+.mg-head h5 { margin:0; font-weight:700; font-size:.95rem; }
+
+/* 樹狀列表 */
+.cat-group { border-bottom:1px solid #f5f5f5; }
+.cat-group:last-child { border-bottom:none; }
+
+/* 父分類列 */
+.parent-row {
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    padding:12px 20px; background:#fafbff;
+    border-left:4px solid #1a73e8;
+    cursor:pointer; transition:background .12s;
+}
+.parent-row:hover { background:#f0f5ff; }
+.parent-row .toggle-icon { color:#1a73e8; font-size:.8rem; transition:transform .2s; width:16px; }
+.parent-row .toggle-icon.open { transform:rotate(90deg); }
+.parent-name { font-weight:700; font-size:.92rem; flex:1; min-width:100px; }
+.child-count { font-size:.75rem; background:#e8f0fe; color:#1a73e8; border-radius:10px; padding:2px 8px; }
+
+/* 子分類列 */
+.children-wrap { display:none; }
+.children-wrap.open { display:block; }
+.child-row {
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    padding:10px 20px 10px 44px;
+    border-bottom:1px solid #f8f8f8;
+    transition:background .12s;
+}
+.child-row:hover { background:#fafcff; }
+.child-row:last-child { border-bottom:none; }
+.child-name { font-size:.88rem; flex:1; min-width:80px; }
+
+/* 狀態 badge */
+.st-badge { font-size:.73rem; padding:2px 8px; border-radius:10px; font-weight:600; white-space:nowrap; }
+.st-on  { background:#e6f4ea; color:#1e7e34; }
+.st-off { background:#f5f5f5; color:#999; }
+
+/* toggle switch */
+.toggle-switch { position:relative; display:inline-block; width:40px; height:22px; flex-shrink:0; }
+.toggle-switch input { opacity:0; width:0; height:0; }
+.toggle-track {
+    position:absolute; inset:0; border-radius:11px;
+    background:#ddd; cursor:pointer; transition:background .2s;
+}
+.toggle-track:before {
+    content:''; position:absolute; width:16px; height:16px;
+    left:3px; top:3px; border-radius:50%; background:#fff;
+    transition:transform .2s; box-shadow:0 1px 3px rgba(0,0,0,.2);
+}
+.toggle-switch input:checked + .toggle-track { background:#34a853; }
+.toggle-switch input:checked + .toggle-track:before { transform:translateX(18px); }
+
+/* 操作按鈕 */
+.act-btn {
+    border:none; background:none; cursor:pointer;
+    font-size:.8rem; padding:4px 10px; border-radius:7px;
+    transition:background .12s; white-space:nowrap;
+}
+.act-edit   { color:#1a73e8; background:#e8f0fe; }
+.act-edit:hover { background:#c8dcff; }
+.act-del    { color:#e53935; background:#fde8e8; }
+.act-del:hover { background:#ffcccc; }
+.act-add    { color:#1e7e34; background:#e6f4ea; font-size:.78rem; }
+.act-add:hover { background:#c8f0d0; }
+
+/* Modal */
+.modal-content { border-radius:14px; border:none; }
+.modal-header { border-bottom:1px solid #f0f0f0; padding:18px 22px; }
+.modal-footer { border-top:1px solid #f0f0f0; padding:14px 22px; }
+.form-label { font-weight:600; font-size:.88rem; color:#444; }
+.form-control, .form-select {
+    border-radius:8px; border:1.5px solid #dde2e8;
+    font-size:.9rem; padding:8px 12px;
+}
+.form-control:focus, .form-select:focus {
+    border-color:#1a73e8; box-shadow:0 0 0 3px rgba(26,115,232,.1);
+}
+
+/* sort input */
+.sort-input {
+    width:54px; border:1.5px solid #dde2e8; border-radius:7px;
+    text-align:center; font-size:.85rem; padding:3px 6px; outline:none;
+}
+.sort-input:focus { border-color:#1a73e8; }
+
+/* toast */
+#gToast {
+    position:fixed; top:22px; right:22px; z-index:9999;
+    display:none; background:#2d2d2d; color:#fff;
+    padding:11px 22px; border-radius:10px; font-size:.86rem;
+    box-shadow:0 4px 18px rgba(0,0,0,.22);
+}
+.btn { border-radius:8px; }
+</style>
+
+<div id="gToast"></div>
+
+@* ── 新增/編輯 Modal ── *@
+<div class="modal fade" id="catModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="modalTitle">新增分類</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="padding:22px">
+                <input type="hidden" id="editId" value="0">
+                <div class="mb-3">
+                    <label class="form-label">分類名稱<span style="color:#e53935">*</span></label>
+                    <input type="text" class="form-control" id="catName" placeholder="例：女裝、美妝保養">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">上層分類</label>
+                    <select class="form-select" id="catParent">
+                        <option value="">— 設為頂層分類 —</option>
+                        @foreach (var p in tree)
+                        {
+                            <option value="@p.Id">@p.Name</option>
+                        }
+                    </select>
+                    <div style="font-size:.78rem;color:#aaa;margin-top:4px">
+                        選擇上層分類則建立為子分類，不選則為頂層分類
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">排序數字</label>
+                    <input type="number" class="form-control" id="catSort" value="0" min="0" style="width:120px">
+                    <div style="font-size:.78rem;color:#aaa;margin-top:4px">數字越小排越前面</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline-secondary" data-bs-dismiss="modal">取消</button>
+                <button class="btn btn-primary px-4" onclick="saveCategory()">💾 儲存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ── 頁頭 ── *@
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h4 class="fw-bold mb-0">分類管理</h4>
+        <small class="text-muted">管理商品分類樹狀結構，賣家上架時的分類選單來源</small>
+    </div>
+    <button class="btn btn-success px-4" onclick="openAdd(null, null)">＋ 新增頂層分類</button>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show">
+        @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@* ── 啟用/停用說明 ── *@
+<div class="alert alert-info d-flex align-items-start gap-3 mb-3 rounded-3 border-0 shadow-sm"
+     style="background:#e8f4fd;border-left:4px solid #1a73e8 !important;padding:14px 18px;">
+    <i class="bx bx-info-circle fs-5 mt-1" style="color:#1a73e8;flex-shrink:0;"></i>
+    <div style="font-size:.85rem;color:#3d5166;line-height:1.65;">
+        <strong>啟用／停用說明：</strong>
+        停用分類後，將無法使用該分類來新增商品，但該分類下已建立的商品不受影響，仍可正常顯示與販售。
+        重新啟用後即可再次使用該分類新增商品。
+    </div>
+</div>
+
+@if (!tree.Any())
+{
+    <div class="mg-card" style="text-align:center;padding:48px;color:#bbb">
+        <div style="font-size:2rem;margin-bottom:8px">📂</div>
+        尚無分類，請點右上角「＋ 新增頂層分類」
+    </div>
+}
+else
+{
+    <div class="mg-card">
+        <div class="mg-head">
+            <h5>📂 分類樹狀列表</h5>
+            <small class="text-muted">共 @tree.Count 個頂層分類</small>
+        </div>
+        <div>
+            @foreach (var parent in tree)
+            {
+                <div class="cat-group">
+                    @* 父分類列 *@
+                    <div class="parent-row" onclick="toggleChildren(@parent.Id, this)">
+                        <span class="toggle-icon @(parent.Children.Any() ? "" : "invisible")">▶</span>
+                        <span class="parent-name">@parent.Name</span>
+                        @if (parent.Children.Any())
+                        {
+                            <span class="child-count">@parent.Children.Count 個子分類</span>
+                        }
+                        @if (parent.ProductCount > 0)
+                        {
+                            <span class="child-count" style="background:#f0fdfa;color:#0D9488">@parent.ProductCount 件商品</span>
+                        }
+                        <span class="st-badge @(parent.IsActive ? "st-on" : "st-off")" id="badge-@parent.Id">
+                            @(parent.IsActive ? "啟用" : "停用")
+                        </span>
+                        @* 修改三：tooltip 說明加強 *@
+                        <label class="toggle-switch" onclick="event.stopPropagation()"
+                               title="@(parent.IsActive ? "點擊停用：賣家上架時將看不到此分類，已上架商品不受影響" : "點擊啟用：恢復前台顯示")">
+                            <input type="checkbox" @(parent.IsActive ? "checked" : "")
+                                   data-id="@parent.Id"
+                                   onchange="toggleActive(this)">
+                            <span class="toggle-track"></span>
+                        </label>
+                        @* 修改二：排序加標籤 *@
+                        <div style="display:flex;align-items:center;gap:4px;font-size:.8rem;color:#888" onclick="event.stopPropagation()">
+                            <span>排序↕</span>
+                            <input class="sort-input" type="number" value="@parent.SortOrder"
+                                   onchange="updateSort(@parent.Id, this.value)"
+                                   title="數字越小排越前面">
+                        </div>
+                        <button class="act-btn act-add"
+                                onclick="event.stopPropagation(); openAdd(@parent.Id, '@Html.Raw(parent.Name.Replace("'", "\\'"))')">
+                            ＋ 子分類
+                        </button>
+                        <button class="act-btn act-edit"
+                                onclick="event.stopPropagation(); openEdit(@parent.Id)">
+                            編輯
+                        </button>
+                        @* 有子分類 → 不顯示刪除；無子分類 → 依 ProductCount 決定啟用或禁用 *@
+                        @if (!parent.Children.Any())
+                        {
+                            @if (parent.ProductCount == 0)
+                            {
+                                <button class="act-btn act-del"
+                                        onclick="event.stopPropagation(); deleteCategory(@parent.Id, '@Html.Raw(parent.Name.Replace("'", "\\'"))')">
+                                    刪除
+                                </button>
+                            }
+                            else
+                            {
+                                <button class="act-btn act-del" disabled
+                                        style="opacity:.45;cursor:not-allowed;"
+                                        title="該分類尚有 @parent.ProductCount 筆商品，無法刪除">
+                                    刪除
+                                </button>
+                            }
+                        }
+                    </div>
+
+                    @* 子分類列 *@
+                    @if (parent.Children.Any())
+                    {
+                        <div class="children-wrap" id="children-@parent.Id">
+                            @foreach (var child in parent.Children)
+                            {
+                                <div class="child-row">
+                                    <span style="color:#bbb;font-size:.8rem;width:16px">└</span>
+                                    <span class="child-name">@child.Name</span>
+                                    @if (child.ProductCount > 0)
+                                    {
+                                        <span class="child-count" style="background:#f0fdfa;color:#0D9488">@child.ProductCount 件商品</span>
+                                    }
+                                    <span class="st-badge @(child.IsActive ? "st-on" : "st-off")" id="badge-@child.Id">
+                                        @(child.IsActive ? "啟用" : "停用")
+                                    </span>
+                                    @* 修改三：tooltip 說明加強 *@
+                                    <label class="toggle-switch"
+                                           title="@(child.IsActive ? "點擊停用：賣家上架時將看不到此分類，已上架商品不受影響" : "點擊啟用：恢復前台顯示")">
+                                        <input type="checkbox" @(child.IsActive ? "checked" : "")
+                                               data-id="@child.Id"
+                                               onchange="toggleActive(this)">
+                                        <span class="toggle-track"></span>
+                                    </label>
+                                    @* 修改二：排序加標籤 *@
+                                    <div style="display:flex;align-items:center;gap:4px;font-size:.8rem;color:#888">
+                                        <span>排序↕</span>
+                                        <input class="sort-input" type="number" value="@child.SortOrder"
+                                               onchange="updateSort(@child.Id, this.value)"
+                                               title="數字越小排越前面">
+                                    </div>
+                                    <button class="act-btn act-edit" onclick="openEdit(@child.Id)">編輯</button>
+                                    @* 依 ProductCount / ChildCount 決定刪除按鈕是否可用 *@
+                                    @if (child.ProductCount == 0 && child.ChildCount == 0)
+                                    {
+                                        <button class="act-btn act-del"
+                                                onclick="deleteCategory(@child.Id, '@Html.Raw(child.Name.Replace("'", "\\'"))')">
+                                            刪除
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button class="act-btn act-del" disabled
+                                                style="opacity:.45;cursor:not-allowed;"
+                                                title="該分類尚有 @(child.ProductCount > 0 ? $"{child.ProductCount} 筆商品" : "子分類")，無法刪除">
+                                            刪除
+                                        </button>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@section Scripts {
+<script>
+// ── 展開/收合子分類 ──
+function toggleChildren(parentId, row) {
+    const wrap = document.getElementById('children-' + parentId);
+    if (!wrap) return;
+    wrap.classList.toggle('open');
+    row.querySelector('.toggle-icon').classList.toggle('open');
+}
+
+// ── 開啟新增 Modal ──
+function openAdd(parentId, parentName) {
+    document.getElementById('editId').value = '0';
+    document.getElementById('modalTitle').textContent =
+        parentId ? '新增子分類（' + parentName + '）' : '新增頂層分類';
+    document.getElementById('catName').value = '';
+    document.getElementById('catParent').value = parentId || '';
+    document.getElementById('catSort').value = '0';
+    new bootstrap.Modal(document.getElementById('catModal')).show();
+}
+
+// ── 開啟編輯 Modal ──
+async function openEdit(id) {
+    try {
+        const d = await apiGet('/Admin/CategoryManage/GetById?id=' + id);
+        document.getElementById('editId').value = d.id;
+        document.getElementById('modalTitle').textContent = '編輯分類';
+        document.getElementById('catName').value = d.name;
+        document.getElementById('catParent').value = d.parentId || '';
+        document.getElementById('catSort').value = d.sortOrder;
+        new bootstrap.Modal(document.getElementById('catModal')).show();
+    } catch { showToast('❌ 載入失敗，請重試'); }
+}
+
+// ── 儲存（新增 or 更新）──
+async function saveCategory() {
+    const id       = parseInt(document.getElementById('editId').value);
+    const name     = document.getElementById('catName').value.trim();
+    const parentId = document.getElementById('catParent').value
+        ? parseInt(document.getElementById('catParent').value) : null;
+    const sortOrder = parseInt(document.getElementById('catSort').value) || 0;
+
+    if (!name) { showToast('❌ 分類名稱不能空白'); return; }
+
+    const url  = id === 0 ? '/Admin/CategoryManage/Create' : '/Admin/CategoryManage/Update';
+    const body = id === 0
+        ? { name, parentId, sortOrder, imageUrl: null }
+        : { id, name, parentId, sortOrder, imageUrl: null };
+
+    try {
+        const d = await apiPost(url, body);
+        if (!d.success) { showToast('❌ ' + (d.message || '操作失敗')); return; }
+        bootstrap.Modal.getInstance(document.getElementById('catModal')).hide();
+        showToast(id === 0 ? '✅ 新增成功' : '✅ 更新成功');
+        setTimeout(() => location.reload(), 900);
+    } catch { showToast('❌ 操作失敗，請重試'); }
+}
+
+// ── 刪除（先查商品數，有商品則拒絕）──
+async function deleteCategory(id, name) {
+    try {
+        const d = await apiGet('/Admin/CategoryManage/GetProductCount?categoryId=' + id);
+        if (d.count > 0) {
+            const btn = document.querySelector(`.act-del[onclick*="deleteCategory(${id},"]`);
+            if (btn) {
+                btn.disabled = true;
+                btn.style.opacity = '.45';
+                btn.style.cursor  = 'not-allowed';
+                btn.title = `此分類有 ${d.count} 筆商品，請先移除商品再刪除`;
+                btn.textContent = '無法刪除';
+            }
+            showToast(`❌ 「${name}」有 ${d.count} 筆商品，無法刪除`);
+            return;
+        }
+        showConfirm(`確定刪除「${name}」？此操作無法復原。`, async function () {
+            try {
+                const res = await apiPost('/Admin/CategoryManage/Delete', { id });
+                if (!res.success) { showToast('❌ ' + res.message); return; }
+                showToast('✅ 已刪除');
+                setTimeout(() => location.reload(), 900);
+            } catch { showToast('❌ 刪除失敗，請重試'); }
+        });
+    } catch { showToast('❌ 無法確認分類狀態，請重試'); }
+}
+
+// ── 啟用/停用（含確認對話框）──
+function toggleActive(input) {
+    const id       = parseInt(input.dataset.id);
+    const isActive = input.checked;
+    const row      = input.closest('.parent-row, .child-row');
+    const name     = row?.querySelector('.parent-name, .child-name')?.textContent?.trim() || '此分類';
+
+    // 先回復 checkbox（等確認後再改）
+    input.checked = !isActive;
+
+    const msg = isActive
+        ? `確定要啟用「${name}」分類嗎？啟用後可再次使用此分類新增商品。`
+        : `確定要停用「${name}」分類嗎？停用後將無法使用此分類新增商品，但已有的商品不受影響。`;
+
+    showConfirm(msg, async function () {
+        input.checked = isActive;
+        const badge = document.getElementById('badge-' + id);
+        try {
+            const d = await apiPost('/Admin/CategoryManage/ToggleActive', { id, isActive });
+            if (!d.success) { input.checked = !isActive; return; }
+            if (badge) {
+                badge.textContent = isActive ? '啟用' : '停用';
+                badge.className = 'st-badge ' + (isActive ? 'st-on' : 'st-off');
+            }
+            showToast(isActive ? '✅ 已啟用' : '🔕 已停用');
+        } catch { input.checked = !isActive; }
+    });
+}
+
+// ── 排序更新（防抖 600ms）──
+let sortTimer = null;
+function updateSort(id, val) {
+    clearTimeout(sortTimer);
+    sortTimer = setTimeout(async () => {
+        try {
+            await apiPost('/Admin/CategoryManage/UpdateSort', { id, sortOrder: parseInt(val) || 0 });
+            showToast('✅ 排序已更新');
+        } catch { showToast('❌ 排序更新失敗'); }
+    }, 600);
+}
+
+// ── Toast ──
+function showToast(msg) {
+    const t = document.getElementById('gToast');
+    t.textContent = msg; t.style.display = 'block';
+    setTimeout(() => t.style.display = 'none', 2200);
+}
+</script>
+}

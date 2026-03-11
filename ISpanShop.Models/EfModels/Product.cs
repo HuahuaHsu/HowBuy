@@ -37,6 +37,18 @@ public partial class Product
 
     public DateTime? UpdatedAt { get; set; }
 
+    public string RejectReason { get; set; }
+
+    public bool IsDeleted { get; set; }
+
+    public int ReviewStatus { get; set; }
+
+    public string ReviewedBy { get; set; }
+
+    public DateTime? RejectDate { get; set; }
+
+    public DateTime? ReviewDate { get; set; }
+
     public virtual Brand Brand { get; set; }
 
     public virtual ICollection<CartItem> CartItems { get; set; } = new List<CartItem>();

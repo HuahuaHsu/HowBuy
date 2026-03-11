@@ -1,0 +1,682 @@
+﻿@{
+    Layout = "~/Views/Shared/_SneatLayout.cshtml";
+}
+@model ISpanShop.Models.DTOs.Common.PagedResult<ISpanShop.MVC.Areas.Admin.Models.Products.ProductListVm>
+@using System.Text.Json
+
+@{
+    ViewData["Title"] = "商品總覽";
+    var parentCategories = ViewBag.ParentCategories as IEnumerable<ISpanShop.Models.DTOs.Categories.CategoryDto> ?? Enumerable.Empty<ISpanShop.Models.DTOs.Categories.CategoryDto>();
+    var allSubCategories = ViewBag.AllSubCategories as IEnumerable<ISpanShop.Models.DTOs.Categories.CategoryDto> ?? Enumerable.Empty<ISpanShop.Models.DTOs.Categories.CategoryDto>();
+    var stores = ViewBag.Stores as IEnumerable<(int Id, string Name)> ?? Enumerable.Empty<(int, string)>();
+    var brands = ViewBag.Brands as IEnumerable<(int Id, string Name)> ?? Enumerable.Empty<(int, string)>();
+    int? currentParentId   = ViewBag.CurrentParentCategoryId;
+    int? currentCategoryId = ViewBag.CurrentCategoryId;
+    string? currentKeyword  = ViewBag.CurrentKeyword;
+    int? currentStoreId    = ViewBag.CurrentStoreId;
+    int? currentBrandId    = ViewBag.CurrentBrandId;
+    int? currentStatus     = ViewBag.CurrentStatus;
+    string? currentStartDate = ViewBag.CurrentStartDate;
+    string? currentEndDate   = ViewBag.CurrentEndDate;
+    string? currentSort      = ViewBag.CurrentSort as string;
+
+    int countTotal       = (int)(ViewBag.CountTotal       ?? 0);
+    int countPublished   = (int)(ViewBag.CountPublished   ?? 0);
+    int countUnpublished = (int)(ViewBag.CountUnpublished ?? 0);
+    int countPending     = (int)(ViewBag.CountPending     ?? 0);
+
+    // 帶上目前所有篩選參數的 returnUrl，讓商品詳情的「返回」可以還原到同一頁
+    var currentReturnUrl = Url.Action("Index", "Products") + Context.Request.QueryString.Value;
+}
+
+<div class="container-fluid py-4 font-noto">
+
+    @* ── 頁首 ── *@
+    <div class="mb-4 d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <div>
+            <h2 class="fw-bold tracking-tight mb-1" style="color:#1e2d3d;">
+                <i class="bx bx-store me-2" style="color:#3182ce;"></i>商品總覽
+            </h2>
+            <p class="mb-0 fs-7 text-muted">監控全站所有商品，強制下架違規商品或點擊查看詳細資訊</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span id="batch-action-bar" class="batch-tag d-none">
+                <i class="bx bx-checkbox-checked"></i>
+                已選取 <span id="selected-count">0</span> 項
+                <button id="btn-clear-selection" type="button" class="batch-tag-close" aria-label="清除選取">×</button>
+            </span>
+            <button id="btn-batch-publish" type="button" class="btn btn-emerald">
+                <i class="bx bx-upload me-1"></i>批次上架
+            </button>
+            <button id="btn-batch-unpublish" type="button" class="btn btn-batch-gray rounded-pill px-3">
+                <i class="bx bx-download me-1"></i>批次下架
+            </button>
+        </div>
+    </div>
+
+    @* ── 統計摘要卡片 ── *@
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="stat-card stat-total @(currentStatus == null ? "stat-active" : "")">
+                <a href="@Url.Action("Index")" class="stretched-link"></a>
+                <div class="stat-icon"><i class="bx bx-package"></i></div>
+                <div class="stat-num">@countTotal</div>
+                <div class="stat-label">全站商品</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card stat-published @(currentStatus == 1 ? "stat-active" : "")">
+                <a href="@Url.Action("Index", new { status = 1 })" class="stretched-link"></a>
+                <div class="stat-icon"><i class="bx bx-check-circle"></i></div>
+                <div class="stat-num">@countPublished</div>
+                <div class="stat-label">已上架</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card stat-unpublished @(currentStatus == 0 ? "stat-active" : "")">
+                <a href="@Url.Action("Index", new { status = 0 })" class="stretched-link"></a>
+                <div class="stat-icon"><i class="bx bx-hide"></i></div>
+                <div class="stat-num">@countUnpublished</div>
+                <div class="stat-label">未上架</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card stat-pending @(currentStatus == 2 ? "stat-active" : "")">
+                <a href="@Url.Action("PendingReview", "Products")" class="stretched-link"></a>
+                <div class="stat-icon"><i class="bx bx-time-five"></i></div>
+                <div class="stat-num">@countPending</div>
+                <div class="stat-label">待審核</div>
+            </div>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible border-0 rounded-3 shadow-sm mb-4 d-flex align-items-center gap-2" role="alert">
+            <i class="bx bx-check-circle fs-5"></i>
+            <span>@TempData["SuccessMessage"]</span>
+            <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @* ── 篩選卡片 ── *@
+    <div class="filter-card mb-5">
+        <form method="get" asp-action="Index" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">關鍵字搜尋</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bx bx-search"></i></span>
+                    <input type="text" name="keyword" value="@currentKeyword" class="form-control border-start-0 ps-0"
+                           placeholder="輸入商品名稱..." autocomplete="one-time-code">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">主分類</label>
+                <select id="parentCategorySelect" name="parentCategoryId" class="form-select">
+                    <option value="">-- 全部 --</option>
+                    @foreach (var pc in parentCategories)
+                    {
+                        <option value="@pc.Id" selected="@(currentParentId == pc.Id)">@pc.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">子分類</label>
+                <select id="categorySelect" name="categoryId" class="form-select">
+                    <option value="">-- 全部 --</option>
+                    @foreach (var sc in allSubCategories)
+                    {
+                        <option value="@sc.Id" selected="@(currentCategoryId == sc.Id)">@sc.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">品牌</label>
+                <select id="brandSelect" name="brandId" class="form-select">
+                    <option value="">-- 全部 --</option>
+                    @foreach (var b in brands)
+                    {
+                        <option value="@b.Id" selected="@(currentBrandId == b.Id)">@b.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">狀態</label>
+                <select name="status" class="form-select">
+                    <option value="">-- 全部 --</option>
+                    <option value="1" selected="@(currentStatus == 1)">已上架</option>
+                    <option value="0" selected="@(currentStatus == 0)">未上架</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">排序方式</label>
+                <select name="sort" class="form-select">
+                    <option value="date_desc" selected="@(string.IsNullOrEmpty(currentSort) || currentSort == "date_desc")">建檔（新→舊）</option>
+                    <option value="date_asc"   selected="@(currentSort == "date_asc")">建檔（舊→新）</option>
+                    <option value="name_asc"   selected="@(currentSort == "name_asc")">名稱 A→Z</option>
+                    <option value="name_desc"  selected="@(currentSort == "name_desc")">名稱 Z→A</option>
+                    <option value="price_asc"  selected="@(currentSort == "price_asc")">價格 低→高</option>
+                    <option value="price_desc" selected="@(currentSort == "price_desc")">價格 高→低</option>
+                    <option value="status_asc"   selected="@(currentSort == "status_asc")">狀態</option>
+                    <option value="review_desc"  selected="@(currentSort == "review_desc")">審核時間（新→舊）</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">建檔日期區間</label>
+                <div class="input-group">
+                    <span class="input-group-text">從</span>
+                    <input type="date" name="startDate" value="@currentStartDate" class="form-control">
+                    <span class="input-group-text">至</span>
+                    <input type="date" name="endDate" value="@currentEndDate" class="form-control">
+                </div>
+            </div>
+            <div class="d-flex justify-content-end align-items-center mt-3 mb-2 gap-2">
+                <button type="submit" class="btn btn-emerald">
+                    <i class="bx bx-filter-alt me-1"></i>套用篩選
+                </button>
+                <a href="@Url.Action("Index")" class="btn btn-outline-secondary rounded-pill px-3">清除條件</a>
+            </div>
+        </form>
+    </div>
+
+    @* ── 商品表格 ── *@
+    <div class="table-responsive px-2 pb-3">
+        <table class="table table-custom align-middle">
+            <thead>
+                <tr>
+                    <th style="width:44px;" class="text-center">
+                        <input class="form-check-input" type="checkbox" id="selectAll" title="全選 / 取消全選">
+                    </th>
+                    <th style="width:60px;">圖片</th>
+                    <th style="min-width:240px;">商品名稱</th>
+                    <th>分類</th>
+                    <th>品牌</th>
+                    <th>賣家</th>
+                    <th>價格</th>
+                    <th>建檔日期</th>
+                    <th class="text-center">狀態</th>
+                    <th class="text-end">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Data != null && Model.Data.Any())
+                {
+                    foreach (var item in Model.Data)
+                    {
+                        var isPublished = item.Status == 1;
+                        var statusText  = item.Status switch { 1 => "已上架", 2 => "待審核", 3 => "已退回", _ => "未上架" };
+                        var statusCss   = item.Status switch { 1 => "bg-success-soft text-success", 2 => "bg-warning-soft text-warning", 3 => "bg-danger-soft text-danger", _ => "bg-secondary-soft text-secondary" };
+                        <tr data-id="@item.Id">
+                            <td class="text-center cb-cell" style="width:44px;">
+                                <input class="form-check-input row-checkbox" type="checkbox" value="@item.Id">
+                            </td>
+                            <td>
+                                <img src="@item.MainImageUrl" alt="商品圖" class="list-thumbnail" loading="lazy"
+                                     onerror="this.src='https://via.placeholder.com/50'" />
+                            </td>
+                            <td>
+                                <a href="@Url.Action("Details", new { id = item.Id, returnUrl = currentReturnUrl })"
+                                   class="fw-bold text-decoration-none" style="color:#1e2d3d;">
+                                    @item.Name
+                                </a>
+                            </td>
+                            <td><span class="badge-soft bg-primary-soft text-primary">@item.CategoryName</span></td>
+                            <td><span class="badge-soft bg-info-soft text-info">@item.BrandName</span></td>
+                            <td><span class="badge-soft bg-purple-soft text-purple">@item.StoreName</span></td>
+                            <td class="fw-bold" style="color:#1e2d3d;">
+                                @if (item.MinPrice == item.MaxPrice)
+                                {
+                                    @($"NT${item.MinPrice.GetValueOrDefault():N0}")
+                                }
+                                else
+                                {
+                                    @($"NT${item.MinPrice.GetValueOrDefault():N0}~{item.MaxPrice.GetValueOrDefault():N0}")
+                                }
+                            </td>
+                            <td class="fs-7 text-muted">
+                                @item.CreatedAt.GetValueOrDefault().ToString("yyyy-MM-dd")
+                                @if (item.ReviewDate.HasValue)
+                                {
+                                    <div class="fs-7 text-muted mt-1" style="font-size:0.78rem !important;">
+                                        審核：@item.ReviewDate.Value.ToString("yyyy-MM-dd")
+                                    </div>
+                                }
+                            </td>
+                            <td class="text-center">
+                                <span class="badge rounded-pill px-3 py-2 @statusCss fw-normal">@statusText</span>
+                            </td>
+                            <td>
+                                <div class="act-group justify-content-end">
+                                    <a href="@Url.Action("Details", new { id = item.Id, returnUrl = currentReturnUrl })"
+                                       class="act-icon act-view" data-bs-toggle="tooltip" title="查看詳情">
+                                        <i class="bx bx-show"></i>
+                                    </a>
+                                    @if (isPublished)
+                                    {
+                                        <button type="button"
+                                                class="act-icon act-ban"
+                                                data-bs-toggle="tooltip" title="強制下架"
+                                                onclick="openForceUnpublish(@item.Id, '@item.Name.Replace("'", "\\'")')">
+                                            <i class="bx bx-block"></i>
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <div class="act-icon" style="visibility:hidden;" aria-hidden="true"></div>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="10" class="text-center py-5">
+                            <div class="mb-2" style="color:#a0aec0;font-size:2.5rem;"><i class="bx bx-inbox"></i></div>
+                            <h5 class="fw-normal" style="color:#718096;">找不到符合條件的商品</h5>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @* ── 分頁 ── *@
+    @await Html.PartialAsync("_Pagination", new ISpanShop.MVC.Areas.Admin.Models.Common.PaginationVm
+    {
+        CurrentPage = Model.CurrentPage,
+        TotalPages  = Model.TotalPages,
+        NavClass    = "mt-4 mb-4",
+        CircleSize  = 40,
+        ShadowLinks = true,
+        UrlForPage  = p => Url.Action("Index", new { page = p, keyword = currentKeyword, parentCategoryId = currentParentId, categoryId = currentCategoryId, brandId = currentBrandId, status = currentStatus, startDate = currentStartDate, endDate = currentEndDate, sort = currentSort })!
+    })
+</div>
+
+<div class="modal fade" id="forceUnpublishModal" tabindex="-1" aria-labelledby="forceUnpublishLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:460px;">
+        <div class="modal-content border-0 shadow rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-danger" id="forceUnpublishLabel">
+                    <i class="bx bx-block me-2"></i>強制下架商品
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body px-4">
+                <div class="alert alert-warning border-0 rounded-3 py-2 mb-3">
+                    <i class="bx bx-info-circle me-1"></i>
+                    商品「<strong id="fpProductName"></strong>」將被強制設為下架狀態。
+                </div>
+                <label class="form-label fw-bold">
+                    下架原因 <span class="text-danger">*</span>
+                </label>
+                <textarea id="fpReasonInput" class="form-control rounded-3" rows="3"
+                          placeholder="請說明強制下架原因（賣家將可看到此說明）..."></textarea>
+                <div id="fpReasonError" class="text-danger small mt-1 d-none">請填寫下架原因。</div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger rounded-pill px-5 fw-bold" id="fpConfirmBtn">
+                    <i class="bx bx-block me-1"></i>確認強制下架
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    @@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap');
+    .font-noto  { font-family: 'Noto Sans TC', sans-serif; }
+    .tracking-tight { letter-spacing: -0.5px; }
+    .fs-7 { font-size: 0.92rem; }
+
+    /* ── 統計卡片 ── */
+    .stat-card {
+        position: relative;
+        background: #fff;
+        border-radius: 16px;
+        padding: 1.3rem 1.5rem;
+        box-shadow: 0 4px 16px rgba(0,0,0,.05);
+        border: 1.5px solid transparent;
+        transition: all .2s;
+        cursor: pointer;
+        overflow: hidden;
+    }
+    .stat-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,.10); }
+    .stat-card .stretched-link { text-decoration: none; }
+    .stat-icon  { font-size: 1.7rem; margin-bottom: .2rem; }
+    .stat-num   { font-size: 1.9rem; font-weight: 900; line-height: 1; margin-bottom: .15rem; }
+    .stat-label { font-size: .75rem; font-weight: 600; letter-spacing: .5px; text-transform: uppercase; opacity: .65; }
+
+    .stat-total     { border-color: #bee3f8; }
+    .stat-total     .stat-icon, .stat-total     .stat-num { color: #2b6cb0; }
+    .stat-published { border-color: #c6f6d5; }
+    .stat-published .stat-icon, .stat-published .stat-num { color: #276749; }
+    .stat-unpublished { border-color: #e2e8f0; }
+    .stat-unpublished .stat-icon, .stat-unpublished .stat-num { color: #4a5568; }
+    .stat-pending   { border-color: #fefcbf; }
+    .stat-pending   .stat-icon, .stat-pending   .stat-num { color: #744210; }
+
+    .stat-active.stat-total      { background: #ebf8ff; border-color: #3182ce; }
+    .stat-active.stat-published  { background: #f0fff4; border-color: #38a169; }
+    .stat-active.stat-unpublished{ background: #f7fafc; border-color: #718096; }
+    .stat-active.stat-pending    { background: #fffff0; border-color: #d69e2e; }
+
+    /* ── 篩選卡片 ── */
+    .filter-card {
+        background: #fff; border-radius: 16px;
+        padding: 1.75rem 2rem;
+        box-shadow: 0 4px 20px rgba(0,0,0,.05);
+        border: 1px solid #e8edf2;
+    }
+    .filter-card .form-label {
+        color: #5a6a7a !important; font-size: .78rem !important;
+        font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: .4rem;
+    }
+    .filter-card .form-control, .filter-card .form-select, .filter-card .input-group-text {
+        border-color: #dde3ea !important; color: #2d3748 !important;
+    }
+
+    /* ── 表格 ── */
+    .table-custom { border-collapse: separate; border-spacing: 0 10px; }
+    .table-custom th {
+        border: none; color: #3d5166; font-weight: 700; letter-spacing: .8px;
+        font-size: .8rem; padding: .5rem 1.2rem; background: transparent; text-transform: uppercase;
+    }
+    .table-custom td {
+        background: #fff; border: none; padding: .95rem 1.2rem;
+        font-size: .95rem; color: #2d3748;
+    }
+    .table-custom td:first-child { border-top-left-radius: 14px; border-bottom-left-radius: 14px; }
+    .table-custom td:last-child  { border-top-right-radius: 14px; border-bottom-right-radius: 14px; }
+    .table-custom tbody tr { box-shadow: 0 3px 12px rgba(0,0,0,.04); transition: all .2s; }
+    .table-custom tbody tr:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,.07); }
+
+    .list-thumbnail { width:50px; height:50px; object-fit:cover; border-radius:10px; }
+
+    /* ── 徽章 ── */
+    .badge-soft   { padding:.35em .8em; border-radius:6px; font-size:.82rem; font-weight:600; }
+    .bg-primary-soft    { background:#ebf8ff; } .text-primary    { color:#3182ce !important; }
+    .bg-info-soft       { background:#e6fffa; } .text-info       { color:#319795 !important; }
+    .bg-success-soft    { background:#c6f6d5; } .text-success    { color:#276749 !important; }
+    .bg-secondary-soft  { background:#e2e8f0; } .text-secondary  { color:#4a5568 !important; }
+    .bg-warning-soft    { background:#fefcbf; } .text-warning    { color:#744210 !important; }
+    .bg-danger-soft     { background:#fde8e8; } .text-danger     { color:#c53030 !important; }
+    .bg-purple-soft     { background:#F59E0B; } .text-purple     { color:#fff    !important; }
+
+    /* ── 操作按鈕 ── */
+    .act-group { display:flex; align-items:center; gap:4px; }
+    .act-icon {
+        display:inline-flex; align-items:center; justify-content:center;
+        width:30px; height:30px; border-radius:7px; font-size:1rem;
+        border:none; cursor:pointer; text-decoration:none;
+        transition:background .15s, transform .1s; flex-shrink:0;
+    }
+    .act-icon:hover { transform:translateY(-1px); }
+    .act-view  { background:#e8f4fd; color:#1a73e8; }
+    .act-view:hover  { background:#bfdbfe; color:#1a73e8; }
+    .act-ban   { background:#fde8e8; color:#c53030; }
+    .act-ban:hover   { background:#fecaca; color:#c53030; }
+
+    /* ── 頁首操作按鈕 ── */
+    .btn-emerald {
+        background-color: #10b981;
+        border-color: #10b981;
+        color: #fff;
+        border-radius: 20px;
+        padding: 0.4rem 1rem;
+        font-weight: 600;
+        font-size: 0.88rem;
+        transition: background .2s, transform .1s;
+    }
+    .btn-emerald:hover {
+        background-color: #059669;
+        border-color: #059669;
+        color: #fff;
+        transform: translateY(-1px);
+    }
+
+    /* ── 批次選取 Tag（輕量樣式，有勾選才顯示） ── */
+    .batch-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: transparent;
+        color: #374151;
+        border: 1.5px solid #d1d5db;
+        border-radius: 20px;
+        padding: 0.3rem 0.75rem;
+        font-size: 0.88rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+    .batch-tag-close {
+        background: none;
+        border: none;
+        color: #6b7280;
+        font-size: 1.1rem;
+        line-height: 1;
+        padding: 0 2px;
+        cursor: pointer;
+        opacity: 0.75;
+    }
+    .batch-tag-close:hover { opacity: 1; color: #374151; }
+
+    /* ── 批次下架灰色按鈕 ── */
+    .btn-batch-gray {
+        background-color: #fff;
+        border: 1.5px solid #9ca3af;
+        color: #6b7280;
+        font-weight: 600;
+        font-size: 0.88rem;
+        transition: background .2s, border-color .2s, transform .1s;
+    }
+    .btn-batch-gray:hover {
+        background-color: #f3f4f6;
+        border-color: #6b7280;
+        color: #374151;
+        transform: translateY(-1px);
+    }
+
+    /* 讓 checkbox 欄的 td 繼承圓角，避免左側切角消失 */
+    .table-custom td.cb-cell { border-top-left-radius:14px; border-bottom-left-radius:14px; }
+    .table-custom td:nth-child(2) { border-top-left-radius:0 !important; border-bottom-left-radius:0 !important; }
+</style>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        // ══════════════════════════════════════════════════════
+        //  跨分頁多選：使用 sessionStorage 記憶已勾選的商品 ID
+        // ══════════════════════════════════════════════════════
+        (function () {
+            var STORE_KEY = 'selectedProductIds';
+
+            // ── 讀取 / 寫入 sessionStorage ──────────────────────
+            function loadIds() {
+                try { return new Set(JSON.parse(sessionStorage.getItem(STORE_KEY) || '[]')); }
+                catch { return new Set(); }
+            }
+            function saveIds(set) {
+                sessionStorage.setItem(STORE_KEY, JSON.stringify(Array.from(set)));
+            }
+
+            var selectedIds = loadIds();
+
+            // ── DOM 節點 ────────────────────────────────────────
+            var bar            = document.getElementById('batch-action-bar');
+            var countBadge     = document.getElementById('selected-count');
+            var selectAllCb    = document.getElementById('selectAll');
+            var clearBtn       = document.getElementById('btn-clear-selection');
+            var btnPublish     = document.getElementById('btn-batch-publish');
+            var btnUnpublish   = document.getElementById('btn-batch-unpublish');
+            var urlBatchUpdate = '@Url.Action("BatchUpdateStatus", "Products")';
+
+            // ── UI 同步 ─────────────────────────────────────────
+            function updateUI() {
+                var n = selectedIds.size;
+                countBadge.textContent = n;
+                if (n > 0) { bar.classList.remove('d-none'); }
+                else        { bar.classList.add('d-none');    }
+
+                // 更新全選框狀態（僅看當前頁的勾選情況）
+                var pageBoxes = document.querySelectorAll('.row-checkbox');
+                if (pageBoxes.length === 0) { selectAllCb.checked = false; selectAllCb.indeterminate = false; return; }
+                var checkedOnPage = Array.from(pageBoxes).filter(function(cb) { return cb.checked; }).length;
+                if (checkedOnPage === 0)                    { selectAllCb.checked = false; selectAllCb.indeterminate = false; }
+                else if (checkedOnPage === pageBoxes.length){ selectAllCb.checked = true;  selectAllCb.indeterminate = false; }
+                else                                        { selectAllCb.checked = false; selectAllCb.indeterminate = true;  }
+            }
+
+            // ── 初始化：將 sessionStorage 的勾選狀態還原到當前頁 ──
+            document.querySelectorAll('.row-checkbox').forEach(function (cb) {
+                if (selectedIds.has(parseInt(cb.value, 10))) cb.checked = true;
+            });
+            updateUI();
+
+            // ── 單選事件 ────────────────────────────────────────
+            document.querySelectorAll('.row-checkbox').forEach(function (cb) {
+                cb.addEventListener('change', function () {
+                    var id = parseInt(this.value, 10);
+                    if (this.checked) selectedIds.add(id);
+                    else              selectedIds.delete(id);
+                    saveIds(selectedIds);
+                    updateUI();
+                });
+            });
+
+            // ── 全選 / 取消全選（當前頁）───────────────────────
+            selectAllCb.addEventListener('change', function () {
+                var checked = this.checked;
+                document.querySelectorAll('.row-checkbox').forEach(function (cb) {
+                    cb.checked = checked;
+                    var id = parseInt(cb.value, 10);
+                    if (checked) selectedIds.add(id);
+                    else         selectedIds.delete(id);
+                });
+                saveIds(selectedIds);
+                updateUI();
+            });
+
+            // ── 清空所有選擇 ────────────────────────────────────
+            clearBtn.addEventListener('click', function () {
+                selectedIds.clear();
+                saveIds(selectedIds);
+                document.querySelectorAll('.row-checkbox').forEach(function (cb) { cb.checked = false; });
+                selectAllCb.checked = false; selectAllCb.indeterminate = false;
+                updateUI();
+            });
+
+            // ── 批次上 / 下架 AJAX ───────────────────────────────
+            function batchUpdate(targetStatus) {
+                var ids  = Array.from(selectedIds);
+                var label = targetStatus === 1 ? '上架' : '下架';
+                if (ids.length === 0) return;
+
+                Swal.fire({
+                    title: '批次' + label,
+                    html: '確定要將已勾選的 <strong>' + ids.length + '</strong> 筆商品設為「' + label + '」？',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: targetStatus === 1 ? '#38a169' : '#718096',
+                    cancelButtonColor:  '#a0aec0',
+                    confirmButtonText: '確認' + label,
+                    cancelButtonText:  '取消'
+                }).then(async function (result) {
+                    if (!result.isConfirmed) return;
+                    Swal.fire({ title: '處理中…', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                    try {
+                        const res = await apiPost(urlBatchUpdate, { productIds: ids, targetStatus: targetStatus });
+                        if (res.success) {
+                            selectedIds.clear();
+                            saveIds(selectedIds);
+                            Swal.fire({ title: '完成！', text: res.message, icon: 'success',
+                                        timer: 1800, timerProgressBar: true, confirmButtonColor: '#1abb9c' })
+                                .then(function () { location.reload(); });
+                        } else {
+                            Swal.fire({ title: '操作失敗', text: res.message, icon: 'error', confirmButtonColor: '#e53e3e' });
+                        }
+                    } catch { Swal.fire({ title: '連線錯誤', text: '請稍後再試。', icon: 'error' }); }
+                });
+            }
+
+            btnPublish.addEventListener('click',   function () { batchUpdate(1); });
+            btnUnpublish.addEventListener('click', function () { batchUpdate(0); });
+        })();
+
+        // Bootstrap Tooltips
+        document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function(el) {
+            new bootstrap.Tooltip(el, { trigger: 'hover', placement: 'top' });
+        });
+
+        // 主分類 → 子分類 → 品牌 連動
+        (function () {
+            var parentSel    = document.getElementById('parentCategorySelect');
+            var categorySel  = document.getElementById('categorySelect');
+            var brandSel     = document.getElementById('brandSelect');
+            var urlGetSubs   = '@Url.Action("GetSubCategories", "Products")';
+            var urlGetBrands = '@Url.Action("GetBrandsByCategory", "Products")';
+            var savedCategoryId = @(currentCategoryId.HasValue ? currentCategoryId.Value.ToString() : "null");
+            var savedBrandId    = @(currentBrandId.HasValue    ? currentBrandId.Value.ToString()    : "null");
+
+            function rebuild(sel, items, selectedId) {
+                var ph = (sel.querySelector('option[value=""]') || {}).textContent || '-- 全部 --';
+                sel.innerHTML = '<option value="">' + ph + '</option>';
+                (items || []).forEach(function(item) {
+                    var opt = document.createElement('option');
+                    opt.value = item.id; opt.textContent = item.name;
+                    if (selectedId != null && item.id == selectedId) opt.selected = true;
+                    sel.appendChild(opt);
+                });
+            }
+
+            parentSel.addEventListener('change', async function() {
+                var pid = this.value;
+                rebuild(categorySel, [], null); rebuild(brandSel, [], null);
+                if (!pid) return;
+                try { rebuild(categorySel, await apiGet(urlGetSubs + '?parentId=' + pid), null); } catch {}
+            });
+
+            categorySel.addEventListener('change', async function() {
+                var cid = this.value; rebuild(brandSel, [], null);
+                if (!cid) return;
+                try { rebuild(brandSel, await apiGet(urlGetBrands + '?categoryId=' + cid), null); } catch {}
+            });
+
+            if (savedCategoryId) {
+                apiGet(urlGetBrands + '?categoryId=' + savedCategoryId)
+                    .then(b => rebuild(brandSel, b, savedBrandId)).catch(() => {});
+            }
+        })();
+
+        // 強制下架
+        var fpProductId = null;
+
+        function openForceUnpublish(id, name) {
+            fpProductId = id;
+            document.getElementById('fpProductName').textContent = name;
+            document.getElementById('fpReasonInput').value = '';
+            document.getElementById('fpReasonError').classList.add('d-none');
+            new bootstrap.Modal(document.getElementById('forceUnpublishModal')).show();
+        }
+
+        document.getElementById('fpConfirmBtn').addEventListener('click', async function () {
+            var reason = document.getElementById('fpReasonInput').value.trim();
+            var errEl  = document.getElementById('fpReasonError');
+            if (!reason) { errEl.classList.remove('d-none'); return; }
+            errEl.classList.add('d-none');
+
+            try {
+                const res = await apiPost('@Url.Action("ForceUnpublish", "Products")', { id: fpProductId, reason: reason });
+                bootstrap.Modal.getInstance(document.getElementById('forceUnpublishModal'))?.hide();
+                if (res.success) {
+                    Swal.fire({ title: '已強制下架', text: res.message, icon: 'success', timer: 1500, timerProgressBar: true })
+                        .then(() => location.reload());
+                } else {
+                    Swal.fire({ title: '操作失敗', text: res.message, icon: 'error' });
+                }
+            } catch { Swal.fire({ title: '連線錯誤', text: '請稍後再試。', icon: 'error' }); }
+        });
+    </script>
+}
