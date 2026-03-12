@@ -16,4 +16,8 @@ public partial class SensitiveWord
     public bool? IsActive { get; set; }
 
     public DateTime? CreatedTime { get; set; }
+
+    public int? CategoryId { get; set; }
+
+    public virtual SensitiveWordCategory CategoryNavigation { get; set; }
 }

@@ -23,6 +23,14 @@
          "ObjectType": 0
       },
       {
+         "Name": "[dbo].[AdminLevelPermissions]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[AdminLevels]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[dbo].[BlacklistRecords]",
          "ObjectType": 0
       },
@@ -40,6 +48,18 @@
       },
       {
          "Name": "[dbo].[Categories]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[CategorySpecMappings]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[CategorySpecOptions]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[CategorySpecs]",
          "ObjectType": 0
       },
       {
@@ -75,6 +95,10 @@
          "ObjectType": 0
       },
       {
+         "Name": "[dbo].[Permissions]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[dbo].[PointHistory]",
          "ObjectType": 0
       },
@@ -91,11 +115,23 @@
          "ObjectType": 0
       },
       {
+         "Name": "[dbo].[ReturnRequestImages]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[ReturnRequests]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[dbo].[ReviewImages]",
          "ObjectType": 0
       },
       {
          "Name": "[dbo].[Roles]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[SensitiveWordCategories]",
          "ObjectType": 0
       },
       {
