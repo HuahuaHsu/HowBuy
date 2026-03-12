@@ -45,8 +45,6 @@ public partial class Product
 
     public string ReviewedBy { get; set; }
 
-    public DateTime? RejectDate { get; set; }
-
     public DateTime? ReviewDate { get; set; }
 
     public virtual Brand Brand { get; set; }

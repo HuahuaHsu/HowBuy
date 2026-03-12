@@ -40,7 +40,7 @@ namespace ISpanShop.MVC
 			// Add services to the container.
 			builder.Services.AddControllersWithViews();
 
-			// �o�̪� "DefaultConnection" ������ appsettings.json��appsettings.Development�̪��W�r�@�Ҥ@��
+			//連線註冊
 			builder.Services.AddDbContext<ISpanShopDBContext>
 				(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
 				);

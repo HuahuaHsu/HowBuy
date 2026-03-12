@@ -51,6 +51,18 @@
          "ObjectType": 0
       },
       {
+         "Name": "[dbo].[CategoryAttributeMappings]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[CategoryAttributeOptions]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[CategoryAttributes]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[dbo].[CategorySpecMappings]",
          "ObjectType": 0
       },
