@@ -3,18 +3,44 @@ using System.Collections.Generic;
 
 namespace ISpanShop.Repositories.Admins
 {
-	/// <summary>
-	/// �޲z����Ʀs������
-	/// </summary>
+	
 	public interface IAdminRepository
 	{
-		/// <summary>���o�Ҧ��޲z���]�t����W�١^</summary>
+		
+		/// <summary>取得所有管理員資訊</summary>
 		IEnumerable<AdminDto> GetAllAdmins();
 
-		/// <summary>�� ID ���o��@�޲z��</summary>
+		/// <summary>由 ID 取得一個管理員</summary>
 		AdminDto? GetAdminById(int adminId);
 
-		/// <summary>��s�޲z������</summary>
+		/// <summary>更新管理員角色</summary>
 		bool UpdateAdminRole(int adminId, int roleId);
+
+		/// <summary>取得可選擇的管理員層級（排除超級管理員）</summary>
+		IEnumerable<AdminLevelDto> GetSelectableAdminLevels();
+
+		/// <summary>透過帳號取得管理員</summary>
+		AdminDto? GetAdminByAccount(string account);
+
+		/// <summary>取得下一個管理員序列號</summary>
+		int GetNextAdminSequence();
+
+		/// <summary>新增管理員</summary>
+		bool CreateAdmin(string account, string email, string passwordHash, int roleId, int adminLevelId);
+
+		/// <summary>停用管理員 (軟刪除)</summary>
+		bool DeactivateAdmin(int userId);
+
+		/// <summary>檢查帳號是否存在</summary>
+		bool IsAccountExists(string account);
+
+		/// <summary>變更密碼</summary>
+		bool ChangePassword(int userId, string newPasswordHash);
+
+		/// <summary>設定為完成首次登入</summary>
+		bool SetFirstLoginComplete(int userId);
+
+		/// <summary>取得超級管理員的數量</summary>
+		int GetSuperAdminCount();
 	}
 }

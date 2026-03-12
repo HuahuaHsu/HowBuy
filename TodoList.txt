@@ -152,8 +152,6 @@
   密碼策略：臨時密碼制（首次登入強制修改）
   帳號策略：系統自動生成（ADM001 格式）
 ============================================================
-
-
 ------------------------------------------------------------
 STEP 1：定義資料傳輸物件 (ISpanShop.Models)
 ------------------------------------------------------------
@@ -214,7 +212,7 @@ STEP 2：資料存取層 (ISpanShop.Repositories)
         bool                       ChangePassword(int userId, string newPasswordHash)
         bool                       SetFirstLoginComplete(int userId)
 
-[ ] 實作 AdminRepository（ADO.NET）
+[v] 實作 AdminRepository（ADO.NET）
     - 位置：ISpanShop.Repositories/AdminRepository.cs
 
     - GetAllAdmins：
@@ -252,7 +250,7 @@ STEP 3：商務邏輯層 (ISpanShop.Services)
         (bool IsSuccess, string Message)
             ChangePassword(AdminChangePasswordDto dto)
 
-[ ] 實作 AdminService
+[v] 實作 AdminService
     - 位置：ISpanShop.Services/AdminService.cs
 
     - CreateAdmin 邏輯：

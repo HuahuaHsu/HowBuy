@@ -442,5 +442,32 @@ namespace ISpanShop.Repositories.Admins
 				throw new InvalidOperationException("更新首次登入狀態失敗", ex);
 			}
 		}
+
+		/// <summary>
+		/// 取得超級管理員的數量
+		/// </summary>
+		public int GetSuperAdminCount()
+		{
+			try
+			{
+				using (SqlConnection conn = new SqlConnection(_connectionString))
+				{
+					conn.Open();
+					string query = @"
+						SELECT COUNT(1) FROM Users U
+						JOIN AdminLevels AL ON U.AdminLevelId = AL.Id
+						WHERE AL.Id = 1 AND U.IsBlacklisted = 0";
+
+					using (SqlCommand cmd = new SqlCommand(query, conn))
+					{
+						return (int)cmd.ExecuteScalar();
+					}
+				}
+			}
+			catch (SqlException ex)
+			{
+				throw new InvalidOperationException("查詢超級管理員數量失敗", ex);
+			}
+		}
 	}
 }
