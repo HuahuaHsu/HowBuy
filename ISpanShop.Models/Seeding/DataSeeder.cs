@@ -219,7 +219,6 @@ namespace ISpanShop.Models.Seeding
 				Email = "dataseed@example.com",
 				IsConfirmed = true,
 				IsBlacklisted = false,
-				IsSeller = true,
 				CreatedAt = DateTime.Now,
 				UpdatedAt = DateTime.Now
 			};
@@ -392,7 +391,6 @@ namespace ISpanShop.Models.Seeding
 					Email = "admin@ispanshop.com",
 					IsConfirmed = true,
 					IsBlacklisted = false,
-					IsSeller = false,
 					CreatedAt = DateTime.Now,
 					UpdatedAt = DateTime.Now
 				};

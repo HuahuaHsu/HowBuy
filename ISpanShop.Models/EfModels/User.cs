@@ -35,5 +35,33 @@ public partial class User
 
     public bool IsFirstLogin { get; set; }
 
+    public virtual ICollection<Address> Addresses { get; set; } = new List<Address>();
+
     public virtual AdminLevel AdminLevel { get; set; }
+
+    public virtual ICollection<BlacklistRecord> BlacklistRecordAdminUsers { get; set; } = new List<BlacklistRecord>();
+
+    public virtual ICollection<BlacklistRecord> BlacklistRecordBlockedUsers { get; set; } = new List<BlacklistRecord>();
+
+    public virtual Cart Cart { get; set; }
+
+    public virtual ICollection<ChatMessage> ChatMessageReceivers { get; set; } = new List<ChatMessage>();
+
+    public virtual ICollection<ChatMessage> ChatMessageSenders { get; set; } = new List<ChatMessage>();
+
+    public virtual ICollection<LoginHistory> LoginHistories { get; set; } = new List<LoginHistory>();
+
+    public virtual MemberProfile MemberProfile { get; set; }
+
+    public virtual ICollection<OrderReview> OrderReviews { get; set; } = new List<OrderReview>();
+
+    public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
+
+    public virtual ICollection<PointHistory> PointHistories { get; set; } = new List<PointHistory>();
+
+    public virtual Role Role { get; set; }
+
+    public virtual ICollection<Store> Stores { get; set; } = new List<Store>();
+
+    public virtual ICollection<SupportTicket> SupportTickets { get; set; } = new List<SupportTicket>();
 }

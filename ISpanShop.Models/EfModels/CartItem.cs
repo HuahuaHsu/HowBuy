@@ -20,4 +20,12 @@ public partial class CartItem
     public int Quantity { get; set; }
 
     public decimal? UnitPrice { get; set; }
+
+    public virtual Cart Cart { get; set; }
+
+    public virtual Product Product { get; set; }
+
+    public virtual Store Store { get; set; }
+
+    public virtual ProductVariant Variant { get; set; }
 }

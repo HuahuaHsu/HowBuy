@@ -20,4 +20,6 @@ public partial class Brand
     public bool? IsVisible { get; set; }
 
     public bool? IsDeleted { get; set; }
+
+    public virtual ICollection<Product> Products { get; set; } = new List<Product>();
 }

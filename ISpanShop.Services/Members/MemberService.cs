@@ -84,7 +84,7 @@ namespace ISpanShop.Services.Members
 				Account = u.Account,
 				Email = u.Email,
 				IsBlacklisted = u.IsBlacklisted ?? false,
-				IsSeller = u.IsSeller ?? false,
+				//IsSeller = u.IsSeller ?? false,
 				RoleName = u.Role?.RoleName,
 
 				FullName = profile?.FullName ?? "未設定",

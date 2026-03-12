@@ -18,4 +18,8 @@ public partial class BlacklistRecord
     public DateTime? CreatedAt { get; set; }
 
     public DateTime? UnblockAt { get; set; }
+
+    public virtual User AdminUser { get; set; }
+
+    public virtual User BlockedUser { get; set; }
 }

@@ -14,4 +14,6 @@ public partial class CategorySpecOption
     public string OptionName { get; set; }
 
     public int SortOrder { get; set; }
+
+    public virtual CategorySpec CategorySpec { get; set; }
 }

@@ -28,4 +28,10 @@ public partial class MemberProfile
     public bool? EmailNotification { get; set; }
 
     public DateTime? UpdatedAt { get; set; }
+
+    public bool IsSeller { get; set; }
+
+    public virtual MembershipLevel Level { get; set; }
+
+    public virtual User User { get; set; }
 }

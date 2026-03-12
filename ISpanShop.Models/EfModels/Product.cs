@@ -48,4 +48,18 @@ public partial class Product
     public DateTime? RejectDate { get; set; }
 
     public DateTime? ReviewDate { get; set; }
+
+    public virtual Brand Brand { get; set; }
+
+    public virtual ICollection<CartItem> CartItems { get; set; } = new List<CartItem>();
+
+    public virtual Category Category { get; set; }
+
+    public virtual ICollection<OrderDetail> OrderDetails { get; set; } = new List<OrderDetail>();
+
+    public virtual ICollection<ProductImage> ProductImages { get; set; } = new List<ProductImage>();
+
+    public virtual ICollection<ProductVariant> ProductVariants { get; set; } = new List<ProductVariant>();
+
+    public virtual Store Store { get; set; }
 }

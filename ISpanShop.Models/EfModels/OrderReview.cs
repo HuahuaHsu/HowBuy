@@ -22,4 +22,10 @@ public partial class OrderReview
     public bool? IsHidden { get; set; }
 
     public DateTime? CreatedAt { get; set; }
+
+    public virtual Order Order { get; set; }
+
+    public virtual ICollection<ReviewImage> ReviewImages { get; set; } = new List<ReviewImage>();
+
+    public virtual User User { get; set; }
 }
