@@ -89,7 +89,9 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Orders
 				{
 					new SelectListItem { Value = "7days", Text = "近 7 天" },
 					new SelectListItem { Value = "month", Text = "近一個月" },
-					new SelectListItem { Value = "3months", Text = "近三個月" }
+					new SelectListItem { Value = "3months", Text = "近三個月" },
+					new SelectListItem { Value = "6months", Text = "近六個月" },
+					new SelectListItem { Value = "year", Text = "近一年" }
 				}
 			};
 			return View(vm);
@@ -140,6 +142,49 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Orders
 		{
 			var data = await _dashboardService.GetCategoryContributionAsync(storeId, period);
 			return Json(data);
+		}
+
+		[HttpGet]
+		public async Task<IActionResult> GetYearOverYearComparison(int year1, int year2, int? storeId)
+		{
+			var data1 = await _dashboardService.GetYearlyRevenueDataAsync(storeId, year1);
+			var data2 = await _dashboardService.GetYearlyRevenueDataAsync(storeId, year2);
+
+			var series1 = new decimal[12];
+			var series2 = new decimal[12];
+			decimal total1 = 0;
+			decimal total2 = 0;
+
+			for (int i = 0; i < data1.Labels.Count; i++)
+			{
+				var month = int.Parse(data1.Labels[i].Split('/')[1]);
+				var val = data1.Series[0].Data[i];
+				if (month >= 1 && month <= 12) series1[month - 1] = val;
+				total1 += val;
+			}
+
+			for (int i = 0; i < data2.Labels.Count; i++)
+			{
+				var month = int.Parse(data2.Labels[i].Split('/')[1]);
+				var val = data2.Series[0].Data[i];
+				if (month >= 1 && month <= 12) series2[month - 1] = -val;
+				total2 += val;
+			}
+
+			decimal growthRate = total2 == 0 ? (total1 > 0 ? 100 : 0) : Math.Round(((total1 - total2) / total2) * 100, 1);
+
+			return Json(new
+			{
+				labels = new[] { "1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月" },
+				series = new[]
+				{
+					new { name = year1.ToString(), data = series1 },
+					new { name = year2.ToString(), data = series2 }
+				},
+				total1,
+				total2,
+				growthRate
+			});
 		}
 	}
 }

@@ -59,6 +59,7 @@
                         <option value="7days">近 7 天</option>
                         <option value="month" selected>近一個月 (30天)</option>
                         <option value="3months">近三個月</option>
+                        <option value="6months">近六個月</option>
                         <option value="year">近一年</option>
                     </select>
                 </div>
@@ -175,12 +176,66 @@
             </div>
         </div>
     </div>
+
+    <!-- 年度營收對比 (Diverging Bar Chart + Growth Analysis) -->
+    <div class="col-12 mb-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0 fw-bold">年度營收雙向對比與增長分析</h5>
+                <div class="d-flex align-items-center gap-2">
+                    <select id="compYear1" class="form-select form-select-sm w-auto" onchange="loadComparisonChart()">
+                        <option value="2026">2026</option>
+                        <option value="2025" selected>2025</option>
+                        <option value="2024">2024</option>
+                    </select>
+                    <span class="text-muted small">vs</span>
+                    <select id="compYear2" class="form-select form-select-sm w-auto" onchange="loadComparisonChart()">
+                        <option value="2026">2026</option>
+                        <option value="2025">2025</option>
+                        <option value="2024" selected>2024</option>
+                    </select>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <!-- 左側：雙向柱狀圖 -->
+                    <div class="col-12 col-lg-8 border-end">
+                        <div id="comparisonChart"></div>
+                    </div>
+                    <!-- 右側：增長分析 -->
+                    <div class="col-12 col-lg-4 d-flex flex-column align-items-center justify-content-center">
+                        <div id="growthGaugeChart"></div>
+                        <div class="text-center mt-3">
+                            <h5 id="growthText" class="fw-bold mb-1">0% Growth</h5>
+                            <p class="text-muted small">年度營收成長率</p>
+                        </div>
+                        <div class="d-flex w-100 mt-4 px-3 gap-3">
+                            <div class="flex-grow-1 p-3 rounded bg-label-primary">
+                                <div class="d-flex align-items-center mb-1">
+                                    <i class="bx bx-dollar-circle me-1"></i>
+                                    <span class="small fw-bold" id="labelYear1">2025</span>
+                                </div>
+                                <h5 class="mb-0 fw-bold" id="valTotal1">$0</h5>
+                            </div>
+                            <div class="flex-grow-1 p-3 rounded bg-label-info">
+                                <div class="d-flex align-items-center mb-1">
+                                    <i class="bx bx-calendar me-1"></i>
+                                    <span class="small fw-bold" id="labelYear2">2024</span>
+                                </div>
+                                <h5 class="mb-0 fw-bold" id="valTotal2">$0</h5>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 @section Scripts {
     <script src="~/sneat/assets/vendor/libs/apex-charts/apexcharts.js"></script>
     <script>
-        let trendChart, pieChart, top10Chart, categoryChart;
+        let trendChart, pieChart, top10Chart, categoryChart, comparisonChart, growthGaugeChart;
         let currentCategoryChartType = 'bar'; // 預設為柱狀圖
         const palette = ['#696cff', '#71dd37', '#03c3ec', '#ffab00', '#ff3e1d', '#8592a3', '#e3028a', '#00d2d3', '#54a0ff', '#5f27cd'];
         
@@ -205,6 +260,7 @@
             loadPieChart();
             loadTop10Chart();
             loadCategoryContribution();
+            loadComparisonChart();
         }
 
         function refreshMetrics() {
@@ -460,11 +516,21 @@
                         legend: { show: false },
                         dataLabels: { 
                             enabled: true, 
-                            formatter: (val) => '$' + formatRevenue(val),
-                            offsetY: -20,
-                            style: { colors: ['#a1acb8'] }
+                            formatter: function(val, opts) {
+                                // 從原始數據集中抓取真正的金額，避免顯示對數值
+                                const realVal = opts.w.config.series[opts.seriesIndex].data[opts.dataPointIndex];
+                                return '$' + formatRevenue(realVal);
+                            },
+                            offsetY: -25,
+                            style: { 
+                                fontSize: '12px',
+                                colors: ['#32475c'],
+                                fontWeight: 600
+                            }
                         },
                         yaxis: {
+                            logarithmic: true,
+                            forceNiceScale: true,
                             labels: { formatter: (val) => formatRevenue(val) }
                         },
                         tooltip: {
@@ -476,6 +542,115 @@
                 if(categoryChart) categoryChart.destroy();
                 categoryChart = new ApexCharts(document.querySelector("#categoryChart"), options);
                 categoryChart.render();
+            });
+        }
+
+        function loadComparisonChart() {
+            const y1 = $('#compYear1').val();
+            const y2 = $('#compYear2').val();
+            const storeId = $('#storeFilter').val();
+            
+            $.get(`/Orders/GetYearOverYearComparison?year1=${y1}&year2=${y2}&storeId=${storeId}`, function(data) {
+                if (!data || !data.series) return;
+
+                // 更新標籤與總金額
+                $('#labelYear1').text(y1);
+                $('#labelYear2').text(y2);
+                $('#valTotal1').text('$' + formatRevenue(data.total1));
+                $('#valTotal2').text('$' + formatRevenue(data.total2));
+                $('#growthText').text(data.growthRate + '% Growth');
+
+                // 1. 更新雙向柱狀圖
+                const barOptions = {
+                    series: data.series,
+                    chart: {
+                        type: 'bar',
+                        height: 400,
+                        stacked: false,
+                        toolbar: { show: false },
+                        fontFamily: 'Public Sans, -apple-system, sans-serif'
+                    },
+                    colors: ['#696cff', '#03c3ec'],
+                    plotOptions: {
+                        bar: {
+                            horizontal: false,
+                            columnWidth: '40%',
+                            borderRadius: 4
+                        }
+                    },
+                    dataLabels: { enabled: false },
+                    grid: { 
+                        borderColor: '#f1f1f1',
+                        strokeDashArray: 3,
+                        xaxis: { lines: { show: true } } 
+                    },
+                    yaxis: {
+                        labels: { formatter: (val) => formatRevenue(val) }
+                    },
+                    xaxis: { categories: data.labels },
+                    legend: { position: 'top', horizontalAlign: 'right' },
+                    tooltip: {
+                        shared: true,
+                        intersect: false,
+                        y: { formatter: (val) => "$" + Math.abs(val).toLocaleString() }
+                    }
+                };
+
+                if (comparisonChart) comparisonChart.destroy();
+                comparisonChart = new ApexCharts(document.querySelector("#comparisonChart"), barOptions);
+                comparisonChart.render();
+
+                // 2. 更新增長儀表圖 (Gauge Chart)
+                // 支援負成長：取絕對值作為填滿比例，顏色根據正負變更
+                const absGrowth = Math.min(Math.abs(data.growthRate), 100);
+                const gaugeOptions = {
+                    series: [absGrowth],
+                    chart: {
+                        type: 'radialBar',
+                        height: 250,
+                        sparkline: { enabled: true }
+                    },
+                    plotOptions: {
+                        radialBar: {
+                            startAngle: -135,
+                            endAngle: 135,
+                            hollow: { size: '70%' },
+                            track: { 
+                                background: '#f2f2f2', 
+                                strokeWidth: '67%',
+                                margin: 5
+                            },
+                            dataLabels: {
+                                name: { 
+                                    show: true,
+                                    fontSize: '14px',
+                                    color: '#8592a3',
+                                    offsetY: 40
+                                },
+                                value: {
+                                    offsetY: -10,
+                                    fontSize: '28px',
+                                    color: data.growthRate >= 0 ? '#696cff' : '#ff3e1d',
+                                    fontWeight: 'bold',
+                                    formatter: () => (data.growthRate > 0 ? '+' : '') + data.growthRate + '%'
+                                }
+                            }
+                        }
+                    },
+                    colors: [data.growthRate >= 0 ? '#696cff' : '#ff3e1d'],
+                    stroke: { 
+                        lineCap: 'butt',
+                        dashArray: 8 // 關鍵：實現分段刻度感
+                    },
+                    labels: ['Growth'] // 顯示在中間的標籤
+                };
+
+                if (growthGaugeChart) growthGaugeChart.destroy();
+                growthGaugeChart = new ApexCharts(document.querySelector("#growthGaugeChart"), gaugeOptions);
+                growthGaugeChart.render();
+
+            }).fail(function(err) {
+                console.error("Year Comparison Chart failed:", err);
             });
         }
     </script>

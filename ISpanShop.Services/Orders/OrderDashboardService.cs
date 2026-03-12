@@ -7,7 +7,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ISpanShop.Services.Orders;
+namespace ISpanShop.Services.Orders
+{
 	public class OrderDashboardService : IOrderDashboardService
 	{
 		private readonly IOrderRepository _orderRepository;
@@ -47,6 +48,12 @@ namespace ISpanShop.Services.Orders;
 					start = now.AddMonths(-3).Date;
 					end = now;
 					prevStart = start.AddMonths(-3);
+					prevEnd = start.AddTicks(-1);
+					break;
+				case "6months":
+					start = now.AddMonths(-6).Date;
+					end = now;
+					prevStart = start.AddMonths(-6);
 					prevEnd = start.AddTicks(-1);
 					break;
 				case "year":
@@ -136,4 +143,12 @@ namespace ISpanShop.Services.Orders;
 			var (start, end, _, _) = ParsePeriod(period);
 			return await _orderRepository.GetCategoryContributionAsync(storeId, start, end);
 		}
+
+		public async Task<ApexChartDataDto> GetYearlyRevenueDataAsync(int? storeId, int year)
+		{
+			var startDate = new DateTime(year, 1, 1);
+			var endDate = new DateTime(year, 12, 31, 23, 59, 59);
+			return await _orderRepository.GetMonthlySalesTrendAsync(storeId, startDate, endDate);
+		}
 	}
+}

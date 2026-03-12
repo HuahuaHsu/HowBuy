@@ -290,17 +290,20 @@ namespace ISpanShop.Repositories.Orders
 			var dto = new ApexChartDataDto();
 			var seriesData = new List<decimal>();
 
-			// 生成從 startDate 到 endDate 的月份標籤
+			// 生成從 startDate 到 endDate 的月份標籤 (確保每個月份都有點)
 			DateTime current = new DateTime(startDate.Year, startDate.Month, 1);
-			while (current <= endDate)
+			// 避免無限迴圈，設定安全邊界
+			int safetyCount = 0;
+			while (current <= endDate && safetyCount < 100)
 			{
 				dto.Labels.Add($"{current.Year}/{current.Month:D2}");
 				var monthData = monthlyData.FirstOrDefault(m => m.Year == current.Year && m.Month == current.Month);
 				seriesData.Add(monthData != null ? monthData.Revenue : 0);
 				current = current.AddMonths(1);
+				safetyCount++;
 			}
 
-			dto.Series.Add(new ChartSeriesDto { Name = "月營收", Data = seriesData });
+			dto.Series.Add(new ChartSeriesDto { Name = "營收", Data = seriesData });
 			return dto;
 		}
 
