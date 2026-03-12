@@ -95,7 +95,7 @@ namespace ISpanShop.Services.Members
 				LevelName = profile?.Level?.LevelName ?? "一般會員",
 
 				// 如果有預設頭像 URL 生成邏輯
-				AvatarUrl = $"https://ui-avatars.com/api/?name={profile?.FullName ?? u.Account}&background=random&color=fff",
+				//AvatarUrl = $"https://ui-avatars.com/api/?name={profile?.FullName ?? u.Account}&background=random&color=fff",
 
 				City = address?.City ?? "",
 				Region = address?.Region ?? "",

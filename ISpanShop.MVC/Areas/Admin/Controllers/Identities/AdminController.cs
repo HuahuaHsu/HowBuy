@@ -58,7 +58,7 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Identities
 			{
 				// 驗證此 admin ID 是否真的是 Super Admin
 				var admin = _adminService.GetAllAdmins()
-					.FirstOrDefault(a => a.AdminId == adminId && a.RoleName == "SuperAdmin");
+					.FirstOrDefault(a => a.UserId == adminId && a.RoleName == "SuperAdmin");
 
 				if (admin == null)
 				{

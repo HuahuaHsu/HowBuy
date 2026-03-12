@@ -158,7 +158,7 @@
 STEP 1：定義資料傳輸物件 (ISpanShop.Models)
 ------------------------------------------------------------
 
-[ ] 更新 AdminDto
+[V] 更新 AdminDto
     - 位置：ISpanShop.Models/DTOs/AdminDtos.cs
     - 對應資料表：Users JOIN Roles JOIN AdminLevels
     - 內容：
@@ -173,7 +173,7 @@ STEP 1：定義資料傳輸物件 (ISpanShop.Models)
         bool      IsFirstLogin      // Users.IsFirstLogin
         DateTime? CreatedAt         // Users.CreatedAt
 
-[ ] 新增 AdminLevelDto
+[V] 新增 AdminLevelDto
     - 位置：ISpanShop.Models/DTOs/AdminDtos.cs
     - 內容：
         int    AdminLevelId    // AdminLevels.Id
@@ -181,14 +181,14 @@ STEP 1：定義資料傳輸物件 (ISpanShop.Models)
         string Description     // AdminLevels.Description
         （用於 Modal 下拉選單來源）
 
-[ ] 新增 AdminCreateDto
+[V] 新增 AdminCreateDto
     - 位置：ISpanShop.Models/DTOs/AdminDtos.cs
     - 內容：
         string  Password       // 初始密碼（超管輸入，Service 層負責 Hash）
         int     AdminLevelId   // 選擇管理員等級（只能選 Id=2之後）
         （Account / Email / RoleId 皆由 Service 層自動處理）
 
-[ ] 新增 AdminChangePasswordDto
+[V] 新增 AdminChangePasswordDto
     - 位置：ISpanShop.Models/DTOs/AdminDtos.cs
     - 內容：
         int     UserId
@@ -217,77 +217,18 @@ STEP 2：資料存取層 (ISpanShop.Repositories)
 [ ] 實作 AdminRepository（ADO.NET）
     - 位置：ISpanShop.Repositories/AdminRepository.cs
 
-    - SQL GetAllAdmins：
-        SELECT U.Id          AS UserId,
-               U.Account,
-               U.Email,
-               U.RoleId,
-               R.RoleName,
-               U.AdminLevelId,
-               AL.LevelName  AS AdminLevelName,
-               U.IsBlacklisted,
-               U.IsFirstLogin,
-               U.CreatedAt
-        FROM   Users U
-        JOIN   Roles R       ON U.RoleId = R.Id
-        LEFT JOIN AdminLevels AL ON U.AdminLevelId = AL.Id
-        WHERE  R.RoleName IN ('SuperAdmin', 'Admin')
-        ORDER BY U.CreatedAt DESC
-
-    - SQL GetSelectableAdminLevels
+    - GetAllAdmins：
+       新增public string ConfirmPassword隱藏欄位[JsonIgnore]
+    - GetSelectableAdminLevels
       （下拉選單來源，排除超級管理員）：
-        SELECT Id AS AdminLevelId, LevelName, Description
-        FROM   AdminLevels
-        WHERE  Id != 1
-        ORDER BY Id
-
-    - SQL GetAdminByAccount：
-        SELECT U.Id          AS UserId,
-               U.Account,
-               U.Email,
-               U.Password    AS PasswordHash,
-               U.RoleId,
-               R.RoleName,
-               U.AdminLevelId,
-               AL.LevelName  AS AdminLevelName,
-               U.IsBlacklisted,
-               U.IsFirstLogin
-        FROM   Users U
-        JOIN   Roles R       ON U.RoleId = R.Id
-        LEFT JOIN AdminLevels AL ON U.AdminLevelId = AL.Id
-        WHERE  U.Account = @Account
-          AND  U.IsBlacklisted = 0
-
+    - GetAdminByAccount： 
     - SQL GetNextAdminSequence：
         SELECT ISNULL(MAX(Id), 0) + 1 FROM Users
-
-    - SQL CreateAdmin：
-        INSERT INTO Users
-            (RoleId, Account, Password, Email,
-             AdminLevelId, IsConfirmed,
-             IsBlacklisted, IsFirstLogin, CreatedAt)
-        VALUES
-            (@RoleId, @Account, @PasswordHash, @Email,
-             @AdminLevelId, 1,
-             0, 1, GETDATE())
-
-    - SQL DeactivateAdmin（軟刪除）：
-        UPDATE Users
-        SET IsBlacklisted = 1, UpdatedAt = GETDATE()
-        WHERE Id = @UserId
-
-    - SQL IsAccountExists：
-        SELECT COUNT(1) FROM Users WHERE Account = @Account
-
-    - SQL ChangePassword：
-        UPDATE Users
-        SET Password = @PasswordHash, UpdatedAt = GETDATE()
-        WHERE Id = @UserId
-
-    - SQL SetFirstLoginComplete：
-        UPDATE Users
-        SET IsFirstLogin = 0, UpdatedAt = GETDATE()
-        WHERE Id = @UserId
+    - SQL CreateAdmin：   
+    - SQL DeactivateAdmin（軟刪除）：       
+    - SQL IsAccountExists：       
+    - SQL ChangePassword：     
+    - SQL SetFirstLoginComplete：   
 
 ------------------------------------------------------------
 STEP 3：商務邏輯層 (ISpanShop.Services)

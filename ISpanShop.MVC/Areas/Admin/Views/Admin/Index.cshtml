@@ -51,7 +51,7 @@
                             </td>
                             <td class="p-4">
                                 <form method="post" asp-action="UpdateRole" class="flex space-x-2">
-                                    <input type="hidden" name="adminId" value="@admin.AdminId" />
+                                    <input type="hidden" name="adminId" value="@admin.UserId" />
 
                                     <select name="permissionId" class="border border-gray-300 rounded px-3 py-1 text-sm">
                                         <option value="">-- 選擇權限 --</option>
@@ -67,11 +67,11 @@
                                 </form>
                             </td>
                             <td class="p-4 text-gray-600 text-sm">
-                                @(admin.CreatedAt?.ToString("yyyy-MM-dd HH:mm") ?? "-")
+                                @admin.CreatedAt.ToString("yyyy-MM-dd HH:mm")
                             </td>
                             <td class="p-4 text-right">
                                 <div class="flex justify-end space-x-2">
-                                    <a href="@Url.Action("Details", "Admins", new { id = admin.AdminId, area = "Admin" })"
+                                    <a href="@Url.Action("Details", "Admins", new { id = admin.UserId, area = "Admin" })"
                                        class="text-blue-600 hover:text-blue-800 text-sm">
                                         詳細
                                     </a>
