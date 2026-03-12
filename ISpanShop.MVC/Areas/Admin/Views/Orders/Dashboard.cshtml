@@ -253,6 +253,8 @@
     <script src="~/sneat/assets/vendor/libs/apex-charts/apexcharts.js"></script>
     <script>
         let trendChart, pieChart, top10Chart, categoryChart, comparisonChart, growthGaugeChart;
+        let grandTotalSales = 0;    // 全域變數：總銷售量
+        let grandTotalRevenue = 0;  // 全域變數：總營收額
         let currentCategoryChartType = 'bar'; // 預設為柱狀圖
         const palette = ['#696cff', '#71dd37', '#03c3ec', '#ffab00', '#ff3e1d', '#8592a3', '#e3028a', '#00d2d3', '#54a0ff', '#5f27cd'];
         
@@ -400,6 +402,10 @@
             const storeId = $('#storeFilter').val();
             $.get(`/Orders/GetProductSalesChart?type=Pie&period=${period}&storeId=${storeId}`, function(data) {
                 if(!data.series || data.series.length === 0) return;
+                
+                // 紀錄全體總銷量 (用於彈窗百分比計算)
+                grandTotalSales = data.series[0].data.reduce((a, b) => a + b, 0);
+
                 const chartColors = data.labels.map(name => getCategoryColor(name));
                 const options = {
                     series: data.series[0].data,
@@ -494,6 +500,9 @@
             $.get(`/Orders/GetCategoryContribution?period=${period}&storeId=${storeId}`, function(data) {
                 if(!data.series || data.series.length === 0) return;
                 
+                // 紀錄全體總營收 (用於彈窗百分比計算)
+                grandTotalRevenue = data.series[0].data.reduce((a, b) => a + b, 0);
+
                 const chartColors = data.labels.map(name => getCategoryColor(name));
                 let options = {
                     chart: { 
@@ -583,9 +592,8 @@
         function showOthersDetail(type) {
             const period = $('#periodFilter').val();
             const storeId = $('#storeFilter').val();
-            const title = type === 'Sales' ? '「其他」類別細節 - 銷售量分解' : '「其他」類別細節 - 營收額分解';
-            $('#othersDetailTitle').text(title);
-
+            const denominator = type === 'Sales' ? grandTotalSales : grandTotalRevenue;
+            
             $.get(`/Orders/GetOtherCategoriesDetail?type=${type}&period=${period}&storeId=${storeId}`, function(data) {
                 if(!data || !data.series || data.series.length === 0) {
                     alert('沒有更多細節數據');
@@ -593,7 +601,12 @@
                 }
 
                 const rawData = data.series[0].data;
-                const totalValue = rawData.reduce((a, b) => a + b, 0);
+                const othersTotal = rawData.reduce((a, b) => a + b, 0);
+                const othersToGrandPercent = denominator > 0 ? ((othersTotal / denominator) * 100).toFixed(1) : 0;
+
+                // 動態更新標題：加入總計佔全體比例
+                const typeText = type === 'Sales' ? '銷售量' : '營收額';
+                $('#othersDetailTitle').html(`「其他」類別細節 - ${typeText}分解 <span class="badge bg-label-primary ms-2">(總計佔全體 ${othersToGrandPercent}%)</span>`);
 
                 const options = {
                     series: [{
@@ -602,7 +615,7 @@
                     }],
                     chart: {
                         type: 'bar',
-                        height: Math.max(400, rawData.length * 40), // 根據資料量動態調整高度
+                        height: Math.max(400, rawData.length * 40), 
                         toolbar: { show: true },
                         fontFamily: 'Public Sans, -apple-system, sans-serif'
                     },
@@ -625,9 +638,9 @@
                             fontSize: '12px'
                         },
                         formatter: function(val) {
-                            if (totalValue === 0) return '0%';
-                            const percentage = ((val / totalValue) * 100).toFixed(1);
-                            return percentage + '%';
+                            if (denominator === 0) return '0%';
+                            const absPercent = ((val / denominator) * 100).toFixed(1);
+                            return absPercent + '%';
                         },
                         offsetX: 10
                     },
@@ -650,7 +663,7 @@
                     },
                     grid: {
                         xaxis: { lines: { show: true } },
-                        padding: { right: 50 } // 為右側百分比標籤留空間
+                        padding: { right: 60 } 
                     }
                 };
 
