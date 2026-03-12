@@ -168,7 +168,6 @@
                 <div class="btn-group btn-group-sm" role="group">
                     <button type="button" class="btn btn-label-secondary" onclick="toggleCategoryChartType('bar')" title="柱狀圖"><i class="bx bx-bar-chart-square"></i></button>
                     <button type="button" class="btn btn-label-secondary" onclick="toggleCategoryChartType('treemap')" title="矩形圖"><i class="bx bx-grid-alt"></i></button>
-                    <button type="button" class="btn btn-label-secondary" onclick="toggleCategoryChartType('radar')" title="雷達圖"><i class="bx bx-radar"></i></button>
                 </div>
             </div>
             <div class="card-body">
@@ -534,40 +533,32 @@
                             y: { formatter: (val) => '$' + val.toLocaleString() }
                         }
                     };
-                } else if (currentCategoryChartType === 'radar') {
-                    options = {
-                        ...options,
-                        series: data.series,
-                        labels: data.labels,
-                        chart: { ...options.chart, type: 'radar' },
-                        fill: { opacity: 0.4 },
-                        stroke: { width: 2 },
-                        markers: { size: 4 },
-                        colors: [palette[0]],
-                        yaxis: {
-                            labels: { formatter: (val) => formatRevenue(val) }
-                        }
-                    };
                 } else {
                     // 預設：柱狀圖 (Bar)
                     options = {
                         ...options,
                         series: data.series,
                         chart: { ...options.chart, type: 'bar' },
-                        plotOptions: { bar: { distributed: true, borderRadius: 4, columnWidth: '50%' } },
+                        plotOptions: { 
+                            bar: { 
+                                distributed: true, 
+                                borderRadius: 4, 
+                                columnWidth: '50%',
+                                dataLabels: { position: 'top' } // 確保標籤在柱位頂端
+                            } 
+                        },
                         xaxis: { categories: data.labels },
                         legend: { show: false },
                         dataLabels: { 
                             enabled: true, 
                             formatter: function(val, opts) {
-                                // 從原始數據集中抓取真正的金額，避免顯示對數值
                                 const realVal = opts.w.config.series[opts.seriesIndex].data[opts.dataPointIndex];
                                 return '$' + formatRevenue(realVal);
                             },
-                            offsetY: -25,
+                            offsetY: 10, // 向下偏移一點，讓它進到柱位內部
                             style: { 
                                 fontSize: '12px',
-                                colors: ['#32475c'],
+                                colors: ['#fff'], // 改為白色
                                 fontWeight: 600
                             }
                         },
