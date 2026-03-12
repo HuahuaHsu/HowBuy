@@ -56,8 +56,8 @@ namespace ISpanShop.MVC
 			builder.Services.AddAuthentication("AdminCookieAuth")
 				.AddCookie("AdminCookieAuth", options =>
 				{
-					options.LoginPath = "/Admin/Account/Login";
-					options.AccessDeniedPath = "/Admin/Account/AccessDenied";
+					options.LoginPath = "/Auth/Login";
+					options.AccessDeniedPath = "/Auth/AccessDenied";
 					options.ExpireTimeSpan = TimeSpan.FromDays(7);
 				});
 

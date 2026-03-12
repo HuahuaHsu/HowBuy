@@ -382,24 +382,24 @@ STEP 5：展示層 (ISpanShop.MVC) - 管理員管理頁面
         自己那列停用按鈕設為 disabled
 
 ------------------------------------------------------------
-STEP 6：展示層 (ISpanShop.MVC) - 管理員登入功能
+STEP 6：展示層 (ISpanShop.MVC) - 實作管理員登入功能
 ------------------------------------------------------------
 
-[ ] 建立 AdminLoginVm
+[V] 建立 AdminLoginVm
     - 位置：ISpanShop.MVC/Models/Auth/AdminLoginVm.cs
     - 內容：
         string Account
         string Password
         string Message
 
-[ ] 建立 AdminChangePasswordVm
+[V] 建立 AdminChangePasswordVm
     - 位置：ISpanShop.MVC/Models/Auth/AdminChangePasswordVm.cs
     - 內容：
         string NewPassword
         string ConfirmPassword
         string Message
 
-[ ] 建立 AuthController
+[V] 建立 AuthController
     - 位置：ISpanShop.MVC/Controllers/AuthController.cs
 
     GET  Login()
@@ -430,13 +430,13 @@ STEP 6：展示層 (ISpanShop.MVC) - 管理員登入功能
          → SignOutAsync
          → RedirectToAction("Login")
 
-[ ] 建立 Views/Auth/Login.cshtml
+[V] 建立 Views/Auth/Login.cshtml
     - 帳號輸入欄（格式提示：ADM001）
     - 密碼輸入欄
     - 登入按鈕
     - 錯誤訊息顯示區
 
-[ ] 建立 Views/Auth/ChangePassword.cshtml
+[V] 建立 Views/Auth/ChangePassword.cshtml
     - 提示文字：「首次登入請修改密碼」
     - 新密碼輸入欄
     - 確認新密碼輸入欄
@@ -444,7 +444,7 @@ STEP 6：展示層 (ISpanShop.MVC) - 管理員登入功能
     - 錯誤訊息顯示區
     - 注意：不提供「跳過」或「返回」按鈕
 
-[ ] 移除測試用方法並開啟正式驗證
+[V] 移除測試用方法並開啟正式驗證
     - 刪除 AdminsController 內的 SetSuperAdminCookie()
     - 刪除 AdminsController 內的 ClearSuperAdminCookie()
     - 取消 [Authorize(Roles = "SuperAdmin")] 的註解

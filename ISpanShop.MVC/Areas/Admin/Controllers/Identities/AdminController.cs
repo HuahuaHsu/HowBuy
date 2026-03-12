@@ -3,11 +3,12 @@ using ISpanShop.MVC.Areas.Admin.Models.Admins;
 using ISpanShop.Services.Admins;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 
 namespace ISpanShop.MVC.Areas.Admin.Controllers.Identities
 {
 	[Area("Admin")]
-	//[Authorize(Roles = "SuperAdmin")] //測試功能階不需要權限
+	[Authorize(Roles = "SuperAdmin")] //正式開啟權限驗證
 	public class AdminController : Controller
 	{
 		private readonly IAdminService _adminService;
@@ -125,70 +126,6 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Identities
 			}
 
 			return RedirectToAction("Index");
-		}
-
-		/// <summary>
-		/// 設置 Super Admin Cookie (測試用途)
-		/// 直接將 Cookie 發給瀏覽器，讓系統「以為」已經是 Super Admin
-		/// </summary>
-		[HttpGet]
-		public IActionResult SetSuperAdminCookie(int adminId = 1)
-		{
-			try
-			{
-				// 驗證此 admin ID 是否真的是 Super Admin
-				var admin = _adminService.GetAllAdmins()
-					.FirstOrDefault(a => a.UserId == adminId && a.RoleName == "SuperAdmin");
-
-				if (admin == null)
-				{
-					return BadRequest($"無法找到 ID 為 {adminId} 的 Super Admin");
-				}
-
-				// 設置 userid Cookie (有效期 7 天)
-				Response.Cookies.Append("userid", adminId.ToString(),
-					new CookieOptions
-					{
-						HttpOnly = true,
-						Secure = true,
-						SameSite = SameSiteMode.Strict,
-						Expires = DateTimeOffset.UtcNow.AddDays(7)
-					});
-
-				// 設置 admin_role Cookie 標記為 Super Admin (有效期 7 天)
-				Response.Cookies.Append("admin_role", "SuperAdmin",
-					new CookieOptions
-					{
-						HttpOnly = true,
-						Secure = true,
-						SameSite = SameSiteMode.Strict,
-						Expires = DateTimeOffset.UtcNow.AddDays(7)
-					});
-
-				return Ok(new 
-				{ 
-					message = $"✓ Super Admin Cookie 已設置",
-					adminId,
-					adminName = admin.Account,
-					role = admin.RoleName
-				});
-			}
-			catch (Exception ex)
-			{
-				return StatusCode(500, new { error = $"設置 Cookie 失敗: {ex.Message}" });
-			}
-		}
-
-		/// <summary>
-		/// 清除 Super Admin Cookie (測試用途)
-		/// </summary>
-		[HttpGet]
-		public IActionResult ClearSuperAdminCookie()
-		{
-			Response.Cookies.Delete("userid");
-			Response.Cookies.Delete("admin_role");
-
-			return Ok(new { message = "✓ Super Admin Cookie 已清除" });
 		}
 
 		/// <summary>
