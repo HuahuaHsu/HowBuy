@@ -26,6 +26,4 @@ public partial class PaymentLog
     public DateTime? PaymentDate { get; set; }
 
     public DateTime? CreatedAt { get; set; }
-
-    public virtual Order Order { get; set; }
 }

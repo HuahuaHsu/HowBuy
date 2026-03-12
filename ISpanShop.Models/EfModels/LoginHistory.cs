@@ -16,6 +16,4 @@ public partial class LoginHistory
     public string Ipaddress { get; set; }
 
     public bool? IsSuccessful { get; set; }
-
-    public virtual User User { get; set; }
 }

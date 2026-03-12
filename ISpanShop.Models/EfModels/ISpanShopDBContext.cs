@@ -81,21 +81,15 @@ public partial class ISpanShopDBContext : DbContext
     {
         modelBuilder.Entity<Address>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Addresse__3214EC0759758AC6");
+            entity.HasKey(e => e.Id).HasName("PK__Addresse__3214EC077BFAE9DB");
 
             entity.Property(e => e.City).HasMaxLength(20);
-            entity.Property(e => e.IsDefault).HasDefaultValue(false);
             entity.Property(e => e.RecipientName).HasMaxLength(50);
             entity.Property(e => e.RecipientPhone)
                 .HasMaxLength(20)
                 .IsUnicode(false);
             entity.Property(e => e.Region).HasMaxLength(20);
             entity.Property(e => e.Street).HasMaxLength(200);
-
-            entity.HasOne(d => d.User).WithMany(p => p.Addresses)
-                .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Addresses_Users");
         });
 
         modelBuilder.Entity<AdminLevel>(entity =>
@@ -125,102 +119,55 @@ public partial class ISpanShopDBContext : DbContext
 
         modelBuilder.Entity<BlacklistRecord>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Blacklis__3214EC07CEC816D1");
+            entity.HasKey(e => e.Id).HasName("PK__Blacklis__3214EC072EFCA42D");
 
-            entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("(getdate())")
-                .HasColumnType("datetime");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.Reason).HasMaxLength(200);
             entity.Property(e => e.UnblockAt).HasColumnType("datetime");
-
-            entity.HasOne(d => d.AdminUser).WithMany(p => p.BlacklistRecordAdminUsers)
-                .HasForeignKey(d => d.AdminUserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_BlacklistRecords_AdminUser");
-
-            entity.HasOne(d => d.BlockedUser).WithMany(p => p.BlacklistRecordBlockedUsers)
-                .HasForeignKey(d => d.BlockedUserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_BlacklistRecords_BlockedUser");
         });
 
         modelBuilder.Entity<Brand>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Brands__3214EC075D9DCF83");
+            entity.HasKey(e => e.Id).HasName("PK__Brands__3214EC07EA0D44BC");
 
-            entity.Property(e => e.IsDeleted).HasDefaultValue(false);
-            entity.Property(e => e.IsVisible).HasDefaultValue(true);
             entity.Property(e => e.LogoUrl).HasMaxLength(500);
             entity.Property(e => e.Name)
                 .IsRequired()
                 .HasMaxLength(100);
-            entity.Property(e => e.Sort).HasDefaultValue(0);
         });
 
         modelBuilder.Entity<Cart>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Carts__3214EC072DA290CC");
-
-            entity.HasIndex(e => e.UserId, "UQ__Carts__1788CC4D805446FF").IsUnique();
-
-            entity.HasOne(d => d.User).WithOne(p => p.Cart)
-                .HasForeignKey<Cart>(d => d.UserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Carts_Users");
+            entity.HasKey(e => e.Id).HasName("PK__Carts__3214EC0774F01B24");
         });
 
         modelBuilder.Entity<CartItem>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__CartItem__3214EC07D3577921");
+            entity.HasKey(e => e.Id).HasName("PK__CartItem__3214EC0789C6D2D8");
 
             entity.Property(e => e.UnitPrice).HasColumnType("decimal(18, 2)");
-
-            entity.HasOne(d => d.Cart).WithMany(p => p.CartItems)
-                .HasForeignKey(d => d.CartId)
-                .HasConstraintName("FK_CartItems_Carts");
-
-            entity.HasOne(d => d.Product).WithMany(p => p.CartItems)
-                .HasForeignKey(d => d.ProductId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_CartItems_Products");
-
-            entity.HasOne(d => d.Store).WithMany(p => p.CartItems)
-                .HasForeignKey(d => d.StoreId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_CartItems_Stores");
-
-            entity.HasOne(d => d.Variant).WithMany(p => p.CartItems)
-                .HasForeignKey(d => d.VariantId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_CartItems_ProductVariants");
         });
 
         modelBuilder.Entity<Category>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Categori__3214EC0789D565AB");
+            entity.HasKey(e => e.Id).HasName("PK__Categori__3214EC0722CCFD17");
 
             entity.Property(e => e.Icon).HasMaxLength(255);
             entity.Property(e => e.IconUrl).HasMaxLength(500);
-            entity.Property(e => e.IsVisible).HasDefaultValue(true);
             entity.Property(e => e.Name)
                 .IsRequired()
                 .HasMaxLength(50);
             entity.Property(e => e.NameEn).HasMaxLength(100);
-            entity.Property(e => e.Sort).HasDefaultValue(0);
-
-            entity.HasOne(d => d.Parent).WithMany(p => p.InverseParent).HasForeignKey(d => d.ParentId);
         });
 
         modelBuilder.Entity<CategorySpec>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Category__3214EC07CCEBA948");
+            entity.HasKey(e => e.Id).HasName("PK__Category__3214EC07BF5DA117");
 
             entity.Property(e => e.InputType)
                 .IsRequired()
                 .HasMaxLength(20)
-                .IsUnicode(false)
-                .HasDefaultValue("text");
-            entity.Property(e => e.IsActive).HasDefaultValue(true);
+                .IsUnicode(false);
             entity.Property(e => e.Name)
                 .IsRequired()
                 .HasMaxLength(50);
@@ -228,53 +175,28 @@ public partial class ISpanShopDBContext : DbContext
 
         modelBuilder.Entity<CategorySpecMapping>(entity =>
         {
-            entity.HasKey(e => new { e.CategoryId, e.CategorySpecId }).HasName("PK__Category__FF254218EB393616");
-
-            entity.HasOne(d => d.Category).WithMany(p => p.CategorySpecMappings)
-                .HasForeignKey(d => d.CategoryId)
-                .HasConstraintName("FK_SpecMappings_Categories");
-
-            entity.HasOne(d => d.CategorySpec).WithMany(p => p.CategorySpecMappings)
-                .HasForeignKey(d => d.CategorySpecId)
-                .HasConstraintName("FK_SpecMappings_Specs");
+            entity.HasKey(e => new { e.CategoryId, e.CategorySpecId }).HasName("PK__Category__FF254218CCE4A84D");
         });
 
         modelBuilder.Entity<CategorySpecOption>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Category__3214EC073BD4B5D3");
+            entity.HasKey(e => e.Id).HasName("PK__Category__3214EC07B444EF33");
 
             entity.Property(e => e.OptionName)
                 .IsRequired()
                 .HasMaxLength(50);
-
-            entity.HasOne(d => d.CategorySpec).WithMany(p => p.CategorySpecOptions)
-                .HasForeignKey(d => d.CategorySpecId)
-                .HasConstraintName("FK_SpecOptions_Specs");
         });
 
         modelBuilder.Entity<ChatMessage>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__ChatMess__3214EC070B0850F1");
+            entity.HasKey(e => e.Id).HasName("PK__ChatMess__3214EC0789CD0610");
 
-            entity.Property(e => e.IsRead).HasDefaultValue(false);
-            entity.Property(e => e.SentAt)
-                .HasDefaultValueSql("(getdate())")
-                .HasColumnType("datetime");
-
-            entity.HasOne(d => d.Receiver).WithMany(p => p.ChatMessageReceivers)
-                .HasForeignKey(d => d.ReceiverId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_ChatMessages_Receiver");
-
-            entity.HasOne(d => d.Sender).WithMany(p => p.ChatMessageSenders)
-                .HasForeignKey(d => d.SenderId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_ChatMessages_Sender");
+            entity.Property(e => e.SentAt).HasColumnType("datetime");
         });
 
         modelBuilder.Entity<LoginHistory>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__LoginHis__3214EC07A464D7BE");
+            entity.HasKey(e => e.Id).HasName("PK__LoginHis__3214EC07E005BE53");
 
             entity.ToTable("LoginHistory");
 
@@ -282,47 +204,24 @@ public partial class ISpanShopDBContext : DbContext
                 .HasMaxLength(50)
                 .IsUnicode(false)
                 .HasColumnName("IPAddress");
-            entity.Property(e => e.LoginTime)
-                .HasDefaultValueSql("(getdate())")
-                .HasColumnType("datetime");
-
-            entity.HasOne(d => d.User).WithMany(p => p.LoginHistories)
-                .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_LoginHistory_Users");
+            entity.Property(e => e.LoginTime).HasColumnType("datetime");
         });
 
         modelBuilder.Entity<MemberProfile>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__MemberPr__3214EC0721AC7C2E");
+            entity.HasKey(e => e.Id).HasName("PK__MemberPr__3214EC07DB9C3F16");
 
-            entity.HasIndex(e => e.UserId, "UQ__MemberPr__1788CC4D52789F8C").IsUnique();
-
-            entity.Property(e => e.EmailNotification).HasDefaultValue(true);
             entity.Property(e => e.FullName).HasMaxLength(50);
             entity.Property(e => e.PhoneNumber)
                 .HasMaxLength(20)
                 .IsUnicode(false);
-            entity.Property(e => e.PointBalance).HasDefaultValue(0);
-            entity.Property(e => e.TotalSpending)
-                .HasDefaultValue(0m)
-                .HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.TotalSpending).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
-
-            entity.HasOne(d => d.Level).WithMany(p => p.MemberProfiles)
-                .HasForeignKey(d => d.LevelId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_MemberProfiles_MembershipLevels");
-
-            entity.HasOne(d => d.User).WithOne(p => p.MemberProfile)
-                .HasForeignKey<MemberProfile>(d => d.UserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_MemberProfiles_Users");
         });
 
         modelBuilder.Entity<MembershipLevel>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Membersh__3214EC078A32FBF1");
+            entity.HasKey(e => e.Id).HasName("PK__Membersh__3214EC07557F1C16");
 
             entity.Property(e => e.DiscountRate).HasColumnType("decimal(3, 2)");
             entity.Property(e => e.LevelName)
@@ -333,17 +232,11 @@ public partial class ISpanShopDBContext : DbContext
 
         modelBuilder.Entity<Order>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Orders__3214EC0751D9BF03");
-
-            entity.HasIndex(e => e.OrderNumber, "UQ__Orders__CAC5E74364E820E6").IsUnique();
+            entity.HasKey(e => e.Id).HasName("PK__Orders__3214EC075649106B");
 
             entity.Property(e => e.CompletedAt).HasColumnType("datetime");
-            entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("(getdate())")
-                .HasColumnType("datetime");
-            entity.Property(e => e.DiscountAmount)
-                .HasDefaultValue(0m)
-                .HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.DiscountAmount).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.FinalAmount).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.Note).HasMaxLength(500);
             entity.Property(e => e.OrderNumber)
@@ -351,81 +244,38 @@ public partial class ISpanShopDBContext : DbContext
                 .HasMaxLength(30)
                 .IsUnicode(false);
             entity.Property(e => e.PaymentDate).HasColumnType("datetime");
-            entity.Property(e => e.PointDiscount).HasDefaultValue(0);
             entity.Property(e => e.RecipientAddress).HasMaxLength(300);
             entity.Property(e => e.RecipientName).HasMaxLength(50);
             entity.Property(e => e.RecipientPhone)
                 .HasMaxLength(20)
                 .IsUnicode(false);
-            entity.Property(e => e.ShippingFee)
-                .HasDefaultValue(0m)
-                .HasColumnType("decimal(18, 2)");
-            entity.Property(e => e.Status).HasDefaultValue((byte)0);
+            entity.Property(e => e.ShippingFee).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.TotalAmount).HasColumnType("decimal(18, 2)");
-
-            entity.HasOne(d => d.Store).WithMany(p => p.Orders)
-                .HasForeignKey(d => d.StoreId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Orders_Stores");
-
-            entity.HasOne(d => d.User).WithMany(p => p.Orders)
-                .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Orders_Users");
         });
 
         modelBuilder.Entity<OrderDetail>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__OrderDet__3214EC077398759B");
+            entity.HasKey(e => e.Id).HasName("PK__OrderDet__3214EC071E161B81");
 
             entity.Property(e => e.CoverImage).HasMaxLength(500);
             entity.Property(e => e.Price).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.ProductName).HasMaxLength(200);
             entity.Property(e => e.SkuCode).HasMaxLength(100);
             entity.Property(e => e.VariantName).HasMaxLength(100);
-
-            entity.HasOne(d => d.Order).WithMany(p => p.OrderDetails)
-                .HasForeignKey(d => d.OrderId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_OrderDetails_Orders");
-
-            entity.HasOne(d => d.Product).WithMany(p => p.OrderDetails)
-                .HasForeignKey(d => d.ProductId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_OrderDetails_Products");
-
-            entity.HasOne(d => d.Variant).WithMany(p => p.OrderDetails)
-                .HasForeignKey(d => d.VariantId)
-                .HasConstraintName("FK_OrderDetails_ProductVariants");
         });
 
         modelBuilder.Entity<OrderReview>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__OrderRev__3214EC0713A77607");
+            entity.HasKey(e => e.Id).HasName("PK__OrderRev__3214EC072E5A8084");
 
-            entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("(getdate())")
-                .HasColumnType("datetime");
-            entity.Property(e => e.IsHidden).HasDefaultValue(false);
-
-            entity.HasOne(d => d.Order).WithMany(p => p.OrderReviews)
-                .HasForeignKey(d => d.OrderId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_OrderReviews_Orders");
-
-            entity.HasOne(d => d.User).WithMany(p => p.OrderReviews)
-                .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_OrderReviews_Users");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
         });
 
         modelBuilder.Entity<PaymentLog>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__PaymentL__3214EC07A7E37AA3");
+            entity.HasKey(e => e.Id).HasName("PK__PaymentL__3214EC073AC97B24");
 
-            entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("(getdate())")
-                .HasColumnType("datetime");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.MerchantTradeNo)
                 .HasMaxLength(20)
                 .IsUnicode(false);
@@ -438,11 +288,6 @@ public partial class ISpanShopDBContext : DbContext
             entity.Property(e => e.TradeNo)
                 .HasMaxLength(50)
                 .IsUnicode(false);
-
-            entity.HasOne(d => d.Order).WithMany(p => p.PaymentLogs)
-                .HasForeignKey(d => d.OrderId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_PaymentLogs_Orders");
         });
 
         modelBuilder.Entity<Permission>(entity =>
@@ -461,31 +306,22 @@ public partial class ISpanShopDBContext : DbContext
 
         modelBuilder.Entity<PointHistory>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__PointHis__3214EC07ED06A07D");
+            entity.HasKey(e => e.Id).HasName("PK__PointHis__3214EC072B27610F");
 
             entity.ToTable("PointHistory");
 
-            entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("(getdate())")
-                .HasColumnType("datetime");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.Description).HasMaxLength(200);
             entity.Property(e => e.OrderNumber)
                 .HasMaxLength(50)
                 .IsUnicode(false);
-
-            entity.HasOne(d => d.User).WithMany(p => p.PointHistories)
-                .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_PointHistory_Users");
         });
 
         modelBuilder.Entity<Product>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Products__3214EC075DFDD45B");
+            entity.HasKey(e => e.Id).HasName("PK__Products__3214EC07E3897620");
 
-            entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("(getdate())")
-                .HasColumnType("datetime");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.MaxPrice).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.MinPrice).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.Name)
@@ -494,64 +330,26 @@ public partial class ISpanShopDBContext : DbContext
             entity.Property(e => e.RejectDate).HasColumnType("datetime");
             entity.Property(e => e.ReviewDate).HasColumnType("datetime");
             entity.Property(e => e.ReviewedBy).HasMaxLength(100);
-            entity.Property(e => e.Status).HasDefaultValue((byte)1);
-            entity.Property(e => e.TotalSales).HasDefaultValue(0);
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
             entity.Property(e => e.VideoUrl).HasMaxLength(500);
-            entity.Property(e => e.ViewCount).HasDefaultValue(0);
-
-            entity.HasOne(d => d.Brand).WithMany(p => p.Products)
-                .HasForeignKey(d => d.BrandId)
-                .HasConstraintName("FK_Products_Brands");
-
-            entity.HasOne(d => d.Category).WithMany(p => p.Products)
-                .HasForeignKey(d => d.CategoryId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Products_Categories");
-
-            entity.HasOne(d => d.Store).WithMany(p => p.Products)
-                .HasForeignKey(d => d.StoreId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Products_Stores");
         });
 
         modelBuilder.Entity<ProductImage>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__ProductI__3214EC07FB0549E4");
+            entity.HasKey(e => e.Id).HasName("PK__ProductI__3214EC078CA039AB");
 
             entity.Property(e => e.ImageUrl)
                 .IsRequired()
                 .HasMaxLength(500);
-            entity.Property(e => e.IsMain).HasDefaultValue(false);
-            entity.Property(e => e.SortOrder).HasDefaultValue(0);
-
-            entity.HasOne(d => d.Product).WithMany(p => p.ProductImages)
-                .HasForeignKey(d => d.ProductId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_ProductImages_Products");
-
-            entity.HasOne(d => d.Variant).WithMany(p => p.ProductImages)
-                .HasForeignKey(d => d.VariantId)
-                .HasConstraintName("FK_ProductImages_ProductVariants");
         });
 
         modelBuilder.Entity<ProductVariant>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__ProductV__3214EC07B8E648CA");
+            entity.HasKey(e => e.Id).HasName("PK__ProductV__3214EC077CEFCBEC");
 
-            entity.HasIndex(e => e.SkuCode, "UQ__ProductV__3B243948D80F48F6").IsUnique();
-
-            entity.Property(e => e.IsDeleted).HasDefaultValue(false);
             entity.Property(e => e.Price).HasColumnType("decimal(18, 2)");
-            entity.Property(e => e.SafetyStock).HasDefaultValue(0);
             entity.Property(e => e.SkuCode).HasMaxLength(100);
-            entity.Property(e => e.Stock).HasDefaultValue(0);
             entity.Property(e => e.VariantName).HasMaxLength(100);
-
-            entity.HasOne(d => d.Product).WithMany(p => p.ProductVariants)
-                .HasForeignKey(d => d.ProductId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_ProductVariants_Products");
         });
 
         modelBuilder.Entity<ReturnRequest>(entity =>
@@ -586,21 +384,16 @@ public partial class ISpanShopDBContext : DbContext
 
         modelBuilder.Entity<ReviewImage>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__ReviewIm__3214EC07232A9FDD");
+            entity.HasKey(e => e.Id).HasName("PK__ReviewIm__3214EC07E95D51EE");
 
             entity.Property(e => e.ImageUrl)
                 .IsRequired()
                 .HasMaxLength(500);
-
-            entity.HasOne(d => d.Review).WithMany(p => p.ReviewImages)
-                .HasForeignKey(d => d.ReviewId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_ReviewImages_OrderReviews");
         });
 
         modelBuilder.Entity<Role>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Roles__3214EC07B39DD0E7");
+            entity.HasKey(e => e.Id).HasName("PK__Roles__3214EC07F438C23C");
 
             entity.Property(e => e.Description).HasMaxLength(200);
             entity.Property(e => e.RoleName)
@@ -610,13 +403,10 @@ public partial class ISpanShopDBContext : DbContext
 
         modelBuilder.Entity<SensitiveWord>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Sensitiv__3214EC076A633B7D");
+            entity.HasKey(e => e.Id).HasName("PK__Sensitiv__3214EC0729707063");
 
             entity.Property(e => e.Category).HasMaxLength(50);
-            entity.Property(e => e.CreatedTime)
-                .HasDefaultValueSql("(getdate())")
-                .HasColumnType("datetime");
-            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.CreatedTime).HasColumnType("datetime");
             entity.Property(e => e.Word)
                 .IsRequired()
                 .HasMaxLength(100);
@@ -628,7 +418,7 @@ public partial class ISpanShopDBContext : DbContext
 
         modelBuilder.Entity<SensitiveWordCategory>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Sensitiv__3214EC07A88D3B45");
+            entity.HasKey(e => e.Id).HasName("PK__Sensitiv__3214EC076EC90893");
 
             entity.Property(e => e.Name)
                 .IsRequired()
@@ -637,49 +427,27 @@ public partial class ISpanShopDBContext : DbContext
 
         modelBuilder.Entity<Store>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Stores__3214EC07F3476499");
+            entity.HasKey(e => e.Id).HasName("PK__Stores__3214EC07ADB3100A");
 
-            entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("(getdate())")
-                .HasColumnType("datetime");
-            entity.Property(e => e.IsVerified).HasDefaultValue(false);
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.StoreName)
                 .IsRequired()
                 .HasMaxLength(50);
-
-            entity.HasOne(d => d.User).WithMany(p => p.Stores)
-                .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Stores_Users");
         });
 
         modelBuilder.Entity<SupportTicket>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__SupportT__3214EC07D51595A8");
+            entity.HasKey(e => e.Id).HasName("PK__SupportT__3214EC0758065689");
 
             entity.Property(e => e.AttachmentUrl).HasMaxLength(500);
-            entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("(getdate())")
-                .HasColumnType("datetime");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.ResolvedAt).HasColumnType("datetime");
-            entity.Property(e => e.Status).HasDefaultValue((byte)0);
             entity.Property(e => e.Subject).HasMaxLength(100);
-
-            entity.HasOne(d => d.Order).WithMany(p => p.SupportTickets)
-                .HasForeignKey(d => d.OrderId)
-                .HasConstraintName("FK_SupportTickets_Orders");
-
-            entity.HasOne(d => d.User).WithMany(p => p.SupportTickets)
-                .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_SupportTickets_Users");
         });
 
         modelBuilder.Entity<User>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Users__3214EC076FE0D7EE");
-
-            entity.HasIndex(e => e.Account, "UQ__Users__B0C3AC46095D6BD0").IsUnique();
+            entity.HasKey(e => e.Id).HasName("PK__Users__3214EC07CA8F6B0A");
 
             entity.Property(e => e.Account)
                 .HasMaxLength(50)
@@ -687,15 +455,11 @@ public partial class ISpanShopDBContext : DbContext
             entity.Property(e => e.ConfirmCode)
                 .HasMaxLength(100)
                 .IsUnicode(false);
-            entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("(getdate())")
-                .HasColumnType("datetime");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.Email)
                 .IsRequired()
                 .HasMaxLength(100);
-            entity.Property(e => e.IsBlacklisted).HasDefaultValue(false);
-            entity.Property(e => e.IsConfirmed).HasDefaultValue(false);
-            entity.Property(e => e.IsSeller).HasDefaultValue(false);
+            entity.Property(e => e.IsFirstLogin).HasDefaultValue(true);
             entity.Property(e => e.Password)
                 .HasMaxLength(255)
                 .IsUnicode(false);
@@ -711,11 +475,6 @@ public partial class ISpanShopDBContext : DbContext
                 .HasForeignKey(d => d.AdminLevelId)
                 .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("FK_Users_AdminLevels");
-
-            entity.HasOne(d => d.Role).WithMany(p => p.Users)
-                .HasForeignKey(d => d.RoleId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Users_Roles");
         });
 
         OnModelCreatingPartial(modelBuilder);

@@ -12,6 +12,4 @@ public partial class ReviewImage
     public int ReviewId { get; set; }
 
     public string ImageUrl { get; set; }
-
-    public virtual OrderReview Review { get; set; }
 }

@@ -45,7 +45,7 @@ namespace ISpanShop.MVC
 				(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
 				);
 			builder.Services.AddScoped<IMemberRepository, MemberRepository>();
-			builder.Services.AddScoped<MemberService>();
+			builder.Services.AddScoped<IMemberService, MemberService>();
 			builder.Services.AddScoped<IAdminRepository, AdminRepository>();
 			builder.Services.AddScoped<IAdminRoleRepository, AdminRoleRepository>();
 			builder.Services.AddScoped<IAdminService, AdminService>();

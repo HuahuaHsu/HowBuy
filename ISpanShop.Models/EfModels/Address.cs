@@ -22,6 +22,4 @@ public partial class Address
     public string Street { get; set; }
 
     public bool? IsDefault { get; set; }
-
-    public virtual User User { get; set; }
 }

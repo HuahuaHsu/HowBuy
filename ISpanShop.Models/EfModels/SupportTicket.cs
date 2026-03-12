@@ -28,8 +28,4 @@ public partial class SupportTicket
     public DateTime? CreatedAt { get; set; }
 
     public DateTime? ResolvedAt { get; set; }
-
-    public virtual Order Order { get; set; }
-
-    public virtual User User { get; set; }
 }

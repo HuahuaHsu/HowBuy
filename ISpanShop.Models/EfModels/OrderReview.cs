@@ -17,15 +17,9 @@ public partial class OrderReview
 
     public string Comment { get; set; }
 
-    public string SellerReply { get; set; }
+    public string StoreReply { get; set; }
 
     public bool? IsHidden { get; set; }
 
     public DateTime? CreatedAt { get; set; }
-
-    public virtual Order Order { get; set; }
-
-    public virtual ICollection<ReviewImage> ReviewImages { get; set; } = new List<ReviewImage>();
-
-    public virtual User User { get; set; }
 }

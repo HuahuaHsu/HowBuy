@@ -14,8 +14,4 @@ public partial class CategorySpecMapping
     public bool IsFilterable { get; set; }
 
     public int Sort { get; set; }
-
-    public virtual Category Category { get; set; }
-
-    public virtual CategorySpec CategorySpec { get; set; }
 }

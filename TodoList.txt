@@ -143,8 +143,393 @@
                // - 自己那列的 <select> 與按鈕設為 disabled
                  // （前端保護，防止自己修改自己）
 
+
  ==================================================================================================================
-   【登入紀錄管理實作與進階列表功能】
+ ============================================================
+  管理員管理 (Admin Management) - 實作 Todolist
+  對應資料庫：ISpanShopDB
+  管理員來源：Users（RoleId = Admin）
+  權限路徑：Users.AdminLevelId → AdminLevels
+                                → AdminLevelPermissions → Permissions
+  密碼策略：臨時密碼制（首次登入強制修改）
+  帳號策略：系統自動生成（ADM001 格式）
+============================================================
+
+------------------------------------------------------------
+STEP 0：資料庫確認
+------------------------------------------------------------
+
+[ ] Table 更動
+    刪除 RolePermissions
+    新增 AdminLevels
+    新增 AdminLevelPermissions (FK 連到 AdminLevels 和 Permissions)
+    修改 Users 20 AdminLevelId (NULL=Member,有值=Admin) 
+[ ] 查詢 Roles 資料表，確認 Admin 的 RoleId
+    SELECT Id, RoleName FROM Roles
+    （記下 Admin 的 Id，寫死在 Service 層）
+
+[ ] 確認 IsFirstLogin 欄位已新增（上一步已執行）
+    若尚未新增：
+    ALTER TABLE Users ADD IsFirstLogin bit NOT NULL DEFAULT 1;
+
+------------------------------------------------------------
+STEP 1：定義資料傳輸物件 (ISpanShop.Models)
+------------------------------------------------------------
+
+[ ] 更新 AdminDto
+    - 位置：ISpanShop.Models/DTOs/AdminDtos.cs
+    - 對應資料表：Users JOIN Roles JOIN AdminLevels
+    - 內容：
+        int       UserId            // Users.Id
+        string    Account           // Users.Account
+        string    Email             // Users.Email
+        int       RoleId            // Users.RoleId
+        string    RoleName          // Roles.RoleName
+        int?      AdminLevelId      // Users.AdminLevelId
+        string?   AdminLevelName    // AdminLevels.LevelName
+        bool      IsBlacklisted     // Users.IsBlacklisted
+        bool      IsFirstLogin      // Users.IsFirstLogin
+        DateTime? CreatedAt         // Users.CreatedAt
+
+[ ] 新增 AdminLevelDto
+    - 位置：ISpanShop.Models/DTOs/AdminDtos.cs
+    - 內容：
+        int    AdminLevelId    // AdminLevels.Id
+        string LevelName       // AdminLevels.LevelName
+        string Description     // AdminLevels.Description
+        （用於 Modal 下拉選單來源）
+
+[ ] 新增 AdminCreateDto
+    - 位置：ISpanShop.Models/DTOs/AdminDtos.cs
+    - 內容：
+        string  Password       // 初始密碼（超管輸入，Service 層負責 Hash）
+        int     AdminLevelId   // 選擇管理員等級（只能選 Id=2之後）
+        （Account / Email / RoleId 皆由 Service 層自動處理）
+
+[ ] 新增 AdminChangePasswordDto
+    - 位置：ISpanShop.Models/DTOs/AdminDtos.cs
+    - 內容：
+        int     UserId
+        string  NewPassword       // 新密碼（明文，Service 層負責 Hash）
+        string  ConfirmPassword   // 確認新密碼
+
+------------------------------------------------------------
+STEP 2：資料存取層 (ISpanShop.Repositories)
+------------------------------------------------------------
+
+[ ] 更新 IAdminRepository
+    - 位置：ISpanShop.Repositories/Interfaces/IAdminRepository.cs
+    - 方法：
+        IEnumerable<AdminDto>      GetAllAdmins()
+        IEnumerable<AdminLevelDto> GetSelectableAdminLevels()
+        AdminDto?                  GetAdminByAccount(string account)
+        int                        GetNextAdminSequence()
+        bool                       CreateAdmin(string account, string email,
+                                               string passwordHash, int roleId,
+                                               int adminLevelId)
+        bool                       DeactivateAdmin(int userId)
+        bool                       IsAccountExists(string account)
+        bool                       ChangePassword(int userId, string newPasswordHash)
+        bool                       SetFirstLoginComplete(int userId)
+
+[ ] 實作 AdminRepository（ADO.NET）
+    - 位置：ISpanShop.Repositories/AdminRepository.cs
+
+    - SQL GetAllAdmins：
+        SELECT U.Id          AS UserId,
+               U.Account,
+               U.Email,
+               U.RoleId,
+               R.RoleName,
+               U.AdminLevelId,
+               AL.LevelName  AS AdminLevelName,
+               U.IsBlacklisted,
+               U.IsFirstLogin,
+               U.CreatedAt
+        FROM   Users U
+        JOIN   Roles R       ON U.RoleId = R.Id
+        LEFT JOIN AdminLevels AL ON U.AdminLevelId = AL.Id
+        WHERE  R.RoleName IN ('SuperAdmin', 'Admin')
+        ORDER BY U.CreatedAt DESC
+
+    - SQL GetSelectableAdminLevels
+      （下拉選單來源，排除超級管理員）：
+        SELECT Id AS AdminLevelId, LevelName, Description
+        FROM   AdminLevels
+        WHERE  Id != 1
+        ORDER BY Id
+
+    - SQL GetAdminByAccount：
+        SELECT U.Id          AS UserId,
+               U.Account,
+               U.Email,
+               U.Password    AS PasswordHash,
+               U.RoleId,
+               R.RoleName,
+               U.AdminLevelId,
+               AL.LevelName  AS AdminLevelName,
+               U.IsBlacklisted,
+               U.IsFirstLogin
+        FROM   Users U
+        JOIN   Roles R       ON U.RoleId = R.Id
+        LEFT JOIN AdminLevels AL ON U.AdminLevelId = AL.Id
+        WHERE  U.Account = @Account
+          AND  U.IsBlacklisted = 0
+
+    - SQL GetNextAdminSequence：
+        SELECT ISNULL(MAX(Id), 0) + 1 FROM Users
+
+    - SQL CreateAdmin：
+        INSERT INTO Users
+            (RoleId, Account, Password, Email,
+             AdminLevelId, IsConfirmed,
+             IsBlacklisted, IsFirstLogin, CreatedAt)
+        VALUES
+            (@RoleId, @Account, @PasswordHash, @Email,
+             @AdminLevelId, 1,
+             0, 1, GETDATE())
+
+    - SQL DeactivateAdmin（軟刪除）：
+        UPDATE Users
+        SET IsBlacklisted = 1, UpdatedAt = GETDATE()
+        WHERE Id = @UserId
+
+    - SQL IsAccountExists：
+        SELECT COUNT(1) FROM Users WHERE Account = @Account
+
+    - SQL ChangePassword：
+        UPDATE Users
+        SET Password = @PasswordHash, UpdatedAt = GETDATE()
+        WHERE Id = @UserId
+
+    - SQL SetFirstLoginComplete：
+        UPDATE Users
+        SET IsFirstLogin = 0, UpdatedAt = GETDATE()
+        WHERE Id = @UserId
+
+------------------------------------------------------------
+STEP 3：商務邏輯層 (ISpanShop.Services)
+------------------------------------------------------------
+
+[ ] 更新 IAdminService
+    - 位置：ISpanShop.Services/Interfaces/IAdminService.cs
+    - 方法：
+        IEnumerable<AdminDto>      GetAllAdmins()
+        IEnumerable<AdminLevelDto> GetSelectableAdminLevels()
+
+        (bool IsSuccess, string Message, string GeneratedAccount)
+            CreateAdmin(AdminCreateDto dto)
+
+        (bool IsSuccess, string Message)
+            DeactivateAdmin(int userId, int currentUserId)
+
+        AdminDto?
+            VerifyLogin(string account, string password)
+
+        (bool IsSuccess, string Message)
+            ChangePassword(AdminChangePasswordDto dto)
+
+[ ] 實作 AdminService
+    - 位置：ISpanShop.Services/AdminService.cs
+
+    - CreateAdmin 邏輯：
+        1. 確認 AdminLevelId 不為 1（不可直接新增超級管理員）
+        2. 取得流水號
+           int seq = _adminRepository.GetNextAdminSequence()
+        3. 組成帳號與 Email
+           string account = $"ADM{seq:D3}"
+           string email   = $"{account}@ispan.com"
+        4. 確認帳號不重複（IsAccountExists）
+        5. 角色固定為 Admin
+           int roleId = 1   
+        6. Hash 初始密碼
+           string passwordHash = BCrypt.HashPassword(dto.Password)
+        7. 呼叫 Repository.CreateAdmin(
+               account, email, passwordHash, roleId, dto.AdminLevelId)
+        8. 回傳 GeneratedAccount 供畫面顯示
+
+    - DeactivateAdmin 邏輯：
+        1. userId != currentUserId（不可停用自己）
+        2. 若目標是超級管理員，檢查超級管理員數量 > 1
+           SELECT COUNT(1) FROM Users U
+           JOIN AdminLevels AL ON U.AdminLevelId = AL.Id
+           WHERE AL.Id = 1 AND U.IsBlacklisted = 0
+        3. 呼叫 Repository.DeactivateAdmin(userId)
+
+    - VerifyLogin 邏輯：
+        1. 呼叫 GetAdminByAccount(account)
+        2. 帳號不存在 → 回傳 null
+        3. BCrypt.Verify(password, admin.PasswordHash)
+        4. 驗證成功 → 回傳 AdminDto（含 IsFirstLogin）
+        5. 驗證失敗 → 回傳 null
+
+    - ChangePassword 邏輯：
+        1. NewPassword == ConfirmPassword
+        2. 新密碼至少 8 碼且含英文與數字
+        3. Hash 新密碼
+        4. 呼叫 Repository.ChangePassword()
+        5. 呼叫 Repository.SetFirstLoginComplete()
+
+------------------------------------------------------------
+STEP 4：依賴注入設定 (ISpanShop.MVC)
+------------------------------------------------------------
+
+[已完成] Program.cs 已註冊：
+         - IAdminRepository / AdminRepository
+         - IAdminService / AdminService
+
+[ ] Program.cs 新增 Cookie 驗證設定
+    builder.Services.AddAuthentication("AdminCookieAuth")
+        .AddCookie("AdminCookieAuth", options =>
+        {
+            options.LoginPath = "/Auth/Login";
+            options.AccessDeniedPath = "/Auth/Denied";
+            options.ExpireTimeSpan = TimeSpan.FromDays(7);
+        });
+    app.UseAuthentication(); // 必須在 UseAuthorization 之前
+    app.UseAuthorization();
+
+[ ] 確認 BCrypt 套件已安裝
+    dotnet add package BCrypt.Net-Next
+
+------------------------------------------------------------
+STEP 5：展示層 (ISpanShop.MVC) - 管理員管理頁面
+------------------------------------------------------------
+
+[已完成] AdminIndexVm / Index.cshtml（基本列表架構）
+
+[ ] 更新 AdminIndexVm
+    - 位置：ISpanShop.MVC/Models/Admins/AdminIndexVm.cs
+    - 內容：
+        List<AdminDto>       Admins
+        AdminCreateVm        CreateForm
+        string               GeneratedAccount
+        string               Message
+
+[ ] 建立 AdminCreateVm
+    - 位置：ISpanShop.MVC/Models/Admins/AdminCreateVm.cs
+    - 內容：
+        string                    Password
+        int                       AdminLevelId
+        List<AdminLevelDto>       AdminLevelOptions
+        （帳號 / Email / RoleId 皆由系統自動處理）
+
+[ ] 更新 AdminsController
+    - 位置：ISpanShop.MVC/Controllers/AdminsController.cs
+
+    GET Index()
+        → admins         = AdminService.GetAllAdmins()
+        → levelOptions   = AdminService.GetSelectableAdminLevels()
+        → 組成 AdminIndexVm 回傳
+
+    POST CreateAdmin(AdminCreateVm form)
+         → 呼叫 AdminService.CreateAdmin()
+         → 成功：TempData["GeneratedAccount"] = result.GeneratedAccount
+                 TempData["Message"] = "帳號建立成功"
+         → RedirectToAction("Index")
+
+    POST DeactivateAdmin(int userId)
+         → 從 Claims 取得 currentUserId
+         → 呼叫 AdminService.DeactivateAdmin()
+         → TempData["Message"] = 結果訊息
+         → RedirectToAction("Index")
+
+[ ] 更新 Index.cshtml
+
+    ★ 建立成功提示區塊：
+        @if (TempData["GeneratedAccount"] != null)
+        {
+            <div class="bg-yellow-50 border border-yellow-300 p-4 rounded">
+                <p>帳號建立成功！</p>
+                <p>帳號：<code>@TempData["GeneratedAccount"]</code></p>
+                <p>Email：<code>@TempData["GeneratedAccount"]@ispan.com</code></p>
+                <p class="text-sm text-gray-500">
+                    請將帳號與初始密碼告知該管理員，首次登入需強制修改密碼。
+                </p>
+            </div>
+        }
+
+    ★ 新增管理員 Modal（兩個輸入欄位）：
+        初始密碼輸入欄
+        管理員等級下拉選單（來源：AdminLevelOptions，不含超級管理員）
+
+    ★ 列表新增 AdminLevelName 欄位顯示
+
+    ★ 停用按鈕：
+        每列新增「停用」按鈕（含 JS confirm 確認）
+        IsBlacklisted = true 的列顯示灰底並標記「已停用」
+        自己那列停用按鈕設為 disabled
+
+------------------------------------------------------------
+STEP 6：展示層 (ISpanShop.MVC) - 管理員登入功能
+------------------------------------------------------------
+
+[ ] 建立 AdminLoginVm
+    - 位置：ISpanShop.MVC/Models/Auth/AdminLoginVm.cs
+    - 內容：
+        string Account
+        string Password
+        string Message
+
+[ ] 建立 AdminChangePasswordVm
+    - 位置：ISpanShop.MVC/Models/Auth/AdminChangePasswordVm.cs
+    - 內容：
+        string NewPassword
+        string ConfirmPassword
+        string Message
+
+[ ] 建立 AuthController
+    - 位置：ISpanShop.MVC/Controllers/AuthController.cs
+
+    GET  Login()
+         → 顯示登入頁
+
+    POST Login(AdminLoginVm form)
+         → 呼叫 AdminService.VerifyLogin()
+         → 失敗：回傳錯誤訊息至 View
+         → 成功且 IsFirstLogin = true：
+              SignInAsync 建立暫時 Claims
+              RedirectToAction("ChangePassword")
+         → 成功且 IsFirstLogin = false：
+              SignInAsync 建立完整 Claims
+              （含 UserId, Account, RoleName, AdminLevelId）
+              RedirectToAction("Index", "Admins")
+
+    GET  ChangePassword()
+         → [Authorize] 需已登入
+         → 顯示修改密碼頁
+
+    POST ChangePassword(AdminChangePasswordVm form)
+         → 從 Claims 取得 UserId
+         → 呼叫 AdminService.ChangePassword()
+         → 成功：RedirectToAction("Index", "Admins")
+         → 失敗：回傳錯誤訊息至 View
+
+    GET  Logout()
+         → SignOutAsync
+         → RedirectToAction("Login")
+
+[ ] 建立 Views/Auth/Login.cshtml
+    - 帳號輸入欄（格式提示：ADM001）
+    - 密碼輸入欄
+    - 登入按鈕
+    - 錯誤訊息顯示區
+
+[ ] 建立 Views/Auth/ChangePassword.cshtml
+    - 提示文字：「首次登入請修改密碼」
+    - 新密碼輸入欄
+    - 確認新密碼輸入欄
+    - 確認按鈕
+    - 錯誤訊息顯示區
+    - 注意：不提供「跳過」或「返回」按鈕
+
+[ ] 移除測試用方法並開啟正式驗證
+    - 刪除 AdminsController 內的 SetSuperAdminCookie()
+    - 刪除 AdminsController 內的 ClearSuperAdminCookie()
+    - 取消 [Authorize(Roles = "SuperAdmin")] 的註解
+
+============================================================
+   【歷史登入紀錄管理】
 [V] 1. 建立 DTO
     位置：ISpanShop.Models 專案 -> DTOs 資料夾
     - 資料傳輸層 (ISpanShop.Models)

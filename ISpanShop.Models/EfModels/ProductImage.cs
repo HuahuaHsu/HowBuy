@@ -18,8 +18,4 @@ public partial class ProductImage
     public bool? IsMain { get; set; }
 
     public int? SortOrder { get; set; }
-
-    public virtual Product Product { get; set; }
-
-    public virtual ProductVariant Variant { get; set; }
 }

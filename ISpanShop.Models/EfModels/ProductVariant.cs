@@ -24,12 +24,4 @@ public partial class ProductVariant
     public int? SafetyStock { get; set; }
 
     public bool? IsDeleted { get; set; }
-
-    public virtual ICollection<CartItem> CartItems { get; set; } = new List<CartItem>();
-
-    public virtual ICollection<OrderDetail> OrderDetails { get; set; } = new List<OrderDetail>();
-
-    public virtual Product Product { get; set; }
-
-    public virtual ICollection<ProductImage> ProductImages { get; set; } = new List<ProductImage>();
 }

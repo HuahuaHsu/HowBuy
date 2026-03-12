@@ -14,6 +14,4 @@ public partial class MembershipLevel
     public decimal MinSpending { get; set; }
 
     public decimal DiscountRate { get; set; }
-
-    public virtual ICollection<MemberProfile> MemberProfiles { get; set; } = new List<MemberProfile>();
 }

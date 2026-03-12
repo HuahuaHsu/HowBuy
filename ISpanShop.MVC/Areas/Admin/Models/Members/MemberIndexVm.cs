@@ -6,6 +6,7 @@ namespace ISpanShop.MVC.Areas.Admin.Models.Members
     {
         public PagedResult<MemberItemVm> PagedResult { get; set; }
         public string Keyword { get; set; }
+        public string Status { get; set; }
     }
 
     public class MemberItemVm
