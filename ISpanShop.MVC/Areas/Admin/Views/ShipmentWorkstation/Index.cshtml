@@ -48,7 +48,7 @@
         <span class="text-muted me-3">已選取 <span id="selectedCount" class="text-primary fw-bold">0</span> 筆</span>
         <div class="divider-vertical mx-2"></div>
         <button class="btn btn-primary btn-sm rounded-pill px-3" onclick="batchMarkAsShipped()">
-            <i class="bx bx-send me-1"></i> 批次更新為「已出貨」
+            <i class="bx bxs-truck me-1"></i> 批次更新為「已出貨」
         </button>
         <button class="btn btn-outline-info btn-sm rounded-pill px-3" onclick="batchPrint('picking')">
             <i class="bx bx-printer me-1"></i> 列印揀貨單
@@ -145,7 +145,7 @@
                         </td>
                         <td class="text-center">
                             <button class="btn btn-sm btn-icon btn-outline-primary" onclick="markAsShipped(${item.orderId})" title="出貨">
-                                <i class="bx bx-send"></i>
+                                <i class="bx bxs-truck"></i>
                             </button>
                             <a href="@Url.Content("~/Admin/Orders/Details/")${item.orderId}" class="btn btn-sm btn-icon btn-outline-secondary" title="詳情">
                                 <i class="bx bx-show"></i>

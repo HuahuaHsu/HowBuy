@@ -120,17 +120,17 @@
             </div>
         </div>
         <div class="col-6 col-md-3">
-            <div id="card-1" class="stat-card stat-processing" onclick="filterByStatus(1)">
-                <div class="stat-icon"><i class="bx bx-package"></i></div>
-                <div class="stat-num">@Model.CountPendingShipment</div>
-                <div class="stat-label">待出貨</div>
-            </div>
-        </div>
-        <div class="col-6 col-md-3">
             <div id="card-3" class="stat-card stat-completed" onclick="filterByStatus(3)">
                 <div class="stat-icon"><i class="bx bx-check-circle"></i></div>
                 <div class="stat-num">@Model.CountCompleted</div>
                 <div class="stat-label">已完成</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div id="card-1" class="stat-card stat-processing" onclick="window.location.href='@Url.Action("Index", "ShipmentWorkstation", new { area = "Admin" })'">
+                <div class="stat-icon"><i class="bx bx-package"></i></div>
+                <div class="stat-num">@Model.CountPendingShipment</div>
+                <div class="stat-label">待出貨</div>
             </div>
         </div>
     </div>
