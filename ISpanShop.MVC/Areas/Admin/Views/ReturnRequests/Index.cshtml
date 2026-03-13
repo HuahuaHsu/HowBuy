@@ -226,6 +226,11 @@
             const statusStyles = { 5: 'bg-label-warning', 6: 'bg-label-success' };
 
             data.forEach(order => {
+                const isPending = order.statusId === 5;
+                const btnClass = isPending ? 'btn-outline-danger' : 'btn-outline-secondary';
+                const btnText = isPending ? '審核退款' : '查看詳情';
+                const btnIcon = isPending ? 'bx-edit-alt' : 'bx-show';
+
                 tbody.append(`
                     <tr>
                         <td><span class="fw-bold text-danger">${order.orderUuid}</span></td>
@@ -234,8 +239,8 @@
                         <td class="small">${new Date(order.orderDate).toLocaleDateString()}</td>
                         <td><span class="badge-soft ${statusStyles[order.statusId] || 'bg-label-secondary'}">${order.statusName}</span></td>
                         <td class="text-center">
-                            <a href="@Url.Action("Review", "ReturnRequests")/${order.orderId}" class="btn btn-sm btn-outline-danger rounded-pill px-3">
-                                <i class="bx bx-edit-alt me-1"></i>審核退款
+                            <a href="@Url.Action("Review", "ReturnRequests")/${order.orderId}" class="btn btn-sm ${btnClass} rounded-pill px-3">
+                                <i class="bx ${btnIcon} me-1"></i>${btnText}
                             </a>
                         </td>
                     </tr>

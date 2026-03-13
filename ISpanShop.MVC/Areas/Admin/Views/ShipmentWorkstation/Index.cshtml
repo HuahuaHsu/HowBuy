@@ -50,12 +50,6 @@
         <button class="btn btn-primary btn-sm rounded-pill px-3" onclick="batchMarkAsShipped()">
             <i class="bx bxs-truck me-1"></i> 批次更新為「已出貨」
         </button>
-        <button class="btn btn-outline-info btn-sm rounded-pill px-3" onclick="batchPrint('picking')">
-            <i class="bx bx-printer me-1"></i> 列印揀貨單
-        </button>
-        <button class="btn btn-outline-info btn-sm rounded-pill px-3" onclick="batchPrint('label')">
-            <i class="bx bx-barcode-reader me-1"></i> 列印超商面單
-        </button>
     </div>
 
     <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
@@ -205,12 +199,6 @@
                     }
                 });
             });
-        }
-
-        function batchPrint(type) {
-            const ids = getSelectedIds();
-            if (ids.length === 0) { showAlert('請先勾選要列印的訂單'); return; }
-            showAlert(`正在生成 ${ids.length} 筆訂單的${type === 'picking' ? '揀貨單' : '面單'}... (示範功能)`);
         }
 
         function renderPagination(data) {
