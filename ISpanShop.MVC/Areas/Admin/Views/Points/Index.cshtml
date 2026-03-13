@@ -16,7 +16,7 @@
 <div class="container-xxl flex-grow-1 container-p-y font-noto">
     <div class="d-flex align-items-center justify-content-between">
         <h4 class="fw-bold py-3 mb-4">
-            <span class="text-muted fw-light">會員管理 /</span> 點數紀錄
+            <i class="bx bx bx-coin text-primary me-2 "></i>點數管理與查詢
         </h4>
         <div class="d-flex gap-2">
             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#updatePointsModal">
@@ -70,12 +70,12 @@
                             </select>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">關聯活動代碼 (選填)</label>
-                            <input type="text" name="OrderNumber" class="form-control" placeholder="例如: EVENT-2024-XMAS">
+                            <label class="form-label">關聯活動代碼</label>
+                            <input type="text" name="OrderNumber" class="form-control" placeholder="例如: EVENT-2024-XMAS" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">詳細備註 (選填)</label>
-                            <textarea name="Remark" class="form-control" rows="2" placeholder="將顯示於每一位會員的歷史紀錄中"></textarea>
+                            <label class="form-label">詳細備註</label>
+                            <textarea name="Remark" class="form-control" rows="2" placeholder="將顯示於每一位會員的歷史紀錄中" required></textarea>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -129,12 +129,12 @@
                             </select>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">關聯單號 (選填)</label>
-                            <input type="text" name="OrderNumber" class="form-control" placeholder="例如: ORD20240101001">
+                            <label class="form-label">關聯單號</label>
+                            <input type="text" name="OrderNumber" class="form-control" placeholder="例如: ORD20240101001" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">詳細備註 (選填)</label>
-                            <textarea name="Remark" class="form-control" rows="2" placeholder="請輸入說明..."></textarea>
+                            <label class="form-label">詳細備註</label>
+                            <textarea name="Remark" class="form-control" rows="2" placeholder="請輸入說明..." required></textarea>
                         </div>
                     </div>
                     <div class="modal-footer">

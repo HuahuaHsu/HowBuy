@@ -57,9 +57,11 @@ namespace ISpanShop.MVC.Areas.Admin.Models.Points
         public string Reason { get; set; }
 
         [Display(Name = "關聯單號")]
+        [Required(ErrorMessage = "請輸入關聯單號")]
         public string OrderNumber { get; set; }
 
         [Display(Name = "詳細備註")]
+        [Required(ErrorMessage = "請輸入詳細備註")]
         public string Remark { get; set; }
     }
 
@@ -74,7 +76,10 @@ namespace ISpanShop.MVC.Areas.Admin.Models.Points
         [Required(ErrorMessage = "請選擇異動原因")]
         public string Reason { get; set; }
 
+        [Required(ErrorMessage = "請輸入關聯單號")]
         public string OrderNumber { get; set; }
+
+        [Required(ErrorMessage = "請輸入詳細備註")]
         public string Remark { get; set; }
     }
 }
