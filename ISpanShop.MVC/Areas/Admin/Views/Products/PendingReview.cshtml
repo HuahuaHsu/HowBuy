@@ -20,6 +20,17 @@
             </p>
         </div>
         <div class="d-flex justify-content-end gap-2 mb-3">
+            <span id="pending-batch-tag" class="batch-tag d-none">
+                <i class="bx bx-checkbox-checked"></i>
+                已選取 <span id="pending-selected-count">0</span> 筆
+                <button id="btn-clear-pending" type="button" class="batch-tag-close" aria-label="清除選取">×</button>
+            </span>
+            <button id="btnBatchApprove" class="btn btn-success rounded-pill px-4" disabled>
+                <i class="bx bx-check-circle me-1"></i> 批次審核通過
+            </button>
+            <button id="btnBatchReject" class="btn btn-danger rounded-pill px-4" disabled>
+                <i class="bx bx-x-circle me-1"></i> 批次審核退回
+            </button>
             <button id="btnSimulateAutoReview" class="btn btn-warning rounded-pill px-4">
                 <i class="fas fa-robot me-1"></i> 模擬自動審核
             </button>
@@ -74,12 +85,14 @@
                         <table class="table table-custom align-middle">
                             <thead>
                                 <tr>
+                                    <th style="width:44px;" class="text-center">
+                                        <input class="form-check-input" type="checkbox" id="selectAll" title="全選 / 取消全選">
+                                    </th>
                                     <th style="width:60px;">圖片</th>
-                                    <th>商品名稱</th>
+                                    <th style="max-width:280px;">商品名稱</th>
                                     <th>審核狀態</th>
                                     <th>商店</th>
                                     <th>分類 / 品牌</th>
-                                    <th style="min-width:260px;">商品描述摘要</th>
                                     <th>建檔日期</th>
                                     <th class="text-end" style="min-width:200px;">審核操作</th>
                                 </tr>
@@ -88,19 +101,26 @@
                                 @foreach (var product in Model.Data)
                                 {
                                     <tr data-id="@product.Id">
+                                        <td class="text-center cb-cell" style="width:44px;">
+                                            <input class="form-check-input row-check" type="checkbox" value="@product.Id">
+                                        </td>
                                         <td>
                                             @if (!string.IsNullOrEmpty(product.MainImageUrl))
                                             {
                                                 <img src="@product.MainImageUrl" alt="@product.Name" loading="lazy"
-                                                     style="width:44px;height:44px;object-fit:cover;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.08);" />
+                                                     style="width:60px;height:60px;object-fit:cover;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.08);" />
                                             }
                                             else
                                             {
-                                                <div style="width:44px;height:44px;border-radius:8px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-size:1.2rem;">🖼️</div>
+                                                <div style="width:60px;height:60px;border-radius:8px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-size:1.2rem;">🖼️</div>
                                             }
                                         </td>
                                         <td>
-                                            <div class="fw-bold" style="color:#1e2d3d;">@product.Name</div>
+                                            <div class="fw-bold" style="color:#1e2d3d;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+                                                 title="@product.Description"
+                                                 data-bs-toggle="tooltip" data-bs-placement="top">
+                                                @product.Name
+                                            </div>
                                         </td>
                                         <td>
                                             @{
@@ -117,20 +137,6 @@
                                         <td>
                                             <span class="badge-soft bg-primary-soft text-primary me-1">@product.CategoryName</span>
                                             <span class="badge-soft bg-info-soft text-info">@product.BrandName</span>
-                                        </td>
-                                        <td>
-                                            <span class="fs-7" style="color:#4a5a6a;">
-                                                @if (!string.IsNullOrWhiteSpace(product.Description))
-                                                {
-                                                    @(product.Description.Length > 60
-                                                                                            ? product.Description.Substring(0, 60) + "…"
-                                                                                            : product.Description)
-                                                                                }
-                                                else
-                                                {
-                                                    <span class="text-danger fw-bold">（無描述）</span>
-                                                }
-                                            </span>
                                         </td>
                                         <td class="fs-7" style="color:#4a5a6a;">@(product.CreatedAt?.ToString("yyyy-MM-dd HH:mm") ?? "-")</td>
                                         <td class="text-end">
@@ -179,10 +185,23 @@
             <div class="filter-card rounded-top-0" style="border-top-left-radius:0!important;border-top-right-radius:0!important;">
                 @if (rejectedList != null && rejectedList.Any())
                 {
+                    <div id="rejectedBatchBar" class="mb-3 d-flex align-items-center gap-2" style="display:none!important;">
+                        <span id="rejected-batch-tag" class="batch-tag">
+                            <i class="bx bx-checkbox-checked"></i>
+                            已選取 <span id="rejected-selected-count">0</span> 筆
+                            <button id="btn-clear-rejected" type="button" class="batch-tag-close" aria-label="清除選取">×</button>
+                        </span>
+                        <button id="btnBatchUndoReject" class="btn btn-outline-primary rounded-pill px-4" disabled>
+                            <i class="bx bx-revision me-1"></i> 批次重新審核
+                        </button>
+                    </div>
                     <div class="table-responsive">
                         <table class="table table-custom align-middle">
                             <thead>
                                 <tr>
+                                    <th style="width:40px;" class="text-center">
+                                        <input type="checkbox" id="selectAllRejected" class="form-check-input" title="全選退回">
+                                    </th>
                                     <th style="width:70px;">圖片</th>
                                     <th>商品名稱</th>
                                     <th>商家</th>
@@ -197,6 +216,9 @@
                                 @foreach (var item in rejectedList)
                                 {
                                     <tr>
+                                        <td class="text-center" style="width:40px;">
+                                            <input type="checkbox" class="form-check-input rejected-row-check" value="@item.Id">
+                                        </td>
                                         <td>
                                             @if (!string.IsNullOrEmpty(item.MainImageUrl))
                                             {
@@ -438,11 +460,257 @@
             color: #fff;
             box-shadow: 0 4px 12px rgba(229,62,62,0.3);
         }
+
+    /* 批次選取 Tag */
+    .batch-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: transparent;
+        color: #374151;
+        border: 1.5px solid #d1d5db;
+        border-radius: 20px;
+        padding: 0.3rem 0.75rem;
+        font-size: 0.88rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .batch-tag-close {
+        background: none;
+        border: none;
+        color: #6b7280;
+        font-size: 1.1rem;
+        line-height: 1;
+        padding: 0 2px;
+        cursor: pointer;
+        opacity: 0.75;
+    }
+
+        .batch-tag-close:hover {
+            opacity: 1;
+            color: #374151;
+        }
+
+    .cb-cell {
+        border-top-left-radius: 12px !important;
+        border-bottom-left-radius: 12px !important;
+    }
 </style>
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
+        // ══════════════════════════════════════════════════════
+        //  批次審核：checkbox 全選與按鈕連動
+        // ══════════════════════════════════════════════════════
+        (function () {
+            var urlApprove           = '@Url.Action("ApproveProduct", "Products")';
+            var urlReject            = '@Url.Action("RejectProduct", "Products")';
+            var urlBatchApprove      = '@Url.Action("BatchApprove", "Products")';
+            var urlBatchReject       = '@Url.Action("BatchReject", "Products")';
+            var urlSimulateAutoReview = '@Url.Action("SimulateAutoReview", "Products")';
+            var urlProductIndex      = '@Url.Action("Index", "Products")';
+            var urlUndoReject        = '@Url.Action("UndoReject", "Products")';
+
+            // ── 批次按鈕 disabled 切換 ──
+            function updateBatchButtons() {
+                var count = document.querySelectorAll('.row-check:checked').length;
+                var tag   = document.getElementById('pending-batch-tag');
+                var badge = document.getElementById('pending-selected-count');
+                var btnApprove = document.getElementById('btnBatchApprove');
+                var btnReject  = document.getElementById('btnBatchReject');
+                if (tag)   { count > 0 ? tag.classList.remove('d-none') : tag.classList.add('d-none'); }
+                if (badge) badge.textContent = count;
+                if (btnApprove) btnApprove.disabled = count === 0;
+                if (btnReject)  btnReject.disabled  = count === 0;
+            }
+
+            // ── 全選 checkbox ──
+            var selectAllCb = document.getElementById('selectAll');
+            if (selectAllCb) {
+                selectAllCb.addEventListener('change', function () {
+                    document.querySelectorAll('.row-check').forEach(cb => cb.checked = this.checked);
+                    updateBatchButtons();
+                });
+            }
+
+            // ── 單選 checkbox ──
+            document.querySelectorAll('.row-check').forEach(cb => {
+                cb.addEventListener('change', function () {
+                    var all     = document.querySelectorAll('.row-check');
+                    var checked = document.querySelectorAll('.row-check:checked');
+                    var selectAll = document.getElementById('selectAll');
+                    if (selectAll) {
+                        selectAll.checked       = checked.length === all.length && all.length > 0;
+                        selectAll.indeterminate = checked.length > 0 && checked.length < all.length;
+                    }
+                    updateBatchButtons();
+                });
+            });
+
+            updateBatchButtons(); // 初始化狀態
+
+            // ── 叉叉清除按鈕（待審核）──
+            var btnClearPending = document.getElementById('btn-clear-pending');
+            if (btnClearPending) {
+                btnClearPending.addEventListener('click', function () {
+                    document.querySelectorAll('.row-check').forEach(cb => cb.checked = false);
+                    var selectAll = document.getElementById('selectAll');
+                    if (selectAll) { selectAll.checked = false; selectAll.indeterminate = false; }
+                    updateBatchButtons();
+                });
+            }
+
+            // ── 批次審核通過 ──
+            var btnBatchApprove = document.getElementById('btnBatchApprove');
+            if (btnBatchApprove) {
+                btnBatchApprove.addEventListener('click', function () {
+                    var ids = Array.from(document.querySelectorAll('.row-check:checked')).map(cb => parseInt(cb.value));
+                    if (ids.length === 0) { Swal.fire('請先選擇商品', '', 'warning'); return; }
+                    Swal.fire({
+                        title: '批次審核通過',
+                        html: '確定要核准 <strong>' + ids.length + '</strong> 筆商品上架嗎？',
+                        icon: 'question', showCancelButton: true,
+                        confirmButtonColor: '#1abb9c', cancelButtonColor: '#a0aec0',
+                        confirmButtonText: '確認核准', cancelButtonText: '取消'
+                    }).then(async function (result) {
+                        if (!result.isConfirmed) return;
+                        Swal.fire({ title: '處理中…', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                        try {
+                            const res = await apiPost(urlBatchApprove, { ids: ids });
+                            if (res.success) {
+                                Swal.fire({ title: '批次核准成功！', text: res.message, icon: 'success',
+                                            confirmButtonColor: '#1abb9c', timer: 2000, timerProgressBar: true })
+                                    .then(() => location.reload());
+                            } else {
+                                Swal.fire({ title: '操作失敗', text: res.message, icon: 'error', confirmButtonColor: '#e53e3e' });
+                            }
+                        } catch { Swal.fire({ title: '連線錯誤', text: '請稍後再試。', icon: 'error' }); }
+                    });
+                });
+            }
+
+            // ── 批次審核退回 ──
+            var btnBatchReject = document.getElementById('btnBatchReject');
+            if (btnBatchReject) {
+                btnBatchReject.addEventListener('click', function () {
+                    var ids = Array.from(document.querySelectorAll('.row-check:checked')).map(cb => parseInt(cb.value));
+                    if (ids.length === 0) { Swal.fire('請先選擇商品', '', 'warning'); return; }
+                    Swal.fire({
+                        title: '批次審核退回',
+                        html: '即將退回 <strong>' + ids.length + '</strong> 筆商品',
+                        input: 'textarea', inputLabel: '退回原因（必填，套用至所有選取商品）',
+                        inputPlaceholder: '請填寫退回原因...',
+                        inputAttributes: { rows: 3 },
+                        icon: 'warning', showCancelButton: true,
+                        confirmButtonColor: '#e53e3e', cancelButtonColor: '#a0aec0',
+                        confirmButtonText: '確認退回', cancelButtonText: '取消',
+                        inputValidator: function(value) { if (!value || !value.trim()) return '退回原因為必填欄位'; }
+                    }).then(async function (result) {
+                        if (!result.isConfirmed) return;
+                        Swal.fire({ title: '處理中…', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                        try {
+                            const res = await apiPost(urlBatchReject, { ids: ids, reason: result.value.trim() });
+                            if (res.success) {
+                                Swal.fire({ title: '批次退回完成！', text: res.message, icon: 'success',
+                                            confirmButtonColor: '#1abb9c', timer: 2000, timerProgressBar: true })
+                                    .then(() => { window.location.hash = '#rejectedTab'; location.reload(); });
+                            } else {
+                                Swal.fire({ title: '操作失敗', text: res.message, icon: 'error', confirmButtonColor: '#e53e3e' });
+                            }
+                        } catch { Swal.fire({ title: '連線錯誤', text: '請稍後再試。', icon: 'error' }); }
+                    });
+                });
+            }
+
+            // ── 啟用 Bootstrap Tooltips ──
+            document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function(el) {
+                new bootstrap.Tooltip(el);
+            });
+
+            // ══════════════════════════════════════════════════════
+            //  退回記錄頁：checkbox 全選與批次重新審核
+            // ══════════════════════════════════════════════════════
+            var urlBatchUndoReject = '@Url.Action("BatchUndoReject", "Products")';
+
+            function updateRejectedBatchButtons() {
+                var count = document.querySelectorAll('.rejected-row-check:checked').length;
+                var tag   = document.getElementById('rejected-batch-tag');
+                var badge = document.getElementById('rejected-selected-count');
+                var btn   = document.getElementById('btnBatchUndoReject');
+                var bar   = document.getElementById('rejectedBatchBar');
+                if (tag)   { count > 0 ? tag.classList.remove('d-none') : tag.classList.add('d-none'); }
+                if (badge) badge.textContent = count;
+                if (btn)   btn.disabled = count === 0;
+                if (bar)   bar.style.display = count > 0 ? 'flex' : 'none';
+            }
+
+            // 退回頁全選
+            var selectAllRejected = document.getElementById('selectAllRejected');
+            if (selectAllRejected) {
+                selectAllRejected.addEventListener('change', function () {
+                    document.querySelectorAll('.rejected-row-check').forEach(cb => cb.checked = this.checked);
+                    updateRejectedBatchButtons();
+                });
+            }
+
+            // 退回頁單選
+            document.querySelectorAll('.rejected-row-check').forEach(cb => {
+                cb.addEventListener('change', function () {
+                    var all = document.querySelectorAll('.rejected-row-check');
+                    var checked = document.querySelectorAll('.rejected-row-check:checked');
+                    if (selectAllRejected) {
+                        selectAllRejected.checked       = all.length === checked.length && checked.length > 0;
+                        selectAllRejected.indeterminate = checked.length > 0 && checked.length < all.length;
+                    }
+                    updateRejectedBatchButtons();
+                });
+            });
+
+            updateRejectedBatchButtons(); // 初始化
+
+            // ── 叉叉清除按鈕（退回頁）──
+            var btnClearRejected = document.getElementById('btn-clear-rejected');
+            if (btnClearRejected) {
+                btnClearRejected.addEventListener('click', function () {
+                    document.querySelectorAll('.rejected-row-check').forEach(cb => cb.checked = false);
+                    var selectAllR = document.getElementById('selectAllRejected');
+                    if (selectAllR) { selectAllR.checked = false; selectAllR.indeterminate = false; }
+                    updateRejectedBatchButtons();
+                });
+            }
+
+            // 批次重新審核按鈕
+            var btnBatchUndoReject = document.getElementById('btnBatchUndoReject');
+            if (btnBatchUndoReject) {
+                btnBatchUndoReject.addEventListener('click', function () {
+                    var ids = Array.from(document.querySelectorAll('.rejected-row-check:checked')).map(cb => parseInt(cb.value));
+                    if (ids.length === 0) { Swal.fire('請先選擇商品', '', 'warning'); return; }
+                    Swal.fire({
+                        title: '批次移回待審核',
+                        html: '確定要將 <strong>' + ids.length + '</strong> 筆商品移回待審核佇列嗎？',
+                        icon: 'question', showCancelButton: true,
+                        confirmButtonColor: '#3182ce', cancelButtonColor: '#a0aec0',
+                        confirmButtonText: '確認', cancelButtonText: '取消'
+                    }).then(async function (result) {
+                        if (!result.isConfirmed) return;
+                        Swal.fire({ title: '處理中…', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                        try {
+                            const res = await apiPost(urlBatchUndoReject, { ids: ids });
+                            if (res.success) {
+                                Swal.fire({ title: '已批次移回待審核！', text: res.message, icon: 'success',
+                                            confirmButtonColor: '#1abb9c', timer: 2000, timerProgressBar: true })
+                                    .then(() => location.reload());
+                            } else {
+                                Swal.fire({ title: '操作失敗', text: res.message, icon: 'error', confirmButtonColor: '#e53e3e' });
+                            }
+                        } catch { Swal.fire({ title: '連線錯誤', text: '請稍後再試。', icon: 'error' }); }
+                    });
+                });
+            }
+        })();
+
         (function () {
             var urlUndoReject        = '@Url.Action("UndoReject", "Products")';
             var urlApprove           = '@Url.Action("ApproveProduct", "Products")';
@@ -456,7 +724,7 @@
                 btnSimulate.addEventListener('click', function () {
                     Swal.fire({
                         title: '模擬系統自動審核',
-                        html: '將新增 <strong>9</strong> 筆測試商品（安全 / 違規 / 灰色疑慮各 3 筆），<br>並對所有<strong>待審核商品</strong>執行三階段自動比對。<br>確定繼續？',
+                        html: '將新增 <strong>15</strong> 筆測試商品（違禁 5 筆 / 灰色疑慮 5 筆 / 正常 5 筆），<br>並對這些新商品執行三階段自動比對。<br>確定繼續？',
                         icon: 'warning',
                         showCancelButton: true,
                         confirmButtonColor: '#f59e0b',

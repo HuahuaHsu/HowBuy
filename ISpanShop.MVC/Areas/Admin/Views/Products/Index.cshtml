@@ -195,6 +195,7 @@
                     <th>價格</th>
                     <th>建檔日期</th>
                     <th class="text-center">狀態</th>
+                    <th class="text-center">審核</th>
                     <th class="text-end">操作</th>
                 </tr>
             </thead>
@@ -206,6 +207,8 @@
                         var isPublished = item.Status == 1;
                         var statusText  = item.Status switch { 1 => "已上架", 2 => "待審核", 3 => "已退回", _ => "未上架" };
                         var statusCss   = item.Status switch { 1 => "bg-success-soft text-success", 2 => "bg-warning-soft text-warning", 3 => "bg-danger-soft text-danger", _ => "bg-secondary-soft text-secondary" };
+                        var reviewText  = item.ReviewStatus switch { 1 => "已通過", 2 => "已退回", _ => "待審核" };
+                        var reviewCss   = item.ReviewStatus switch { 1 => "bg-success-soft text-success", 2 => "bg-danger-soft text-danger", _ => "bg-warning-soft text-warning" };
                         <tr data-id="@item.Id">
                             <td class="text-center cb-cell" style="width:44px;">
                                 <input class="form-check-input row-checkbox" type="checkbox" value="@item.Id">
@@ -245,6 +248,9 @@
                             <td class="text-center">
                                 <span class="badge rounded-pill px-3 py-2 @statusCss fw-normal">@statusText</span>
                             </td>
+                            <td class="text-center">
+                                <span class="badge rounded-pill px-3 py-2 @reviewCss fw-normal">@reviewText</span>
+                            </td>
                             <td>
                                 <div class="act-group justify-content-end">
                                     <a href="@Url.Action("Details", new { id = item.Id, returnUrl = currentReturnUrl })"
@@ -272,7 +278,7 @@
                 else
                 {
                     <tr>
-                        <td colspan="10" class="text-center py-5">
+                        <td colspan="11" class="text-center py-5">
                             <div class="mb-2" style="color:#a0aec0;font-size:2.5rem;"><i class="bx bx-inbox"></i></div>
                             <h5 class="fw-normal" style="color:#718096;">找不到符合條件的商品</h5>
                         </td>

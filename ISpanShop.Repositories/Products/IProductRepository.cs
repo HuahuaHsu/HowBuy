@@ -91,6 +91,11 @@ namespace ISpanShop.Repositories.Products
         /// </summary>
         Task<int> UpdateBatchStatusAsync(List<int> productIds, byte targetStatus);
 
+        /// <summary>
+        /// 批次更新商品審核狀態
+        /// </summary>
+        Task<int> UpdateBatchReviewStatusAsync(List<int> productIds, int targetReviewStatus, string adminId);
+
         // ═══════════════════════════════════════════════════════════
         //  非同步版本（效能最佳化：async/await + 投影 + 真分頁）
         // ═══════════════════════════════════════════════════════════

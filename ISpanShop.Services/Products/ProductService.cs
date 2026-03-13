@@ -302,6 +302,15 @@ namespace ISpanShop.Services.Products
             return await _productRepository.UpdateBatchStatusAsync(productIds, targetStatus);
         }
 
+        /// <summary>
+        /// 批次更新商品審核狀態
+        /// </summary>
+        public async Task<int> UpdateBatchReviewStatusAsync(List<int> productIds, int targetReviewStatus, string adminId)
+        {
+            if (productIds == null || productIds.Count == 0) return 0;
+            return await _productRepository.UpdateBatchReviewStatusAsync(productIds, targetReviewStatus, adminId);
+        }
+
         // ═══════════════════════════════════════════════════════════
         //  非同步實作（async/await + 投影 + 真分頁）
         // ═══════════════════════════════════════════════════════════

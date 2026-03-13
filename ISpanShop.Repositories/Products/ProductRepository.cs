@@ -140,6 +140,33 @@ namespace ISpanShop.Repositories.Products
         }
 
         /// <summary>
+        /// 批次更新商品審核狀態
+        /// </summary>
+        public async Task<int> UpdateBatchReviewStatusAsync(List<int> productIds, int targetReviewStatus, string adminId)
+        {
+            var products = await _context.Products
+                .Where(p => productIds.Contains(p.Id))
+                .ToListAsync();
+
+            foreach (var product in products)
+            {
+                product.ReviewStatus = targetReviewStatus;
+                product.ReviewedBy   = adminId;
+                product.ReviewDate   = DateTime.Now;
+                product.UpdatedAt    = DateTime.Now;
+
+                // 審核通過 → 狀態改為上架；退回 → 狀態改為審核退回
+                if (targetReviewStatus == 1)
+                    product.Status = 1; // 上架
+                else if (targetReviewStatus == 2)
+                    product.Status = 3; // 審核退回
+            }
+
+            await _context.SaveChangesAsync();
+            return products.Count;
+        }
+
+        /// <summary>
         /// 分頁取得商品列表，支援分類篩選與多維度搜尋
         /// </summary>
         public (IEnumerable<Product> Items, int TotalCount) GetProductsPaged(ProductSearchCriteria criteria)
@@ -657,42 +684,126 @@ namespace ISpanShop.Repositories.Products
         /// <inheritdoc/>
         public async Task<SimulateAutoReviewResult> SimulateAutoReviewAsync()
         {
-            // ── 第一階段：從現有商品借用 9 筆，加工名稱製造情境 ──────────────
-            var pool = await _context.Products
+            // ── 第一階段：複製現有商品，新增 15 筆測試商品 ──────────────
+            var templates = await _context.Products
                 .Where(p => p.IsDeleted != true)
                 .OrderBy(p => p.Id)
-                .Take(9)
+                .Take(3)
                 .ToListAsync();
 
-            if (pool.Count < 9)
-                throw new InvalidOperationException("資料庫中現有商品不足 9 筆，無法執行模擬。");
+            if (templates.Count < 3)
+                throw new InvalidOperationException("資料庫中現有商品不足 3 筆，無法執行模擬。");
 
-            // 前 3 筆：加上黑名單前綴，模擬明確違規
-            pool[0].Name = "[高仿] " + pool[0].Name;
-            pool[1].Name = "[高仿] " + pool[1].Name;
-            pool[2].Name = "[盜版] " + pool[2].Name;
+            var newProducts = new List<Product>();
 
-            // 中 3 筆：加上灰名單前綴，模擬灰色疑慮
-            pool[3].Name = "[客製化] " + pool[3].Name;
-            pool[4].Name = "[客製化] " + pool[4].Name;
-            pool[5].Name = "[二手] "   + pool[5].Name;
-
-            // 後 3 筆：保持原名，模擬正常待審核
-            // (名稱不變)
-
-            // 全部強制設回待審核
-            foreach (var p in pool)
+            // 前 5 筆：黑名單（高仿、盜版）
+            for (int i = 0; i < 5; i++)
             {
-                p.ReviewStatus = 0;
-                p.ReviewedBy   = null;
-                p.RejectReason = null;
-                p.ReviewDate   = null;
-                p.Status       = 2;
-                p.UpdatedAt    = DateTime.Now;
+                var template = templates[i % 3];
+                var prefix = i < 3 ? "[高仿] " : "[盜版] ";
+                newProducts.Add(new Product
+                {
+                    StoreId            = template.StoreId,
+                    CategoryId         = template.CategoryId,
+                    BrandId            = template.BrandId,
+                    Name               = prefix + template.Name,
+                    Description        = template.Description,
+                    VideoUrl           = template.VideoUrl,
+                    SpecDefinitionJson = template.SpecDefinitionJson,
+                    MinPrice           = template.MinPrice,
+                    MaxPrice           = template.MaxPrice,
+                    Status             = 2,
+                    ReviewStatus       = 0,
+                    ReviewedBy         = null,
+                    RejectReason       = null,
+                    ReviewDate         = null,
+                    CreatedAt          = DateTime.Now,
+                    UpdatedAt          = DateTime.Now,
+                    IsDeleted          = false
+                });
+            }
+
+            // 中 5 筆：灰名單（客製化、二手）
+            for (int i = 0; i < 5; i++)
+            {
+                var template = templates[i % 3];
+                var prefix = i < 3 ? "[客製化] " : "[二手] ";
+                newProducts.Add(new Product
+                {
+                    StoreId            = template.StoreId,
+                    CategoryId         = template.CategoryId,
+                    BrandId            = template.BrandId,
+                    Name               = prefix + template.Name,
+                    Description        = template.Description,
+                    VideoUrl           = template.VideoUrl,
+                    SpecDefinitionJson = template.SpecDefinitionJson,
+                    MinPrice           = template.MinPrice,
+                    MaxPrice           = template.MaxPrice,
+                    Status             = 2,
+                    ReviewStatus       = 0,
+                    ReviewedBy         = null,
+                    RejectReason       = null,
+                    ReviewDate         = null,
+                    CreatedAt          = DateTime.Now,
+                    UpdatedAt          = DateTime.Now,
+                    IsDeleted          = false
+                });
+            }
+
+            // 後 5 筆：正常商品（無前綴）
+            for (int i = 0; i < 5; i++)
+            {
+                var template = templates[i % 3];
+                newProducts.Add(new Product
+                {
+                    StoreId            = template.StoreId,
+                    CategoryId         = template.CategoryId,
+                    BrandId            = template.BrandId,
+                    Name               = template.Name + $" (測試{i + 1})",
+                    Description        = template.Description,
+                    VideoUrl           = template.VideoUrl,
+                    SpecDefinitionJson = template.SpecDefinitionJson,
+                    MinPrice           = template.MinPrice,
+                    MaxPrice           = template.MaxPrice,
+                    Status             = 2,
+                    ReviewStatus       = 0,
+                    ReviewedBy         = null,
+                    RejectReason       = null,
+                    ReviewDate         = null,
+                    CreatedAt          = DateTime.Now,
+                    UpdatedAt          = DateTime.Now,
+                    IsDeleted          = false
+                });
+            }
+
+            _context.Products.AddRange(newProducts);
+            await _context.SaveChangesAsync();
+
+            // ── 複製圖片：為每個新商品複製樣板商品的圖片 ──────────────
+            for (int i = 0; i < newProducts.Count; i++)
+            {
+                var newProduct = newProducts[i];
+                var template = templates[i % 3];
+
+                var sourceImages = await _context.ProductImages
+                    .Where(img => img.ProductId == template.Id)
+                    .ToListAsync();
+
+                foreach (var img in sourceImages)
+                {
+                    _context.ProductImages.Add(new ProductImage
+                    {
+                        ProductId   = newProduct.Id,
+                        VariantId   = null,
+                        ImageUrl    = img.ImageUrl,
+                        IsMain      = img.IsMain,
+                        SortOrder   = img.SortOrder
+                    });
+                }
             }
             await _context.SaveChangesAsync();
 
-            // ── 第二階段：執行自動審核邏輯 ──────────────────────────────────
+            // ── 第二階段：對新增的 15 筆商品執行自動審核邏輯 ──────────────
             string[] bannedWords     = { "高仿", "盜版" };
             string[] suspiciousWords = { "客製化", "二手" };
 
@@ -700,7 +811,7 @@ namespace ISpanShop.Repositories.Products
             int rejectedCount     = 0;
             int manualReviewCount = 0;
 
-            foreach (var p in pool)
+            foreach (var p in newProducts)
             {
                 // 情境 A：觸發黑名單 → 直接退回
                 var banned = bannedWords.FirstOrDefault(w =>

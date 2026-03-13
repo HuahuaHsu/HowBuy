@@ -99,7 +99,10 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Products
                     MaxPrice = dto.MaxPrice,
                     Status = dto.Status,
                     MainImageUrl = dto.MainImageUrl,
-                    CreatedAt = dto.CreatedAt
+                    CreatedAt = dto.CreatedAt,
+                    ReviewStatus = dto.ReviewStatus,
+                    ReviewedBy = dto.ReviewedBy,
+                    ReviewDate = dto.ReviewDate
                 }).ToList(),
                 pagedDtos.TotalCount,
                 pagedDtos.CurrentPage,
@@ -240,6 +243,82 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Products
                 var adminId = User.Identity?.Name ?? "Admin";
                 await _productService.RejectProductAsync(dto.Id, adminId, dto.Reason ?? string.Empty);
                 return Json(new { success = true, message = $"商品已退回。退回原因：{dto.Reason}" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"操作失敗：{ex.Message}" });
+            }
+        }
+
+        /// <summary>
+        /// [AJAX] 批次審核通過 - 批次核准商品上架
+        /// </summary>
+        [HttpPost]
+        public async Task<IActionResult> BatchApprove([FromBody] BatchReviewDto dto)
+        {
+            if (dto == null || dto.Ids == null || dto.Ids.Count == 0)
+                return Json(new { success = false, message = "請至少選擇一筆商品。" });
+            try
+            {
+                var adminId = User.Identity?.Name ?? "Admin";
+                int count = 0;
+                foreach (var id in dto.Ids)
+                {
+                    await _productService.ApproveProductAsync(id, adminId);
+                    count++;
+                }
+                return Json(new { success = true, message = $"成功核准 {count} 筆商品上架。" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"操作失敗：{ex.Message}" });
+            }
+        }
+
+        /// <summary>
+        /// [AJAX] 批次審核退回 - 批次退回商品並記錄原因
+        /// </summary>
+        [HttpPost]
+        public async Task<IActionResult> BatchReject([FromBody] BatchRejectDto dto)
+        {
+            if (dto == null || dto.Ids == null || dto.Ids.Count == 0)
+                return Json(new { success = false, message = "請至少選擇一筆商品。" });
+            if (string.IsNullOrWhiteSpace(dto.Reason))
+                return Json(new { success = false, message = "退回原因不可為空。" });
+            try
+            {
+                var adminId = User.Identity?.Name ?? "Admin";
+                int count = 0;
+                foreach (var id in dto.Ids)
+                {
+                    await _productService.RejectProductAsync(id, adminId, dto.Reason);
+                    count++;
+                }
+                return Json(new { success = true, message = $"成功退回 {count} 筆商品。" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"操作失敗：{ex.Message}" });
+            }
+        }
+
+        /// <summary>
+        /// [AJAX] 批次重新審核 - 批次將退回商品移回待審核
+        /// </summary>
+        [HttpPost]
+        public async Task<IActionResult> BatchUndoReject([FromBody] BatchReviewDto dto)
+        {
+            if (dto == null || dto.Ids == null || dto.Ids.Count == 0)
+                return Json(new { success = false, message = "未選取任何商品。" });
+            try
+            {
+                int count = 0;
+                foreach (var id in dto.Ids)
+                {
+                    await _productService.ResetToPendingAsync(id);
+                    count++;
+                }
+                return Json(new { success = true, message = $"已將 {count} 筆商品移回待審核。" });
             }
             catch (Exception ex)
             {
