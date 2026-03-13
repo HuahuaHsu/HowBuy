@@ -537,11 +537,21 @@
                                     return (val % 1 === 0) ? val : '';
                                 }
                             }
+                        },
+                        crosshairs: {
+                            show: true,
+                            fill: {
+                                type: 'solid',
+                                color: '#b6b6b6',
+                                opacity: 0.1
+                            }
                         }
                     },
                     colors: barColors,
                     legend: { show: false },
                     tooltip: {
+                        shared: true,
+                        intersect: false,
                         y: {
                             formatter: function(val) {
                                 return orderBy === 'revenue' ? '$' + val.toLocaleString() : val + ' 件';
@@ -973,6 +983,8 @@
                     },
                     legend: { show: false },
                     tooltip: {
+                        shared: true,
+                        intersect: false,
                         y: {
                             formatter: function(val) {
                                 return (val > 0 ? '成長 ' : '衰退 ') + '$' + Math.abs(val).toLocaleString();
