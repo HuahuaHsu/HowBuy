@@ -1,4 +1,4 @@
-﻿@{
+@{
     Layout = "~/Views/Shared/_SneatLayout.cshtml";
 }
 @model ISpanShop.Models.DTOs.Common.PagedResult<ISpanShop.MVC.Areas.Admin.Models.Products.ProductReviewListVm>
@@ -814,7 +814,7 @@
                                 var gotoUrl = urlProductIndex + '?keyword=' + encodeURIComponent(name) + '&sort=review_desc';
                                 Swal.fire({
                                     title: '核准成功！',
-                                    html: res.message + '<br><a href="' + gotoUrl + '" style="color:#1abb9c;font-weight:600;font-size:0.92rem;">前往查看 →</a>',
+                                    html: res.message + '<br><a href="' + gotoUrl,
                                     icon: 'success', confirmButtonColor: '#1abb9c', timer: 4000, timerProgressBar: true
                                 });
                             } else {
@@ -847,7 +847,7 @@
                                 var gotoUrl = urlProductIndex + '?keyword=' + encodeURIComponent(name) + '&sort=review_desc';
                                 Swal.fire({
                                     title: '已退回！',
-                                    html: res.message + '<br><a href="' + gotoUrl + '" style="color:#1abb9c;font-weight:600;font-size:0.92rem;">前往查看 →</a>',
+                                    html: res.message + '<br><a href="' + gotoUrl,
                                     icon: 'success', confirmButtonColor: '#1abb9c', timer: 4000, timerProgressBar: true
                                 })
                                 .then(() => { window.location.hash = '#rejectedTab'; window.location.reload(); });
@@ -917,3 +917,5 @@
         })();
     </script>
 }
+
+
