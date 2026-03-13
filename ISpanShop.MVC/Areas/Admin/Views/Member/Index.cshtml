@@ -4,6 +4,15 @@
     Layout = "~/Views/Shared/_SneatLayout.cshtml";
     ViewData["Title"] = "會員列表";
     var totalPages = (int)Math.Ceiling((double)Model.PagedResult.TotalCount / Model.PagedResult.PageSize);
+
+    // ── 定義 Google 風格的預設背景色盤 ──
+    var avatarColors = new[] {
+     "#e57373","#f06292", "#ba68c8","#9575cd","#90a4ae",
+      "#7986cb","#64b5f6","#29b6f6","#26c6da","#a1887f",  
+       "#4db6ac", "#81c784","#9ccc65","#ffa726", "#ff8a65"
+        
+          
+    };
 }
 
 <style>
@@ -15,12 +24,34 @@
         letter-spacing: -0.025em;
     }
 
-    .member-avatar {
+    /* ── 預設頭貼容器與疊加效果 ── */
+    .member-avatar-container {
+        position: relative;
         width: 48px;
         height: 48px;
         border-radius: 50%;
-        object-fit: cover;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         border: 2px solid #f8f9fa;
+        flex-shrink: 0;
+    }
+
+    .member-avatar-initial {
+        color: #ffffff;
+        font-weight: 600;
+        font-size: 1.25rem;
+        user-select: none; /* 防止反白選取文字 */
+    }
+
+    .member-avatar-img {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
     }
 
     .member-info {
@@ -185,8 +216,8 @@
 
     /* 正在編輯的列高亮效果 (Active Row) */
     .active-edit-row {
-        background-color: #fffde7 !important;
-        border-left: 4px solid #ffab00 !important;
+        background-color: #f0fcf9 !important; /* 極淺的湖水綠底色 (與白底柔和過渡) */
+        border-left: 4px solid #20c997 !important; /* 配合您「搜尋」按鈕的湖水綠邊框 */
         transition: background-color 0.3s ease, border-left 0.3s ease;
     }
 
@@ -313,14 +344,30 @@
                             {
                                 @foreach (var member in Model.PagedResult.Data)
                                 {
-                                    @* 增加 class="clickable-row" 以及 onclick 事件 *@
                                     <tr data-member-id="@member.UserId" class="clickable-row" onclick="openDrawer(@member.UserId)">
                                         <td>
                                             <div class="member-info">
-                                                <img src="@member.AvatarUrl"
-                                                     alt="@member.FullName"
-                                                     class="member-avatar member-avatar-img"
-                                                     onerror="this.src='https://via.placeholder.com/48'" />
+                                                @{
+                                                    // 利用 Account 取得 Hash，若為空則用 UserId 確保不會報錯
+                                                    int hash = member.Account != null ? member.Account.GetHashCode() : member.UserId;
+                                                    // 透過取餘數獲得固定顏色
+                                                    string bgColor = avatarColors[Math.Abs(hash % avatarColors.Length)];
+                                                    // 取得姓名的第一個字，若為空則用問號
+                                                    string initial = !string.IsNullOrWhiteSpace(member.FullName) ? member.FullName.Substring(0, 1).ToUpper() : "?";
+                                                }
+
+                                                <div class="member-avatar-container" style="background-color: @bgColor;">
+                                                    <span class="member-avatar-initial">@initial</span>
+
+                                                    @if (!string.IsNullOrEmpty(member.AvatarUrl))
+                                                    {
+                                                        <img src="@member.AvatarUrl"
+                                                             alt="@member.FullName"
+                                                             class="member-avatar-img"
+                                                             onerror="this.style.display='none'" />
+                                                    }
+                                                </div>
+
                                                 <div>
                                                     <div class="member-name">@member.FullName</div>
                                                     <div class="member-account">@@@member.Account</div>
@@ -374,7 +421,6 @@
                                         </td>
                                         <td>
                                             <div class="act-group justify-content-end">
-                                                @* 移除原本的 onclick，讓點擊事件統一交給外層的 <tr> 處理，同時移除了完整編輯的 <a> *@
                                                 <button type="button"
                                                         class="act-icon"
                                                         data-bs-toggle="tooltip"
@@ -562,10 +608,10 @@
 
                 // 確認點擊目標是否在 Drawer 內
                 const isClickInsideDrawer = drawer.contains(e.target);
-                // 確認點擊目標是否在會員清單的 <tbody> 內 (如果是，代表點了別行，那就交給那一行去開啟)
+                // 確認點擊目標是否在會員清單的 <tbody> 內
                 const isClickInsideList = listArea.contains(e.target);
 
-                // 若既不在面板內，也不在清單內 (比如點到標題、分頁、空白處)，就關閉
+                // 若既不在面板內，也不在清單內，就關閉
                 if (!isClickInsideDrawer && !isClickInsideList) {
                     closeDrawer();
                 }
