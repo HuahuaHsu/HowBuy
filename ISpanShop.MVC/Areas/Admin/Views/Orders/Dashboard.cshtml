@@ -403,12 +403,17 @@
             $.get(`/Orders/GetProductSalesChart?type=Pie&period=${period}&storeId=${storeId}`, function(data) {
                 if(!data.series || data.series.length === 0) return;
                 
-                // 紀錄全體總銷量 (用於彈窗百分比計算)
-                grandTotalSales = data.series[0].data.reduce((a, b) => a + b, 0);
+                const realSeries = data.series[0].data;
+                grandTotalSales = realSeries.reduce((a, b) => a + b, 0);
+
+                // 視覺優化：設定「最小視覺佔比」為 2%，避免區塊太小點不到
+                const minVisualPercent = 0.02; 
+                const visualFloor = grandTotalSales * minVisualPercent;
+                const visualSeries = realSeries.map(v => Math.max(v, visualFloor));
 
                 const chartColors = data.labels.map(name => getCategoryColor(name));
                 const options = {
-                    series: data.series[0].data,
+                    series: visualSeries, // 使用「視覺地板」序列繪圖
                     labels: data.labels,
                     chart: { 
                         type: 'donut', 
@@ -421,8 +426,44 @@
                         }
                     },
                     colors: chartColors,
-                    legend: { position: 'bottom' },
-                    plotOptions: { pie: { donut: { size: '70%' } } }
+                    legend: { 
+                        position: 'bottom',
+                        onItemClick: { toggleDataSeries: true } 
+                    },
+                    plotOptions: { 
+                        pie: { 
+                            donut: { size: '70%' },
+                            expandOnClick: true,
+                            dataLabels: {
+                                offset: -5,
+                                minAngleToShowLabel: 10 
+                            }
+                        } 
+                    },
+                    tooltip: {
+                        y: {
+                            formatter: function(val, { seriesIndex, dataPointIndex, w }) {
+                                const actualValue = realSeries[dataPointIndex];
+                                const percent = grandTotalSales > 0 ? ((actualValue / grandTotalSales) * 100).toFixed(1) : 0;
+                                return `${actualValue.toLocaleString()} 件 (${percent}%)`;
+                            }
+                        }
+                    },
+                    dataLabels: {
+                        enabled: true,
+                        formatter: function (val, opts) {
+                            return val >= 4 ? val.toFixed(1) + "%" : ""; 
+                        },
+                        style: {
+                            fontSize: '13px',
+                            fontWeight: 'bold',
+                            colors: ['#fff']
+                        },
+                        dropShadow: {
+                            enabled: true,
+                            opacity: 0.5
+                        }
+                    }
                 };
                 if(pieChart) pieChart.destroy();
                 pieChart = new ApexCharts(document.querySelector("#productPieChart"), options);
