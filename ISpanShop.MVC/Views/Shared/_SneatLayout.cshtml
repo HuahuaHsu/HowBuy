@@ -1,4 +1,4 @@
-﻿@{
+@{
 }
 <!DOCTYPE html>
 <html lang="zh-Hant" dir="ltr" data-theme="theme-default"
@@ -40,7 +40,7 @@
             box-sizing: border-box;
         }
 
-        html, body {
+                html, body {
             margin: 0;
             padding: 0;
             height: 100%;
@@ -57,15 +57,18 @@
             --transition: 0.25s ease;
         }
 
-        #app-layout {
+                #app-layout {
             display: flex;
             min-height: 100vh;
         }
 
-        /* SIDEBAR */
+                /* SIDEBAR */
         #layout-menu {
             width: var(--sidebar-w);
-            min-height: 100vh;
+            height: 100vh;
+            position: sticky;
+            top: 0;
+            align-self: flex-start;
             background-color: #2a3f54;
             display: flex;
             flex-direction: column;
@@ -305,7 +308,7 @@
                 background: rgba(255,255,255,0.08);
             }
 
-        /* MAIN */
+                /* MAIN */
         #main-wrapper {
             flex: 1;
             min-width: 0;
@@ -353,18 +356,18 @@
             align-items: center;
         }
 
-        .content-wrapper {
+                .content-wrapper {
             flex: 1;
             display: flex;
             flex-direction: column;
         }
 
-        .content-body {
+                .content-body {
             flex: 1;
             padding: 1.5rem;
         }
 
-        .content-footer {
+                .content-footer {
             padding: .75rem 1.5rem;
             font-size: .875rem;
             color: #697a8d;
@@ -1074,3 +1077,10 @@
     </script>
 </body>
 </html>
+
+
+
+
+
+
+
