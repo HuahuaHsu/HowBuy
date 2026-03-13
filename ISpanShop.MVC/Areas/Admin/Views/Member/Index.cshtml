@@ -5,13 +5,12 @@
     ViewData["Title"] = "會員列表";
     var totalPages = (int)Math.Ceiling((double)Model.PagedResult.TotalCount / Model.PagedResult.PageSize);
 
-    // ── 定義 Google 風格的預設背景色盤 ──
+    // ── 保留原 Google 色系，改用刷淡的粉彩色調 ──
     var avatarColors = new[] {
-     "#e57373","#f06292", "#ba68c8","#9575cd","#90a4ae",
-      "#7986cb","#64b5f6","#29b6f6","#26c6da","#a1887f",  
-       "#4db6ac", "#81c784","#9ccc65","#ffa726", "#ff8a65"
-        
-          
+        "#e57373", "#f06292", "#ba68c8", "#9575cd",
+        "#7986cb", "#64b5f6", "#29b6f6", "#26c6da",
+        "#4db6ac", "#81c784", "#9ccc65", "#ffa726",
+        "#ff8a65", "#a1887f", "#90a4ae"
     };
 }
 
@@ -42,7 +41,7 @@
         color: #ffffff;
         font-weight: 600;
         font-size: 1.25rem;
-        user-select: none; /* 防止反白選取文字 */
+        user-select: none;
     }
 
     .member-avatar-img {
@@ -144,14 +143,12 @@
         width: 100%;
     }
 
-    /* 左側主列表區 */
     .squeeze-main {
         flex: 1 1 100%;
         min-width: 0;
         transition: all 0.3s ease;
     }
 
-    /* 右側編輯面板區 (預設隱藏) */
     .squeeze-drawer {
         flex: 0 0 0;
         width: 0;
@@ -168,7 +165,6 @@
         box-shadow: 0 0.25rem 1rem rgba(161, 172, 184, 0.45);
     }
 
-    /* 展開狀態 */
     .squeeze-layout.is-open .squeeze-main {
         flex: 1 1 calc(100% - 400px);
         margin-right: 1.5rem;
@@ -181,7 +177,6 @@
         border: 1px solid #e2e8f0;
     }
 
-    /* Drawer 內部樣式 */
     .drawer-header {
         display: flex;
         align-items: center;
@@ -214,10 +209,10 @@
         gap: 1rem;
     }
 
-    /* 正在編輯的列高亮效果 (Active Row) */
+    /* 正在編輯的列高亮效果 (Active Row) - 刷淡的柔和提示 */
     .active-edit-row {
-        background-color: #f0fcf9 !important; /* 極淺的湖水綠底色 (與白底柔和過渡) */
-        border-left: 4px solid #20c997 !important; /* 配合您「搜尋」按鈕的湖水綠邊框 */
+        background-color: #f0fcf9 !important; /* 湖水綠底 */
+        border-left: 4px solid #20c997 !important; /* 湖水綠邊框 */
         transition: background-color 0.3s ease, border-left 0.3s ease;
     }
 
@@ -348,10 +343,8 @@
                                         <td>
                                             <div class="member-info">
                                                 @{
-                                                    // 利用 Account 取得 Hash，若為空則用 UserId 確保不會報錯
-                                                    int hash = member.Account != null ? member.Account.GetHashCode() : member.UserId;
-                                                    // 透過取餘數獲得固定顏色
-                                                    string bgColor = avatarColors[Math.Abs(hash % avatarColors.Length)];
+                                                    // 【完美同步解法】直接使用 UserId 取餘數
+                                                    string bgColor = avatarColors[Math.Abs(member.UserId) % avatarColors.Length];
                                                     // 取得姓名的第一個字，若為空則用問號
                                                     string initial = !string.IsNullOrWhiteSpace(member.FullName) ? member.FullName.Substring(0, 1).ToUpper() : "?";
                                                 }
@@ -536,9 +529,6 @@
             _tooltipInstances.forEach(t => t.hide());
         }
 
-        // ================================================================
-        // 清除所有列的高亮狀態
-        // ================================================================
         function clearAllRowHighlights() {
             document.querySelectorAll('#memberTableBody tr').forEach(row => {
                 row.classList.remove('active-edit-row');
@@ -595,30 +585,21 @@
             clearAllRowHighlights();
         }
 
-        // ================================================================
         // 全域點擊監聽：點擊 List 與 Drawer 以外的區域就關閉 Drawer
-        // ================================================================
         document.addEventListener('mousedown', function (e) {
             const wrapper = document.getElementById('pageLayoutWrapper');
-
-            // 只有在編輯面板是打開的狀態才執行判斷
             if (wrapper.classList.contains('is-open')) {
                 const drawer = document.getElementById('memberDrawer');
                 const listArea = document.getElementById('memberTableBody');
-
-                // 確認點擊目標是否在 Drawer 內
                 const isClickInsideDrawer = drawer.contains(e.target);
-                // 確認點擊目標是否在會員清單的 <tbody> 內
                 const isClickInsideList = listArea.contains(e.target);
 
-                // 若既不在面板內，也不在清單內，就關閉
                 if (!isClickInsideDrawer && !isClickInsideList) {
                     closeDrawer();
                 }
             }
         });
 
-        // Esc 鍵也可以關閉 drawer
         document.addEventListener('keydown', function (e) {
             if (e.key === 'Escape') closeDrawer();
         });
@@ -630,7 +611,6 @@
             const form = document.getElementById('drawerEditForm');
             if (!form) return;
 
-            // 黑名單 toggle 確認防呆
             const blacklistSwitch = form.querySelector('#drawerBlacklistSwitch');
             if (blacklistSwitch) {
                 blacklistSwitch.addEventListener('change', function (e) {
@@ -642,7 +622,6 @@
                 });
             }
 
-            // AJAX 提交表單
             form.addEventListener('submit', async function (e) {
                 e.preventDefault();
 
@@ -702,9 +681,6 @@
             }
         }
 
-        // ================================================================
-        // Toast 通知
-        // ================================================================
         function showToast(type, html) {
             if (typeof Swal !== 'undefined') {
                 Swal.fire({

@@ -3,6 +3,18 @@
 @{
     Layout = null;
 
+    // ── 1. 補上與 Index 完全相同的粉彩 Google 色盤 ──
+    var avatarColors = new[] {
+        "#e57373", "#f06292", "#ba68c8", "#9575cd",
+        "#7986cb", "#64b5f6", "#29b6f6", "#26c6da",
+        "#4db6ac", "#81c784", "#9ccc65", "#ffa726",
+        "#ff8a65", "#a1887f", "#90a4ae"
+    };
+
+    // ── 2. 【完美同步解法】直接使用 UserId 計算專屬顏色與首字 ──
+    string bgColor = avatarColors[Math.Abs(Model.UserId) % avatarColors.Length];
+    string initial = !string.IsNullOrWhiteSpace(Model.FullName) ? Model.FullName.Substring(0, 1).ToUpper() : "?";
+
     var levelBadgeClass = Model.LevelName switch
     {
         "金牌會員" => "bg-warning text-dark",
@@ -20,12 +32,36 @@
 }
 
 <style>
+    /* 這裡也要補上頭像所需的 CSS，確保 AJAX 載入後樣式正確 */
+    .member-avatar-container {
+        position: relative;
+        border-radius: 50%;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 3px solid #e2e8f0;
+        flex-shrink: 0;
+    }
+
+    .member-avatar-initial {
+        color: #ffffff;
+        font-weight: 600;
+        user-select: none;
+    }
+
+    .member-avatar-img {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
     .drawer-edit-avatar {
         width: 72px;
         height: 72px;
-        border-radius: 50%;
-        object-fit: cover;
-        border: 3px solid #e2e8f0;
     }
 
     .drawer-form-section {
@@ -49,7 +85,7 @@
             background-color: #ea5455;
             border-color: #ea5455;
         }
-    /* 強化唯讀欄位的視覺提示與阻斷互動 */
+
     .readonly-field {
         background-color: #f8f9fa !important;
         cursor: not-allowed !important;
@@ -64,17 +100,24 @@
     <input type="hidden" name="UserId" value="@Model.UserId" />
     <input type="hidden" name="AvatarUrl" value="@Model.AvatarUrl" id="hiddenAvatarUrl" />
 
-    @* 因為 select 設定 disabled 不會被 Submit，需要用隱藏欄位確保資料不會在 POST 時遺失 *@
     <input type="hidden" name="City" value="@Model.City" />
     <input type="hidden" name="Region" value="@Model.Region" />
 
     @* ── 會員資訊頭部 ── *@
     <div class="d-flex align-items-center gap-3 p-4 border-bottom bg-light">
-        <img src="@Model.AvatarUrl"
-             alt="@Model.FullName"
-             class="drawer-edit-avatar"
-             id="drawerAvatarPreview"
-             onerror="this.src='https://via.placeholder.com/72'" />
+
+        <div class="member-avatar-container drawer-edit-avatar" style="background-color: @bgColor;">
+            <span class="member-avatar-initial fs-3">@initial</span>
+            @if (!string.IsNullOrEmpty(Model.AvatarUrl))
+            {
+                <img src="@Model.AvatarUrl"
+                     alt="@Model.FullName"
+                     class="member-avatar-img"
+                     id="drawerAvatarPreview"
+                     onerror="this.style.display='none'" />
+            }
+        </div>
+
         <div>
             <div class="fw-bold fs-5" style="color:#1e2d3d;">@Model.FullName</div>
             <div class="text-muted small">@@@Model.Account</div>
