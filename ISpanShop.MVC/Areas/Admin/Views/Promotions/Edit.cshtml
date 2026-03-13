@@ -3,6 +3,7 @@
 @{
     Layout = "~/Views/Shared/_SneatLayout.cshtml";
     ViewData["Title"] = "編輯促銷活動";
+    bool isEdit        = Model.Id > 0;
     bool onlyEndTime   = ViewBag.OnlyEndTime == true;
     int  promoStatus   = (int)(ViewBag.PromotionStatus ?? 0);
     string rejectReason = (string)(ViewBag.RejectReason ?? "");
@@ -102,27 +103,53 @@
                                        value="@Model.EndTime.ToString("yyyy-MM-ddTHH:mm")" required />
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label fw-semibold">適用賣家</label>
-                                <select id="sellerId" class="form-select" @(onlyEndTime ? "disabled" : "")>
-                                    @foreach (var s in Model.Sellers)
+                                <label class="form-label fw-semibold">
+                                    適用賣家
+                                    @if (isEdit)
                                     {
-                                        <option value="@s.Id" @@(s.Id == Model.SellerId ? "selected" : "")>@s.Name</option>
+                                        <small class="text-danger ms-1" style="font-size:.75rem;">
+                                            <i class="bx bx-lock me-1"></i>建立後不可更改
+                                        </small>
                                     }
-                                </select>
+                                </label>
+                                @if (isEdit)
+                                {
+                                    <div class="form-control bg-light d-flex align-items-center gap-2"
+                                         style="cursor:default; color:#4a5568;">
+                                        <i class="bx bx-store text-muted"></i>
+                                        <span>@(Model.Sellers.FirstOrDefault(s => s.Id == Model.SellerId)?.Name ?? "—")</span>
+                                    </div>
+                                    <input type="hidden" id="sellerId" name="SellerId" value="@Model.SellerId" />
+                                }
+                                else
+                                {
+                                    <select id="sellerId" class="form-select">
+                                        @foreach (var s in Model.Sellers)
+                                        {
+                                            <option value="@s.Id" selected="@(s.Id == Model.SellerId)">@s.Name</option>
+                                        }
+                                    </select>
+                                }
                             </div>
                         </div>
                     </div>
                 </div>
 
                 @* 活動類型 *@
-                <div class="card shadow-sm mb-4 @(onlyEndTime ? "readonly-cover" : "")">
+                <div class="card shadow-sm mb-4">
                     <div class="card-header bg-white border-bottom">
                         <h5 class="card-title mb-0 fw-bold" style="color:#1e2d3d;">
                             <i class="bx bx-category me-2" style="color:#3182ce;"></i>活動類型
+                            @if (isEdit)
+                            {
+                                <span class="badge bg-label-danger ms-2" style="font-size:.75rem;">
+                                    <i class="bx bx-lock me-1"></i>建立後無法修改
+                                </span>
+                            }
                         </h5>
                     </div>
                     <div class="card-body">
-                        @if (!onlyEndTime)
+                        @if (!isEdit)
                         {
                             <p class="text-muted mb-3" style="font-size:.85rem;">
                                 <i class="bx bx-info-circle me-1"></i>
@@ -136,13 +163,27 @@
                                 (3,"🔥","限量搶購","設定限購數量與活動庫存")
                             })
                             {
-                                <div class="col-md-4">
-                                    <div class="type-card @(t == Model.PromotionType ? "selected" : "") @(onlyEndTime ? "disabled-card" : "")"
+                                bool isSelected = t == Model.PromotionType;
+                                <div class="col-md-4"@(isEdit && !isSelected ? Html.Raw(" style=\"opacity:.4;pointer-events:none\"") : Html.Raw(""))>
+                                    <div class="type-card @(isSelected ? "selected" : "") @(!isEdit && onlyEndTime ? "disabled-card" : "")"
                                          onclick="selectType(@t)" id="typeCard@t">
-                                        <span class="check-badge"><i class="bx bx-check"></i></span>
+                                        <span class="check-badge">
+                                            @if (isEdit && isSelected)
+                                            {
+                                                <i class="bx bx-lock"></i>
+                                            }
+                                            else
+                                            {
+                                                <i class="bx bx-check"></i>
+                                            }
+                                        </span>
                                         <div class="type-icon-wrap">@icon</div>
                                         <div class="fw-semibold" style="font-size:.95rem;">@label</div>
                                         <div class="text-muted" style="font-size:.8rem; margin-top:.25rem;">@desc</div>
+                                        @if (isEdit && isSelected)
+                                        {
+                                            <small class="text-danger d-block mt-1" style="font-size:.75rem;">建立後無法修改</small>
+                                        }
                                     </div>
                                 </div>
                             }
@@ -345,6 +386,7 @@
 @section Scripts {
 <script>
     const _onlyEndTime = @(onlyEndTime ? "true" : "false");
+    const _isEdit      = @(isEdit ? "true" : "false");
     let currentType   = @Model.PromotionType;
     let selectedItems = @Html.Raw(itemsJson);
     let selectedRules = @Html.Raw(rulesJson);
@@ -354,7 +396,7 @@
     renderRules();
 
     function selectType(t) {
-        if (_onlyEndTime) return;
+        if (_onlyEndTime || _isEdit) return;
         currentType = t;
         [1,2,3].forEach(i => {
             document.getElementById(`typeCard${i}`).classList.toggle('selected', i === t);

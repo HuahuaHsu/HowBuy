@@ -131,7 +131,16 @@ namespace ISpanShop.Services.Products
         /// <summary>[Async] 管理員強制下架（儲存下架原因）</summary>
         Task ForceUnpublishAsync(int id, string? reason);
 
-        /// <summary>[Async] 模擬系統自動審核：新增測試商品並執行違禁詞批次審核，回傳攔截與放行筆數</summary>
+        /// <summary>[Async] 模擬系統自動審核：對所有待審核商品執行敏感字比對，回傳詳細結果</summary>
         Task<SimulateAutoReviewResult> SimulateAutoReviewAsync();
+
+        /// <summary>[Async] 生成測試商品（乾淨 5 筆 / 高風險 5 筆 / 邊緣 5 筆，共 15 筆，全為待審核）</summary>
+        Task<GenerateTestProductsResult> GenerateTestProductsAsync();
+
+        /// <summary>[Async] 取得近期審核通過的商品（最近 N 小時內 ReviewStatus=1）</summary>
+        Task<IEnumerable<ProductReviewDto>> GetRecentlyApprovedAsync(int hours = 24);
+
+        /// <summary>[Async] 分頁取得近期審核通過的商品（最近 N 小時內 ReviewStatus=1）</summary>
+        Task<PagedResult<ProductReviewDto>> GetRecentlyApprovedPagedAsync(int page, int pageSize, int hours = 24);
     }
 }

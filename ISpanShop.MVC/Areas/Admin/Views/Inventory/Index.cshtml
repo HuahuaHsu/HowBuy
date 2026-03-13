@@ -160,7 +160,7 @@
 
     @* ── 庫存表格（Accordion 收合式） ── *@
     <div class="table-responsive px-1 pb-3">
-        <table class="table table-inv align-middle">
+        <table class="table table-inv table-hover align-middle">
             <thead>
                 <tr>
                     <th style="width:42px;"></th>
@@ -179,7 +179,7 @@
                     {
                         string rowCls = item.IsZeroStatus ? "zero-stock-row"
                                       : item.IsLowStatus  ? "low-stock-row" : "";
-                        <tr class="product-row @rowCls">
+                        <tr class="product-row @rowCls" data-product-id="@item.ProductId">
                             <td class="text-center">
                                 <button class="btn btn-sm btn-link p-0 toggle-btn"
                                         type="button"
@@ -229,10 +229,12 @@
                                 }
                             </td>
                             <td class="text-end">
-                                <a href="@Url.Action("Details", "Products", new { area = "Admin", id = item.ProductId, returnUrl = Url.Action("Index", "Inventory") })"
-                                   class="btn btn-sm btn-outline-secondary rounded-pill px-3" title="查看商品詳情">
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-secondary rounded-pill px-3"
+                                        title="查看商品詳情"
+                                        onclick="openProductOffcanvas(@item.ProductId, '@Html.Raw(item.ProductName.Replace("'", "\\'"))')">
                                     <i class="bx bx-show me-1"></i>查看
-                                </a>
+                                </button>
                             </td>
                         </tr>
                         @* ── 子層：收合的 SKU 明細列 ── *@
@@ -507,13 +509,53 @@
     .toggle-btn[aria-expanded="true"] .bx-chevron-right { transform: rotate(90deg); }
 </style>
 
+@* ── Offcanvas：商品詳情側邊欄 ── *@
+<div class="offcanvas offcanvas-end" tabindex="-1" id="productDetailOffcanvas"
+     style="width:50vw; min-width:420px;">
+    <div class="offcanvas-header border-bottom">
+        <h5 class="offcanvas-title fw-semibold" id="productDetailOffcanvasLabel">商品詳情</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="關閉"></button>
+    </div>
+    <div class="offcanvas-body p-0" id="productDetailOffcanvasBody">
+        <div class="d-flex align-items-center justify-content-center h-100 text-muted">
+            <div class="text-center py-5">
+                <div class="spinner-border spinner-border-sm mb-2" role="status"></div>
+                <div>載入中…</div>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
 <script>
-    // Sync aria-expanded on toggle buttons so the CSS chevron rotation works
+    var urlGetProductDetailsPartial = '@Url.Action("GetProductDetailsPartial", "Products", new { area = "Admin" })';
+
+    window.openProductOffcanvas = function (id, name) {
+        var body    = document.getElementById('productDetailOffcanvasBody');
+        var titleEl = document.getElementById('productDetailOffcanvasLabel');
+        if (titleEl) titleEl.textContent = name || '商品詳情';
+        body.innerHTML = '<div class="d-flex align-items-center justify-content-center h-100 text-muted"><div class="text-center py-5"><div class="spinner-border spinner-border-sm mb-2" role="status"></div><div>載入中…</div></div></div>';
+        bootstrap.Offcanvas.getOrCreateInstance(document.getElementById('productDetailOffcanvas')).show();
+        fetch(urlGetProductDetailsPartial + '?id=' + id)
+            .then(function (res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.text(); })
+            .then(function (html) { body.innerHTML = html; })
+            .catch(function () { body.innerHTML = '<div class="text-center py-5 text-danger"><i class="bx bx-error-circle fs-1"></i><div class="mt-2">載入失敗，請稍後再試</div></div>'; });
+    };
+
+    // 監聽 Bootstrap collapse 事件，同步 toggle-btn 的 aria-expanded（驅動 CSS chevron 旋轉）
     document.querySelectorAll('.sku-collapse-row').forEach(function (collapseEl) {
         var btn = document.querySelector('[data-bs-target="#' + collapseEl.id + '"]');
-        collapseEl.addEventListener('show.bs.collapse', function () { btn && btn.setAttribute('aria-expanded', 'true'); });
-        collapseEl.addEventListener('hide.bs.collapse', function () { btn && btn.setAttribute('aria-expanded', 'false'); });
+        collapseEl.addEventListener('show.bs.collapse', function () { if (btn) btn.setAttribute('aria-expanded', 'true');  });
+        collapseEl.addEventListener('hide.bs.collapse', function () { if (btn) btn.setAttribute('aria-expanded', 'false'); });
+    });
+
+    // 點擊整列展開 / 收合 SKU 明細（忽略 button 與 a 的點擊，讓它們保有原本行為）
+    document.querySelectorAll('.product-row').forEach(function (tr) {
+        tr.addEventListener('click', function (e) {
+            if (e.target.closest('button') || e.target.closest('a')) return;
+            var collapseEl = document.getElementById('sku-' + tr.dataset.productId);
+            if (collapseEl) bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false }).toggle();
+        });
     });
 </script>
 }

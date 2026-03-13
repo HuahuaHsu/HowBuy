@@ -205,17 +205,12 @@
                                 <td style="font-size:.875rem; color:#4a5568;">@item.SellerName</td>
                                 <td>
                                     <div class="d-flex gap-1 justify-content-end">
-                                        <a href="@Url.Action("Detail", new { id = item.Id })"
-                                           class="act-icon" title="詳情/審核">
+                                        <button type="button"
+                                                class="act-icon"
+                                                title="詳情/審核"
+                                                onclick="openPromotionOffcanvas(@item.Id, '@Html.Raw(item.Name.Replace("'", "\\'"))')">
                                             <i class="bx bx-show"></i>
-                                        </a>
-                                        @if (item.Status is 0 or 1)
-                                        {
-                                            <a href="@Url.Action("Edit", new { id = item.Id })"
-                                               class="act-icon" title="編輯">
-                                                <i class="bx bx-edit"></i>
-                                            </a>
-                                        }
+                                        </button>
                                         <button type="button" class="act-icon danger"
                                                 onclick="confirmDelete(@item.Id, '@Html.Raw(item.Name.Replace("'","\\\'"))')"
                                                 title="刪除">
@@ -278,6 +273,26 @@
     </div>
 </div>
 
+@* ── Offcanvas：促銷活動詳情側邊欄 ── *@
+<div class="offcanvas offcanvas-end" tabindex="-1" id="promotionDetailOffcanvas"
+     style="width:50vw; min-width:440px; max-width:720px;">
+    <div class="offcanvas-header border-bottom py-3">
+        <h5 class="offcanvas-title fw-semibold" id="promotionDetailOffcanvasLabel">
+            <i class="bx bx-purchase-tag-alt me-2" style="color:#3182ce;"></i>
+            <span id="promotionOffcanvasTitle">促銷活動詳情</span>
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="關閉"></button>
+    </div>
+    <div class="offcanvas-body p-0 overflow-auto" id="promotionDetailOffcanvasBody">
+        <div class="d-flex align-items-center justify-content-center" style="height:200px;">
+            <div class="text-center text-muted">
+                <div class="spinner-border spinner-border-sm mb-2" role="status"></div>
+                <div>載入中…</div>
+            </div>
+        </div>
+    </div>
+</div>
+
 @* 刪除確認隱藏 form *@
 <form id="deleteForm" method="post" style="display:none;">
     @Html.AntiForgeryToken()
@@ -285,6 +300,32 @@
 
 @section Scripts {
 <script>
+    // ── 開啟 Offcanvas 並 AJAX 載入詳情 ──
+    var _promoDetailUrl = '@Url.Action("GetPromotionDetailsPartial", "Promotions", new { area = "Admin" })';
+
+    function openPromotionOffcanvas(id, name) {
+        var body    = document.getElementById('promotionDetailOffcanvasBody');
+        var titleEl = document.getElementById('promotionOffcanvasTitle');
+        if (titleEl) titleEl.textContent = name || '促銷活動詳情';
+        body.innerHTML =
+            '<div class="d-flex align-items-center justify-content-center" style="height:200px;">' +
+            '<div class="text-center text-muted">' +
+            '<div class="spinner-border spinner-border-sm mb-2" role="status"></div>' +
+            '<div>載入中…</div></div></div>';
+        bootstrap.Offcanvas.getOrCreateInstance(
+            document.getElementById('promotionDetailOffcanvas')).show();
+        fetch(_promoDetailUrl + '?id=' + id)
+            .then(function (res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.text(); })
+            .then(function (html) { body.innerHTML = html; })
+            .catch(function () {
+                body.innerHTML =
+                    '<div class="text-center py-5 text-danger">' +
+                    '<i class="bx bx-error-circle" style="font-size:2.5rem;"></i>' +
+                    '<div class="mt-2">載入失敗，請稍後再試</div></div>';
+            });
+    }
+
+    // ── 刪除確認 ──
     function confirmDelete(id, name) {
         const doDelete = () => {
             const form = document.getElementById('deleteForm');

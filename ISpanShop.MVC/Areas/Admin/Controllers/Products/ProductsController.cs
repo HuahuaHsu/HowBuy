@@ -145,8 +145,7 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Products
         /// <summary>
         /// 待審核商品列表
         /// </summary>
-        /// <returns>待審核商品列表 View</returns>
-        public async Task<IActionResult> PendingReview(int pendingPage = 1, int rejectedPage = 1)
+        public async Task<IActionResult> PendingReview(int pendingPage = 1, int rejectedPage = 1, int approvedPage = 1)
         {
             const int pageSize = 10;
 
@@ -193,6 +192,27 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Products
                 rejectedPaged.TotalCount, rejectedPage, pageSize);
 
             ViewBag.RejectedPage = rejectedPage;
+
+            // 近期審核通過（24 小時內 ReviewStatus == 1）分頁
+            var approvedPaged = await _productService.GetRecentlyApprovedPagedAsync(approvedPage, pageSize, 24);
+            ViewBag.ApprovedRecords = PagedResult<ProductReviewListVm>.Create(
+                approvedPaged.Data.Select(dto => new ProductReviewListVm
+                {
+                    Id           = dto.Id,
+                    StoreId      = dto.StoreId,
+                    StoreName    = dto.StoreName,
+                    CategoryName = dto.CategoryName,
+                    BrandName    = dto.BrandName ?? string.Empty,
+                    Name         = dto.Name,
+                    Status       = dto.Status,
+                    ReviewStatus = dto.ReviewStatus,
+                    ReviewedBy   = dto.ReviewedBy,
+                    ReviewDate   = dto.ReviewDate,
+                    CreatedAt    = dto.CreatedAt,
+                    MainImageUrl = dto.MainImageUrl
+                }).ToList(),
+                approvedPaged.TotalCount, approvedPage, pageSize);
+            ViewBag.ApprovedPage = approvedPage;
 
             return View(pendingVm);
         }
@@ -507,7 +527,79 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Products
         }
 
         /// <summary>
-        /// [AJAX] 模擬系統自動審核 - 新增測試商品並執行違禁詞批次審核
+        /// [AJAX] 取得商品詳情 Partial View（供 Offcanvas 側邊欄使用）
+        /// </summary>
+        public IActionResult GetProductDetailsPartial(int id)
+        {
+            var productDto = _productService.GetProductDetail(id);
+            if (productDto == null)
+                return NotFound();
+
+            var vm = new ProductDetailVm
+            {
+                Id                 = productDto.Id,
+                Name               = productDto.Name,
+                StoreName          = productDto.StoreName,
+                CategoryName       = productDto.CategoryName,
+                BrandName          = productDto.BrandName,
+                Description        = productDto.Description,
+                Status             = productDto.Status,
+                MinPrice           = productDto.MinPrice,
+                MaxPrice           = productDto.MaxPrice,
+                TotalSales         = productDto.TotalSales,
+                ViewCount          = productDto.ViewCount,
+                RejectReason       = productDto.RejectReason,
+                SpecDefinitionJson = productDto.SpecDefinitionJson,
+                CreatedAt          = productDto.CreatedAt,
+                UpdatedAt          = productDto.UpdatedAt,
+                ReviewStatus       = productDto.ReviewStatus,
+                ReviewedBy         = productDto.ReviewedBy,
+                ReviewDate         = productDto.ReviewDate,
+                Images             = productDto.Images,
+                Variants = productDto.Variants.Select(v => new ProductVariantDetailVm
+                {
+                    Id            = v.Id,
+                    ProductId     = v.ProductId,
+                    SkuCode       = v.SkuCode,
+                    VariantName   = v.VariantName,
+                    Price         = v.Price,
+                    Stock         = v.Stock,
+                    SafetyStock   = v.SafetyStock,
+                    SpecValueJson = v.SpecValueJson,
+                    IsDeleted     = v.IsDeleted ?? false
+                }).ToList()
+            };
+
+            return PartialView("_ProductDetailsPartial", vm);
+        }
+
+        /// <summary>
+        /// [AJAX] 生成 15 筆測試用待審核商品（乾淨 / 高風險 / 邊緣 各 5 筆）
+        /// </summary>
+        [HttpPost]
+        public async Task<IActionResult> GenerateTestProducts()
+        {
+            try
+            {
+                var result = await _productService.GenerateTestProductsAsync();
+                return Json(new
+                {
+                    success   = true,
+                    count     = result.TotalCount,
+                    clean     = result.CleanCount,
+                    highRisk  = result.HighRiskCount,
+                    borderline = result.BorderlineCount,
+                    message   = $"已生成 {result.TotalCount} 筆測試商品（乾淨 {result.CleanCount} 筆 ／ 高風險 {result.HighRiskCount} 筆 ／ 邊緣 {result.BorderlineCount} 筆），全部設為待審核。"
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"生成失敗：{ex.Message}" });
+            }
+        }
+
+        /// <summary>
+        /// [AJAX] 對目前所有待審核商品執行敏感字自動比對（敏感字從資料庫讀取）
         /// </summary>
         [HttpPost]
         public async Task<IActionResult> SimulateAutoReview()
@@ -515,7 +607,20 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Products
             try
             {
                 var result = await _productService.SimulateAutoReviewAsync();
-                return Json(new { success = true, approved = result.ApprovedCount, rejected = result.RejectedCount, manualReview = result.ManualReviewCount });
+                return Json(new
+                {
+                    success      = true,
+                    approved     = result.ApprovedCount,
+                    rejected     = result.RejectedCount,
+                    manualReview = result.ManualReviewCount,
+                    items        = result.Items.Select(i => new
+                    {
+                        productId    = i.ProductId,
+                        productName  = i.ProductName,
+                        outcome      = i.Outcome,
+                        matchedWords = i.MatchedWords
+                    })
+                });
             }
             catch (Exception ex)
             {

@@ -215,15 +215,19 @@ namespace ISpanShop.Repositories.Products
 
             query = criteria.SortOrder switch
             {
-                "name_asc"    => query.OrderBy(p => p.Name),
-                "name_desc"   => query.OrderByDescending(p => p.Name),
-                "price_asc"   => query.OrderBy(p => p.MinPrice),
-                "price_desc"  => query.OrderByDescending(p => p.MinPrice),
-                "status_asc"  => query.OrderBy(p => p.Status),
-                "status_desc" => query.OrderByDescending(p => p.Status),
-                "date_asc"    => query.OrderBy(p => p.CreatedAt),
-                "review_desc" => query.OrderByDescending(p => p.ReviewDate),
-                _             => query.OrderByDescending(p => p.CreatedAt)
+                "name_asc"     => query.OrderBy(p => p.Name),
+                "name_desc"    => query.OrderByDescending(p => p.Name),
+                "price_asc"    => query.OrderBy(p => p.MinPrice),
+                "price_desc"   => query.OrderByDescending(p => p.MinPrice),
+                "status_asc"   => query.OrderBy(p => p.Status),
+                "status_desc"  => query.OrderByDescending(p => p.Status),
+                "date_asc"     => query.OrderBy(p => p.CreatedAt),
+                "review_desc"  => query.OrderByDescending(p => p.ReviewDate),
+                "stock_desc"   => query.OrderByDescending(p => p.ProductVariants.Where(v => v.IsDeleted != true).Sum(v => (int?)v.Stock ?? 0)),
+                "stock_asc"    => query.OrderBy(p => p.ProductVariants.Where(v => v.IsDeleted != true).Sum(v => (int?)v.Stock ?? 0)),
+                "sales_desc"   => query.OrderByDescending(p => p.TotalSales ?? 0),
+                "updated_desc" => query.OrderByDescending(p => p.UpdatedAt),
+                _              => query.OrderByDescending(p => p.CreatedAt)
             };
 
             int totalCount = query.Count();
@@ -369,15 +373,19 @@ namespace ISpanShop.Repositories.Products
 
             query = criteria.SortOrder switch
             {
-                "name_asc"    => query.OrderBy(p => p.Name),
-                "name_desc"   => query.OrderByDescending(p => p.Name),
-                "price_asc"   => query.OrderBy(p => p.MinPrice),
-                "price_desc"  => query.OrderByDescending(p => p.MinPrice),
-                "status_asc"  => query.OrderBy(p => p.Status),
-                "status_desc" => query.OrderByDescending(p => p.Status),
-                "date_asc"    => query.OrderBy(p => p.CreatedAt),
-                "review_desc" => query.OrderByDescending(p => p.ReviewDate),
-                _             => query.OrderByDescending(p => p.CreatedAt)
+                "name_asc"     => query.OrderBy(p => p.Name),
+                "name_desc"    => query.OrderByDescending(p => p.Name),
+                "price_asc"    => query.OrderBy(p => p.MinPrice),
+                "price_desc"   => query.OrderByDescending(p => p.MinPrice),
+                "status_asc"   => query.OrderBy(p => p.Status),
+                "status_desc"  => query.OrderByDescending(p => p.Status),
+                "date_asc"     => query.OrderBy(p => p.CreatedAt),
+                "review_desc"  => query.OrderByDescending(p => p.ReviewDate),
+                "stock_desc"   => query.OrderByDescending(p => p.ProductVariants.Where(v => v.IsDeleted != true).Sum(v => (int?)v.Stock ?? 0)),
+                "stock_asc"    => query.OrderBy(p => p.ProductVariants.Where(v => v.IsDeleted != true).Sum(v => (int?)v.Stock ?? 0)),
+                "sales_desc"   => query.OrderByDescending(p => p.TotalSales ?? 0),
+                "updated_desc" => query.OrderByDescending(p => p.UpdatedAt),
+                _              => query.OrderByDescending(p => p.CreatedAt)
             };
 
             // COUNT 在 SQL 端完成
@@ -590,32 +598,13 @@ namespace ISpanShop.Repositories.Products
             var product = await _context.Products.FindAsync(productId);
             if (product == null) return;
 
-            var badWords = new[]
-            {
-                "高仿", "原單", "槍械", "毒品", "贗品", "假貨", "冒牌", "盜版",
-                "走私", "非法", "詐騙", "傳銷", "洗錢", "賭博", "色情",
-                "暴力", "恐怖", "炸藥", "大麻", "槍", "彈藥", "仿冒", "武器"
-            };
-            string combined = (product.Name + " " + (product.Description ?? "")).ToLower();
-            string? hit = badWords.FirstOrDefault(w => combined.Contains(w.ToLower()));
-
-            if (hit != null)
-            {
-                product.Status       = 3;
-                product.ReviewStatus = 2;
-                product.ReviewedBy   = "System";
-                product.RejectReason = $"自動攔截：內容含違禁詞「{hit}」";
-                product.ReviewDate   = DateTime.Now;
-            }
-            else
-            {
-                product.Status       = 2;
-                product.ReviewStatus = 0;
-                product.ReviewedBy   = null;
-                product.RejectReason = null;
-                product.ReviewDate   = null;
-            }
-            product.UpdatedAt = DateTime.Now;
+            // 僅將商品設為「待審核」狀態，實際敏感字比對由 Service 層統一執行
+            product.Status       = 2;
+            product.ReviewStatus = 0;
+            product.ReviewedBy   = null;
+            product.RejectReason = null;
+            product.ReviewDate   = null;
+            product.UpdatedAt    = DateTime.Now;
 
             await _context.SaveChangesAsync();
         }
@@ -682,182 +671,128 @@ namespace ISpanShop.Repositories.Products
         }
 
         /// <inheritdoc/>
-        public async Task<SimulateAutoReviewResult> SimulateAutoReviewAsync()
+        public async Task<Product?> GetFirstActiveProductAsync()
         {
-            // ── 第一階段：複製現有商品，新增 15 筆測試商品 ──────────────
-            var templates = await _context.Products
+            return await _context.Products
                 .Where(p => p.IsDeleted != true)
                 .OrderBy(p => p.Id)
-                .Take(3)
+                .FirstOrDefaultAsync();
+        }
+
+        /// <inheritdoc/>
+        public async Task AddProductsRangeAsync(IEnumerable<Product> products)
+        {
+            _context.Products.AddRange(products);
+            await _context.SaveChangesAsync();
+        }
+
+        /// <inheritdoc/>
+        public async Task<IEnumerable<ProductReviewDto>> GetRecentlyApprovedProductsAsync(int hours = 24)
+        {
+            var since = DateTime.Now.AddHours(-hours);
+
+            return await _context.Products
+                .AsNoTracking()
+                .Where(p => p.ReviewStatus == 1
+                         && p.ReviewDate != null
+                         && p.ReviewDate >= since
+                         && p.IsDeleted != true)
+                .OrderByDescending(p => p.ReviewDate)
+                .Select(p => new ProductReviewDto
+                {
+                    Id           = p.Id,
+                    StoreId      = p.StoreId,
+                    CategoryName = p.Category != null ? p.Category.Name : "未分類",
+                    BrandName    = p.Brand    != null ? p.Brand.Name    : "未設定",
+                    StoreName    = p.Store    != null ? p.Store.StoreName : "未知商店",
+                    Name         = p.Name,
+                    Description  = p.Description,
+                    Status       = p.Status ?? 0,
+                    ReviewStatus = p.ReviewStatus,
+                    ReviewedBy   = p.ReviewedBy,
+                    ReviewDate   = p.ReviewDate,
+                    CreatedAt    = p.CreatedAt,
+                    UpdatedAt    = p.UpdatedAt,
+                    MainImageUrl = p.ProductImages
+                        .Where(img => img.IsMain == true)
+                        .Select(img => img.ImageUrl).FirstOrDefault()
+                })
+                .ToListAsync();
+        }
+
+        /// <inheritdoc/>
+        public async Task<(IEnumerable<ProductReviewDto> Items, int TotalCount)> GetRecentlyApprovedProductsPagedAsync(int page, int pageSize, int hours = 24)
+        {
+            var since = DateTime.Now.AddHours(-hours);
+
+            var query = _context.Products
+                .AsNoTracking()
+                .Where(p => p.ReviewStatus == 1
+                         && p.ReviewDate != null
+                         && p.ReviewDate >= since
+                         && p.IsDeleted != true);
+
+            var total = await query.CountAsync();
+
+            var items = await query
+                .OrderByDescending(p => p.ReviewDate)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(p => new ProductReviewDto
+                {
+                    Id           = p.Id,
+                    StoreId      = p.StoreId,
+                    CategoryName = p.Category != null ? p.Category.Name : "未分類",
+                    BrandName    = p.Brand    != null ? p.Brand.Name    : "未設定",
+                    StoreName    = p.Store    != null ? p.Store.StoreName : "未知商店",
+                    Name         = p.Name,
+                    Description  = p.Description,
+                    Status       = p.Status ?? 0,
+                    ReviewStatus = p.ReviewStatus,
+                    ReviewedBy   = p.ReviewedBy,
+                    ReviewDate   = p.ReviewDate,
+                    CreatedAt    = p.CreatedAt,
+                    UpdatedAt    = p.UpdatedAt,
+                    MainImageUrl = p.ProductImages
+                        .Where(img => img.IsMain == true)
+                        .Select(img => img.ImageUrl).FirstOrDefault()
+                })
                 .ToListAsync();
 
-            if (templates.Count < 3)
-                throw new InvalidOperationException("資料庫中現有商品不足 3 筆，無法執行模擬。");
+            return (items, total);
+        }
 
-            var newProducts = new List<Product>();
+        /// <inheritdoc/>
+        public async Task<List<Product>> GetRandomProductsWithImagesAsync(int count)
+        {
+            // 優先取有圖片的商品
+            var idsWithImages = await _context.Products
+                .AsNoTracking()
+                .Where(p => p.IsDeleted != true && p.ProductImages.Any(img => img.VariantId == null))
+                .Select(p => p.Id)
+                .ToListAsync();
 
-            // 前 5 筆：黑名單（高仿、盜版）
-            for (int i = 0; i < 5; i++)
+            if (idsWithImages.Count == 0)
             {
-                var template = templates[i % 3];
-                var prefix = i < 3 ? "[高仿] " : "[盜版] ";
-                newProducts.Add(new Product
-                {
-                    StoreId            = template.StoreId,
-                    CategoryId         = template.CategoryId,
-                    BrandId            = template.BrandId,
-                    Name               = prefix + template.Name,
-                    Description        = template.Description,
-                    VideoUrl           = template.VideoUrl,
-                    SpecDefinitionJson = template.SpecDefinitionJson,
-                    MinPrice           = template.MinPrice,
-                    MaxPrice           = template.MaxPrice,
-                    Status             = 2,
-                    ReviewStatus       = 0,
-                    ReviewedBy         = null,
-                    RejectReason       = null,
-                    ReviewDate         = null,
-                    CreatedAt          = DateTime.Now,
-                    UpdatedAt          = DateTime.Now,
-                    IsDeleted          = false
-                });
-            }
-
-            // 中 5 筆：灰名單（客製化、二手）
-            for (int i = 0; i < 5; i++)
-            {
-                var template = templates[i % 3];
-                var prefix = i < 3 ? "[客製化] " : "[二手] ";
-                newProducts.Add(new Product
-                {
-                    StoreId            = template.StoreId,
-                    CategoryId         = template.CategoryId,
-                    BrandId            = template.BrandId,
-                    Name               = prefix + template.Name,
-                    Description        = template.Description,
-                    VideoUrl           = template.VideoUrl,
-                    SpecDefinitionJson = template.SpecDefinitionJson,
-                    MinPrice           = template.MinPrice,
-                    MaxPrice           = template.MaxPrice,
-                    Status             = 2,
-                    ReviewStatus       = 0,
-                    ReviewedBy         = null,
-                    RejectReason       = null,
-                    ReviewDate         = null,
-                    CreatedAt          = DateTime.Now,
-                    UpdatedAt          = DateTime.Now,
-                    IsDeleted          = false
-                });
-            }
-
-            // 後 5 筆：正常商品（無前綴）
-            for (int i = 0; i < 5; i++)
-            {
-                var template = templates[i % 3];
-                newProducts.Add(new Product
-                {
-                    StoreId            = template.StoreId,
-                    CategoryId         = template.CategoryId,
-                    BrandId            = template.BrandId,
-                    Name               = template.Name + $" (測試{i + 1})",
-                    Description        = template.Description,
-                    VideoUrl           = template.VideoUrl,
-                    SpecDefinitionJson = template.SpecDefinitionJson,
-                    MinPrice           = template.MinPrice,
-                    MaxPrice           = template.MaxPrice,
-                    Status             = 2,
-                    ReviewStatus       = 0,
-                    ReviewedBy         = null,
-                    RejectReason       = null,
-                    ReviewDate         = null,
-                    CreatedAt          = DateTime.Now,
-                    UpdatedAt          = DateTime.Now,
-                    IsDeleted          = false
-                });
-            }
-
-            _context.Products.AddRange(newProducts);
-            await _context.SaveChangesAsync();
-
-            // ── 複製圖片：為每個新商品複製樣板商品的圖片 ──────────────
-            for (int i = 0; i < newProducts.Count; i++)
-            {
-                var newProduct = newProducts[i];
-                var template = templates[i % 3];
-
-                var sourceImages = await _context.ProductImages
-                    .Where(img => img.ProductId == template.Id)
+                // Fallback：取任意商品
+                idsWithImages = await _context.Products
+                    .AsNoTracking()
+                    .Where(p => p.IsDeleted != true)
+                    .Select(p => p.Id)
                     .ToListAsync();
-
-                foreach (var img in sourceImages)
-                {
-                    _context.ProductImages.Add(new ProductImage
-                    {
-                        ProductId   = newProduct.Id,
-                        VariantId   = null,
-                        ImageUrl    = img.ImageUrl,
-                        IsMain      = img.IsMain,
-                        SortOrder   = img.SortOrder
-                    });
-                }
-            }
-            await _context.SaveChangesAsync();
-
-            // ── 第二階段：對新增的 15 筆商品執行自動審核邏輯 ──────────────
-            string[] bannedWords     = { "高仿", "盜版" };
-            string[] suspiciousWords = { "客製化", "二手" };
-
-            int approvedCount     = 0;
-            int rejectedCount     = 0;
-            int manualReviewCount = 0;
-
-            foreach (var p in newProducts)
-            {
-                // 情境 A：觸發黑名單 → 直接退回
-                var banned = bannedWords.FirstOrDefault(w =>
-                    (p.Name        != null && p.Name.Contains(w)) ||
-                    (p.Description != null && p.Description.Contains(w)));
-
-                if (banned != null)
-                {
-                    p.ReviewStatus = 2;
-                    p.RejectReason = $"系統攔截：包含違禁詞 [{banned}]";
-                    p.ReviewedBy   = "系統自動判讀";
-                    p.ReviewDate   = DateTime.Now;
-                    p.Status       = 3;
-                    rejectedCount++;
-                    continue;
-                }
-
-                // 情境 B：觸發灰名單 → 維持待審核，寫入人工複審提示
-                var suspicious = suspiciousWords.FirstOrDefault(w =>
-                    (p.Name        != null && p.Name.Contains(w)) ||
-                    (p.Description != null && p.Description.Contains(w)));
-
-                if (suspicious != null)
-                {
-                    p.RejectReason = $"系統標示：疑似敏感詞 [{suspicious}]，需人工複審";
-                    p.ReviewedBy   = null;
-                    manualReviewCount++;
-                    continue;
-                }
-
-                // 情境 C：皆無觸發 → 自動通過
-                p.ReviewStatus = 1;
-                p.ReviewedBy   = "系統自動判讀";
-                p.ReviewDate   = DateTime.Now;
-                p.Status       = 1;
-                approvedCount++;
             }
 
-            await _context.SaveChangesAsync();
+            if (idsWithImages.Count == 0)
+                return new List<Product>();
 
-            return new SimulateAutoReviewResult
-            {
-                ApprovedCount     = approvedCount,
-                RejectedCount     = rejectedCount,
-                ManualReviewCount = manualReviewCount
-            };
+            var rng = new Random();
+            var selectedIds = idsWithImages.OrderBy(_ => rng.Next()).Take(count).ToList();
+
+            return await _context.Products
+                .AsNoTracking()
+                .Where(p => selectedIds.Contains(p.Id))
+                .Include(p => p.ProductImages)
+                .ToListAsync();
         }
     }
 }

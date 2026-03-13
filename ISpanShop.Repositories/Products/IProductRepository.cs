@@ -136,7 +136,19 @@ namespace ISpanShop.Repositories.Products
         /// <summary>[Async] 管理員強制下架商品，儲存下架原因</summary>
         Task ForceUnpublishAsync(int id, string? reason);
 
-        /// <summary>[Async] 模擬系統自動審核：新增測試商品，對所有待審核商品執行違禁詞比對，回傳攔截與放行筆數</summary>
-        Task<SimulateAutoReviewResult> SimulateAutoReviewAsync();
+        /// <summary>[Async] 取得第一筆未刪除商品作為測試商品的範本（複製 StoreId/CategoryId/BrandId）</summary>
+        Task<Product?> GetFirstActiveProductAsync();
+
+        /// <summary>[Async] 批次新增商品</summary>
+        Task AddProductsRangeAsync(IEnumerable<Product> products);
+
+        /// <summary>[Async] 取得近期審核通過的商品（ReviewStatus=1 且 ReviewDate 在 hours 小時內）</summary>
+        Task<IEnumerable<ProductReviewDto>> GetRecentlyApprovedProductsAsync(int hours = 24);
+
+        /// <summary>[Async] 分頁取得近期審核通過的商品（ReviewStatus=1 且 ReviewDate 在 hours 小時內）</summary>
+        Task<(IEnumerable<ProductReviewDto> Items, int TotalCount)> GetRecentlyApprovedProductsPagedAsync(int page, int pageSize, int hours = 24);
+
+        /// <summary>[Async] 隨機取得包含圖片的真實商品（用於生成測試商品時複製圖片）</summary>
+        Task<List<Product>> GetRandomProductsWithImagesAsync(int count);
     }
 }

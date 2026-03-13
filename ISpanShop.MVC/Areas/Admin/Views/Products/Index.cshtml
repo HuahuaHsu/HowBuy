@@ -151,13 +151,31 @@
             <div class="col-md-2">
                 <label class="form-label">排序方式</label>
                 <select name="sort" class="form-select">
-                    <option value="date_desc" selected="@(string.IsNullOrEmpty(currentSort) || currentSort == "date_desc")">建檔（新→舊）</option>
-                    <option value="date_asc"   selected="@(currentSort == "date_asc")">建檔（舊→新）</option>
-                    <option value="name_asc"   selected="@(currentSort == "name_asc")">名稱 A→Z</option>
-                    <option value="name_desc"  selected="@(currentSort == "name_desc")">名稱 Z→A</option>
-                    <option value="price_asc"  selected="@(currentSort == "price_asc")">價格 低→高</option>
-                    <option value="price_desc" selected="@(currentSort == "price_desc")">價格 高→低</option>
-                    <option value="status_asc"   selected="@(currentSort == "status_asc")">狀態</option>
+                    <optgroup label="建檔時間">
+                        <option value="date_desc"    selected="@(string.IsNullOrEmpty(currentSort) || currentSort == "date_desc")">建檔（新 → 舊）</option>
+                        <option value="date_asc"     selected="@(currentSort == "date_asc")">建檔（舊 → 新）</option>
+                    </optgroup>
+                    <optgroup label="最後更新">
+                        <option value="updated_desc" selected="@(currentSort == "updated_desc")">最後更新（新 → 舊）</option>
+                    </optgroup>
+                    <optgroup label="名稱">
+                        <option value="name_asc"     selected="@(currentSort == "name_asc")">名稱 A → Z</option>
+                        <option value="name_desc"    selected="@(currentSort == "name_desc")">名稱 Z → A</option>
+                    </optgroup>
+                    <optgroup label="價格">
+                        <option value="price_asc"    selected="@(currentSort == "price_asc")">價格（低 → 高）</option>
+                        <option value="price_desc"   selected="@(currentSort == "price_desc")">價格（高 → 低）</option>
+                    </optgroup>
+                    <optgroup label="庫存">
+                        <option value="stock_desc"   selected="@(currentSort == "stock_desc")">庫存（多 → 少）</option>
+                        <option value="stock_asc"    selected="@(currentSort == "stock_asc")">庫存（少 → 多）</option>
+                    </optgroup>
+                    <optgroup label="銷量">
+                        <option value="sales_desc"   selected="@(currentSort == "sales_desc")">總銷量（高 → 低）</option>
+                    </optgroup>
+                    <optgroup label="狀態">
+                        <option value="status_asc"   selected="@(currentSort == "status_asc")">狀態</option>
+                    </optgroup>
                 </select>
             </div>
             <div class="col-md-4">
@@ -214,8 +232,8 @@
                                      onerror="this.src='https://via.placeholder.com/50'" />
                             </td>
                             <td>
-                                <a href="@Url.Action("Details", new { id = item.Id, returnUrl = currentReturnUrl })"
-                                   class="fw-bold text-decoration-none" style="color:#1e2d3d;">
+                                <a href="#" class="fw-bold text-decoration-none" style="color:#1e2d3d;"
+                                   onclick="openProductOffcanvas(@item.Id, '@item.Name.Replace("'", "\\'")'); return false;">
                                     @item.Name
                                 </a>
                             </td>
@@ -240,10 +258,11 @@
                             </td>
                             <td>
                                 <div class="act-group justify-content-end">
-                                    <a href="@Url.Action("Details", new { id = item.Id, returnUrl = currentReturnUrl })"
-                                       class="act-icon act-view" data-bs-toggle="tooltip" title="查看詳情">
+                                    <button type="button"
+                                            class="act-icon act-view" data-bs-toggle="tooltip" title="查看詳情"
+                                            onclick="openProductOffcanvas(@item.Id, '@item.Name.Replace("'", "\\'")') ">
                                         <i class="bx bx-show"></i>
-                                    </a>
+                                    </button>
                                     @if (isPublished)
                                     {
                                         <button type="button"
@@ -285,6 +304,21 @@
         ShadowLinks = true,
         UrlForPage  = p => Url.Action("Index", new { page = p, keyword = currentKeyword, parentCategoryId = currentParentId, categoryId = currentCategoryId, brandId = currentBrandId, status = currentStatus, startDate = currentStartDate, endDate = currentEndDate, sort = currentSort })!
     })
+</div>
+
+@* ── 商品詳情 Offcanvas ── *@
+<div class="offcanvas offcanvas-end" tabindex="-1" id="productDetailOffcanvas" style="width:50vw;min-width:420px;"
+     aria-labelledby="productDetailOffcanvasLabel">
+    <div class="offcanvas-header border-bottom">
+        <h6 class="offcanvas-title fw-bold" id="productDetailOffcanvasLabel" style="color:#1e2d3d;">商品詳情</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body" id="productDetailOffcanvasBody">
+        <div class="text-center py-5 text-muted">
+            <i class="bx bx-loader-alt bx-spin fs-1 d-block mb-2"></i>
+            載入中…
+        </div>
+    </div>
 </div>
 
 <div class="modal fade" id="forceUnpublishModal" tabindex="-1" aria-labelledby="forceUnpublishLabel" aria-hidden="true">
@@ -671,6 +705,36 @@
                 }
             } catch { Swal.fire({ title: '連線錯誤', text: '請稍後再試。', icon: 'error' }); }
         });
+    </script>
+
+    <script>
+        // ── 商品詳情 Offcanvas ──
+        var urlGetProductDetailsPartial = '@Url.Action("GetProductDetailsPartial", "Products")';
+
+        window.openProductOffcanvas = function (id, name) {
+            var body    = document.getElementById('productDetailOffcanvasBody');
+            var titleEl = document.getElementById('productDetailOffcanvasLabel');
+            if (titleEl) titleEl.textContent = name || '商品詳情';
+            if (body) {
+                body.innerHTML = '<div class="text-center py-5 text-muted"><i class="bx bx-loader-alt bx-spin fs-1 d-block mb-2"></i>載入中…</div>';
+            }
+
+            var offcanvasEl = document.getElementById('productDetailOffcanvas');
+            var offcanvas   = bootstrap.Offcanvas.getOrCreateInstance(offcanvasEl);
+            offcanvas.show();
+
+            fetch(urlGetProductDetailsPartial + '?id=' + id)
+                .then(function (res) {
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    return res.text();
+                })
+                .then(function (html) {
+                    if (body) body.innerHTML = html;
+                })
+                .catch(function () {
+                    if (body) body.innerHTML = '<div class="text-center py-5 text-danger"><i class="bx bx-error-circle fs-1 d-block mb-2"></i>載入失敗，請稍後再試。</div>';
+                });
+        };
     </script>
 }
 

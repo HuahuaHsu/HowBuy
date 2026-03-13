@@ -315,10 +315,8 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Promotions
             {
                 promo.Name          = model.Name.Trim();
                 promo.Description   = model.Description?.Trim();
-                promo.PromotionType = model.PromotionType;
                 promo.StartTime     = model.StartTime;
-                promo.SellerId      = model.SellerId;
-                promo.SellerName    = _sellers.FirstOrDefault(s => s.Id == model.SellerId)?.Name ?? promo.SellerName;
+                // PromotionType and SellerId/SellerName are immutable after creation — always keep stored values
                 promo.Items         = (model.Items ?? new()).Select(i => new PromotionItemDetailVm
                 {
                     ProductId     = i.ProductId,
@@ -370,6 +368,35 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Promotions
             };
 
             return View("~/Areas/Admin/Views/Promotions/Detail.cshtml", vm);
+        }
+
+        // ===================================================================
+        // GetPromotionDetailsPartial GET (AJAX Offcanvas)
+        // ===================================================================
+        [HttpGet("GetPromotionDetailsPartial")]
+        public IActionResult GetPromotionDetailsPartial(int id)
+        {
+            var promo = _store.FirstOrDefault(p => p.Id == id && !p.IsDeleted);
+            if (promo == null) return NotFound();
+
+            var vm = new PromotionDetailVm
+            {
+                Id            = promo.Id,
+                Name          = promo.Name,
+                Description   = promo.Description,
+                PromotionType = promo.PromotionType,
+                StartTime     = promo.StartTime,
+                EndTime       = promo.EndTime,
+                Status        = promo.Status,
+                SellerName    = promo.SellerName,
+                RejectReason  = promo.RejectReason,
+                ReviewedAt    = promo.ReviewedAt,
+                CreatedAt     = promo.CreatedAt,
+                Items         = promo.Items,
+                Rules         = promo.Rules
+            };
+
+            return PartialView("~/Areas/Admin/Views/Promotions/_PromotionDetailsPartial.cshtml", vm);
         }
 
         // ===================================================================
