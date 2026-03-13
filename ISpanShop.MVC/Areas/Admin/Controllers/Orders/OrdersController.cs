@@ -5,6 +5,7 @@ using ISpanShop.MVC.Areas.Admin.Models.Orders;
 using ISpanShop.Services.Orders;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using System.Linq;
 
 namespace ISpanShop.MVC.Areas.Admin.Controllers.Orders
 {
@@ -185,6 +186,43 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Orders
 				total2,
 				growthRate
 			});
+		}
+
+		[HttpGet]
+		public async Task<IActionResult> GetGrowthBridgeData(int year1, int year2, int? storeId)
+		{
+			// 計算兩年的 DateTime 範圍
+			var start1 = new DateTime(year1, 1, 1);
+			var end1 = new DateTime(year1, 12, 31, 23, 59, 59);
+			var start2 = new DateTime(year2, 1, 1);
+			var end2 = new DateTime(year2, 12, 31, 23, 59, 59);
+
+			// 抓取兩年的類別營收數據 (使用新的 Service 多載)
+			var catData1 = await _dashboardService.GetCategoryContributionAsync(storeId, start1, end1);
+			var catData2 = await _dashboardService.GetCategoryContributionAsync(storeId, start2, end2);
+
+			var bridgeData = new List<object>();
+			var allCategories = catData1.Labels.Union(catData2.Labels).Distinct().ToList();
+
+			foreach (var cat in allCategories)
+			{
+				decimal v1 = 0;
+				decimal v2 = 0;
+
+				int idx1 = catData1.Labels.IndexOf(cat);
+				if (idx1 >= 0) v1 = catData1.Series[0].Data[idx1];
+
+				int idx2 = catData2.Labels.IndexOf(cat);
+				if (idx2 >= 0) v2 = catData2.Series[0].Data[idx2];
+
+				decimal delta = v1 - v2; // Year1 - Year2 的差額
+				if (delta != 0)
+				{
+					bridgeData.Add(new { x = cat, y = delta });
+				}
+			}
+
+			return Json(bridgeData);
 		}
 
 		[HttpGet]

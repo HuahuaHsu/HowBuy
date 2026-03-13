@@ -144,6 +144,11 @@ namespace ISpanShop.Services.Orders
 			return await _orderRepository.GetCategoryContributionAsync(storeId, start, end);
 		}
 
+		public async Task<ApexChartDataDto> GetCategoryContributionAsync(int? storeId, DateTime start, DateTime end)
+		{
+			return await _orderRepository.GetCategoryContributionAsync(storeId, start, end);
+		}
+
 		public async Task<ApexChartDataDto> GetYearlyRevenueDataAsync(int? storeId, int year)
 		{
 			var startDate = new DateTime(year, 1, 1);
