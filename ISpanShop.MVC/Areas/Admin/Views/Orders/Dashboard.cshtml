@@ -319,11 +319,15 @@
             el.addClass(colorClass).html(`${rate >= 0 ? '↑' : '↓'} ${Math.abs(rate)}% <span class="text-muted fw-normal">vs 前期</span>`);
         }
 
-        // 通用營收格式化函式 (自動轉 萬)
+        // 通用營收格式化函式 (自動轉 萬，支援正負數)
         function formatRevenue(val) {
             if (val === null || val === undefined) return '$0';
             var num = parseFloat(val);
-            if (num >= 10000) return (num / 10000).toFixed(1) + ' 萬';
+            var absNum = Math.abs(num);
+            if (absNum >= 10000) {
+                var sign = num < 0 ? '-' : '';
+                return sign + (absNum / 10000).toFixed(1) + ' 萬';
+            }
             return num.toLocaleString();
         }
 
@@ -941,9 +945,9 @@
                         toolbar: { show: false },
                         fontFamily: 'Public Sans, -apple-system, sans-serif'
                     },
-                    colors: [function({ value, seriesIndex, dataPointIndex, w }) {
-                        if (chartData[dataPointIndex].isTotal) return '#696cff'; // 總計用主色
-                        return value >= 0 ? '#71dd37' : '#ff3e1d'; // 正數綠、負數紅
+                    colors: [function({ value }) {
+                        // 統一邏輯：正數綠、負數紅 (包含總計柱狀)
+                        return value >= 0 ? '#71dd37' : '#ff3e1d';
                     }],
                     plotOptions: {
                         bar: {
