@@ -52,7 +52,7 @@
     <!-- 右側：表現分析區 (隨時間與商店變動) -->
     <div class="col-12 col-lg-8">
         <div class="card h-100 border-0 shadow-sm">
-            <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-3 pb-0">
                 <div class="d-flex align-items-center gap-3">
                     <h5 class="mb-0 fw-bold">營收表現分析</h5>
                     <select id="periodFilter" class="form-select form-select-sm w-auto border-0 bg-light fw-bold" onchange="refreshAllDashboard()">
@@ -72,44 +72,157 @@
                         }
                     </select>
                 </div>
+                <!-- 標籤導覽 -->
+                <div class="nav-align-top w-100 mt-3">
+                    <ul class="nav nav-tabs border-bottom-0" role="tablist">
+                        <li class="nav-item">
+                            <button type="button" class="nav-link active fw-bold" role="tab" data-bs-toggle="tab" data-bs-target="#navs-core" aria-controls="navs-core" aria-selected="true">
+                                <i class="bx bx-home-alt me-1"></i> 核心概覽
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button type="button" class="nav-link fw-bold" role="tab" data-bs-toggle="tab" data-bs-target="#navs-customer" aria-controls="navs-customer" aria-selected="false">
+                                <i class="bx bx-user me-1"></i> 顧客行為
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button type="button" class="nav-link fw-bold" role="tab" data-bs-toggle="tab" data-bs-target="#navs-efficiency" aria-controls="navs-efficiency" aria-selected="false">
+                                <i class="bx bx-bolt-circle me-1"></i> 營運效率
+                            </button>
+                        </li>
+                    </ul>
+                </div>
             </div>
-            <div class="card-body">
-                <div class="row g-4">
-                    <!-- 實收營收 -->
-                    <div class="col-md-4">
-                        <div class="p-3 rounded bg-light metric-card">
-                            <div class="d-flex align-items-center mb-1">
-                                <i class="bx bx-money text-primary me-2"></i>
-                                <span class="text-muted small fw-bold">實收營收</span>
+            <div class="card-body pt-4">
+                <div class="tab-content p-0 shadow-none border-0">
+                    <!-- 標籤一：核心概覽 -->
+                    <div class="tab-pane fade show active" id="navs-core" role="tabpanel">
+                        <div class="row g-4">
+                            <!-- 實收營收 -->
+                            <div class="col-md-4">
+                                <div class="p-3 rounded bg-light metric-card">
+                                    <div class="d-flex align-items-center mb-1">
+                                        <i class="bx bx-money text-primary me-2"></i>
+                                        <span class="text-muted small fw-bold">實收營收</span>
+                                    </div>
+                                    <h3 class="mb-1 fw-bold" id="kpiNetRevenue">$0</h3>
+                                    <div id="kpiRevGrowth" class="small fw-bold">0%</div>
+                                </div>
                             </div>
-                            <h3 class="mb-1 fw-bold" id="kpiNetRevenue">$0</h3>
-                            <div id="kpiRevGrowth" class="small fw-bold">0%</div>
+                            <!-- 連帶率 -->
+                            <div class="col-md-4">
+                                <div class="p-3 rounded bg-light metric-card border-info">
+                                    <div class="d-flex align-items-center mb-1">
+                                        <i class="bx bx-cart text-info me-2"></i>
+                                        <span class="text-muted small fw-bold">連帶率</span>
+                                        <i class="bx bx-info-circle ms-1 text-muted cursor-pointer" 
+                                           data-bs-toggle="tooltip" 
+                                           data-bs-placement="top" 
+                                           title="平均每筆訂單購買的商品件數 (總銷量 / 總訂單數)"></i>
+                                    </div>
+                                    <h3 class="mb-1 fw-bold" id="kpiItemsPerOrder">0.0</h3>
+                                    <div id="kpiItemsGrowth" class="small fw-bold">0%</div>
+                                </div>
+                            </div>
+                            <!-- 客單價 (AOV) -->
+                            <div class="col-md-4">
+                                <div class="p-3 rounded bg-light metric-card border-warning">
+                                    <div class="d-flex align-items-center mb-1">
+                                        <i class="bx bx-purchase-tag text-warning me-2"></i>
+                                        <span class="text-muted small fw-bold">客單價 (AOV)</span>
+                                        <i class="bx bx-info-circle ms-1 text-muted cursor-pointer" 
+                                           data-bs-toggle="tooltip" 
+                                           data-bs-placement="top" 
+                                           title="平均每筆訂單的消費金額 (總營收 / 總訂單數)"></i>
+                                    </div>
+                                    <h3 class="mb-1 fw-bold" id="kpiAov">$0</h3>
+                                    <div id="kpiAovGrowth" class="small fw-bold">0%</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <!-- 連帶率 -->
-                    <div class="col-md-4">
-                        <div class="p-3 rounded bg-light metric-card border-info">
-                            <div class="d-flex align-items-center mb-1">
-                                <i class="bx bx-cart text-info me-2"></i>
-                                <span class="text-muted small fw-bold">連帶率</span>
-                                <i class="bx bx-info-circle ms-1 text-muted cursor-pointer" 
-                                   data-bs-toggle="tooltip" 
-                                   data-bs-placement="top" 
-                                   title="平均每筆訂單購買的商品件數 (總銷量 / 總訂單數)"></i>
+                    <!-- 標籤二：顧客行為 -->
+                    <div class="tab-pane fade" id="navs-customer" role="tabpanel">
+                        <div class="row g-4">
+                            <!-- 新會員數 -->
+                            <div class="col-md-4">
+                                <div class="p-3 rounded bg-light metric-card border-primary">
+                                    <div class="d-flex align-items-center mb-1">
+                                        <i class="bx bx-user-plus text-primary me-2"></i>
+                                        <span class="text-muted small fw-bold">新註冊會員</span>
+                                    </div>
+                                    <h3 class="mb-1 fw-bold" id="kpiNewMembers">0</h3>
+                                    <div id="kpiMemberGrowth" class="small fw-bold">0%</div>
+                                </div>
                             </div>
-                            <h3 class="mb-1 fw-bold" id="kpiItemsPerOrder">0.0</h3>
-                            <div id="kpiItemsGrowth" class="small fw-bold">0%</div>
+                            <!-- 回購率 -->
+                            <div class="col-md-4">
+                                <div class="p-3 rounded bg-light metric-card border-success">
+                                    <div class="d-flex align-items-center mb-1">
+                                        <i class="bx bx-refresh text-success me-2"></i>
+                                        <span class="text-muted small fw-bold">回購率</span>
+                                        <i class="bx bx-info-circle ms-1 text-muted cursor-pointer" 
+                                           data-bs-toggle="tooltip" 
+                                           data-bs-placement="top" 
+                                           title="期間內有二次以上下單行為的顧客佔比"></i>
+                                    </div>
+                                    <h3 class="mb-1 fw-bold" id="kpiRepeatRate">0%</h3>
+                                    <div id="kpiRepeatGrowth" class="small fw-bold">0%</div>
+                                </div>
+                            </div>
+                            <!-- 活躍會員數 -->
+                            <div class="col-md-4">
+                                <div class="p-3 rounded bg-light metric-card border-info">
+                                    <div class="d-flex align-items-center mb-1">
+                                        <i class="bx bx-face text-info me-2"></i>
+                                        <span class="text-muted small fw-bold">活躍下單會員</span>
+                                    </div>
+                                    <h3 class="mb-1 fw-bold" id="kpiActiveMembers">0</h3>
+                                    <div id="kpiActiveGrowth" class="small fw-bold">0%</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <!-- 退貨率 -->
-                    <div class="col-md-4">
-                        <div class="p-3 rounded bg-light metric-card border-danger">
-                            <div class="d-flex align-items-center mb-1">
-                                <i class="bx bx-refresh text-danger me-2"></i>
-                                <span class="text-muted small fw-bold">退訂/取消率</span>
+                    <!-- 標籤三：營運效率 -->
+                    <div class="tab-pane fade" id="navs-efficiency" role="tabpanel">
+                        <div class="row g-4">
+                            <!-- 退貨率 -->
+                            <div class="col-md-4">
+                                <div class="p-3 rounded bg-light metric-card border-danger">
+                                    <div class="d-flex align-items-center mb-1">
+                                        <i class="bx bx-undo text-danger me-2"></i>
+                                        <span class="text-muted small fw-bold">退訂/取消率</span>
+                                    </div>
+                                    <h3 class="mb-1 fw-bold" id="kpiReturnRate">0%</h3>
+                                    <div id="kpiReturnGrowth" class="small fw-bold">0%</div>
+                                </div>
                             </div>
-                            <h3 class="mb-1 fw-bold" id="kpiReturnRate">0%</h3>
-                            <div id="kpiReturnGrowth" class="small fw-bold">0%</div>
+                            <!-- 平均出貨時長 -->
+                            <div class="col-md-4">
+                                <div class="p-3 rounded bg-light metric-card border-warning">
+                                    <div class="d-flex align-items-center mb-1">
+                                        <i class="bx bx-timer text-warning me-2"></i>
+                                        <span class="text-muted small fw-bold">平均出貨時長</span>
+                                        <i class="bx bx-info-circle ms-1 text-muted cursor-pointer" 
+                                           data-bs-toggle="tooltip" 
+                                           data-bs-placement="top" 
+                                           title="訂單從成立到標記為已出貨的平均天數"></i>
+                                    </div>
+                                    <h3 class="mb-1 fw-bold" id="kpiAvgShipTime">0.0 天</h3>
+                                    <div id="kpiShipTimeGrowth" class="small fw-bold">0%</div>
+                                </div>
+                            </div>
+                            <!-- 庫存預警數 -->
+                            <div class="col-md-4">
+                                <div class="p-3 rounded bg-light metric-card border-secondary">
+                                    <div class="d-flex align-items-center mb-1">
+                                        <i class="bx bx-fridge text-secondary me-2"></i>
+                                        <span class="text-muted small fw-bold">庫存預警品項</span>
+                                    </div>
+                                    <h3 class="mb-1 fw-bold" id="kpiStockAlerts">0</h3>
+                                    <p class="mb-0 small text-muted">目前缺貨或低庫存品項</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -325,12 +438,29 @@
             const storeId = $('#storeFilter').val();
             $.get(`/Orders/GetDashboardKpis?period=${period}&storeId=${storeId}`, function(data) {
                 $('#kpiPendingShip').text(data.pendingShipmentCount);
+                
+                // 核心概覽
                 $('#kpiNetRevenue').text('$' + data.netRevenue.toLocaleString());
                 $('#kpiItemsPerOrder').text(data.itemsPerOrder.toFixed(1));
-                $('#kpiReturnRate').text(data.returnRate.toFixed(1) + '%');
+                $('#kpiAov').text('$' + data.averageOrderValue.toLocaleString());
                 updateGrowth('#kpiRevGrowth', data.netRevenueGrowthRate, false);
                 updateGrowth('#kpiItemsGrowth', data.itemsPerOrderGrowthRate, false);
+                updateGrowth('#kpiAovGrowth', data.aovGrowthRate, false);
+
+                // 顧客行為
+                $('#kpiNewMembers').text(data.newMemberCount.toLocaleString());
+                $('#kpiRepeatRate').text(data.repeatPurchaseRate.toFixed(1) + '%');
+                $('#kpiActiveMembers').text(data.activeMemberCount.toLocaleString());
+                updateGrowth('#kpiMemberGrowth', data.memberGrowthRate, false);
+                updateGrowth('#kpiRepeatGrowth', data.repeatGrowthRate, false);
+                updateGrowth('#kpiActiveGrowth', data.activeGrowthRate, false);
+
+                // 營運效率
+                $('#kpiReturnRate').text(data.returnRate.toFixed(1) + '%');
+                $('#kpiAvgShipTime').text(data.avgFulfillmentDays.toFixed(1) + ' 天');
+                $('#kpiStockAlerts').text(data.stockAlertCount);
                 updateGrowth('#kpiReturnGrowth', data.returnRateGrowthRate, true);
+                updateGrowth('#kpiShipTimeGrowth', data.fulfillmentGrowthRate, true);
             });
         }
 

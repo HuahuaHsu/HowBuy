@@ -85,29 +85,58 @@ namespace ISpanShop.Services.Orders
 			var (start, end, prevStart, prevEnd) = ParsePeriod(period);
 
 			// 呼叫 Repository，一次取回本期與上期的原生統計資料
-			// DTO 內部包含 CurrentNetRevenue, PrevNetRevenue, TotalOrders 等屬性
 			var data = await _orderRepository.GetDashboardKpisAsync(storeId, start, end, prevStart, prevEnd);
 
-			// 計算 KPI 卡片所需最終數據 (C.3, C.5, C.6 等需求)
+			// A. 營收與訂單指標
+			decimal revenue = data.NetRevenue;
+			decimal prevRevenue = data.PrevNetRevenue;
+			decimal itemsPerOrder = data.TotalOrders > 0 ? (decimal)data.TotalItemsSold / data.TotalOrders : 0;
+			decimal prevItemsPerOrder = data.PrevTotalOrders > 0 ? (decimal)data.PrevTotalItemsSold / data.PrevTotalOrders : 0;
+			decimal returnRate = data.TotalOrders > 0 ? (decimal)data.ReturnOrders / data.TotalOrders * 100 : 0;
+			decimal prevReturnRate = data.PrevTotalOrders > 0 ? (decimal)data.PrevReturnOrders / data.PrevTotalOrders * 100 : 0;
+
+			// 客單價 (AOV)
+			decimal aov = data.TotalOrders > 0 ? data.NetRevenue / data.TotalOrders : 0;
+			decimal prevAov = data.PrevTotalOrders > 0 ? data.PrevNetRevenue / data.PrevTotalOrders : 0;
+
+			// B. 顧客行為
+			decimal repeatRate = data.UniqueMemberCount > 0 ? (decimal)data.RepeatMemberCount / data.UniqueMemberCount * 100 : 0;
+			decimal prevRepeatRate = data.PrevUniqueMemberCount > 0 ? (decimal)data.PrevRepeatMemberCount / data.PrevUniqueMemberCount * 100 : 0;
+
+			// C. 營運效率 (出貨天數)
+			double curAvgTicks = data.ShippedOrderCount > 0 ? data.TotalFulfillmentTicks / data.ShippedOrderCount : 0;
+			double prevAvgTicks = data.PrevShippedOrderCount > 0 ? data.PrevTotalFulfillmentTicks / data.PrevShippedOrderCount : 0;
+			decimal curAvgDays = Math.Round((decimal)TimeSpan.FromTicks((long)curAvgTicks).TotalDays, 1);
+			decimal prevAvgDays = Math.Round((decimal)TimeSpan.FromTicks((long)prevAvgTicks).TotalDays, 1);
+
 			return new OrderDashboardKpiDto
 			{
-				NetRevenue = data.NetRevenue,
-				NetRevenueGrowthRate = CalculateGrowthRate(data.NetRevenue, data.PrevNetRevenue),
-
+				NetRevenue = revenue,
+				NetRevenueGrowthRate = CalculateGrowthRate(revenue, prevRevenue),
 				PendingShipmentCount = data.PendingShipmentCount,
 				PendingRefundCount = data.PendingRefundCount,
 				LowStockProductCount = data.LowStockProductCount,
+				ItemsPerOrder = itemsPerOrder,
+				ItemsPerOrderGrowthRate = CalculateGrowthRate(itemsPerOrder, prevItemsPerOrder),
+				ReturnRate = returnRate,
+				ReturnRateGrowthRate = CalculateGrowthRate(returnRate, prevReturnRate),
 
-				ItemsPerOrder = data.TotalOrders > 0 ? (decimal)data.TotalItemsSold / data.TotalOrders : 0,
-				ItemsPerOrderGrowthRate = CalculateGrowthRate(
-					data.TotalOrders > 0 ? (decimal)data.TotalItemsSold / data.TotalOrders : 0,
-					data.PrevTotalOrders > 0 ? (decimal)data.PrevTotalItemsSold / data.PrevTotalOrders : 0),
+				// 核心概覽 (新增)
+				AverageOrderValue = aov,
+				AovGrowthRate = CalculateGrowthRate(aov, prevAov),
 
-				ReturnRate = data.TotalOrders > 0 ? (decimal)data.ReturnOrders / data.TotalOrders * 100 : 0,
-				ReturnRateGrowthRate = CalculateGrowthRate(
-					data.TotalOrders > 0 ? (decimal)data.ReturnOrders / data.TotalOrders : 0,
-					data.PrevTotalOrders > 0 ? (decimal)data.PrevReturnOrders / data.PrevTotalOrders : 0
-				)
+				// 顧客行為 (新增)
+				NewMemberCount = data.NewMemberCount,
+				MemberGrowthRate = CalculateGrowthRate(data.NewMemberCount, data.PrevNewMemberCount),
+				RepeatPurchaseRate = repeatRate,
+				RepeatGrowthRate = CalculateGrowthRate(repeatRate, prevRepeatRate),
+				ActiveMemberCount = data.UniqueMemberCount,
+				ActiveGrowthRate = CalculateGrowthRate(data.UniqueMemberCount, data.PrevUniqueMemberCount),
+
+				// 營運效率 (新增)
+				AvgFulfillmentDays = curAvgDays,
+				FulfillmentGrowthRate = CalculateGrowthRate(curAvgDays, prevAvgDays),
+				StockAlertCount = data.LowStockProductCount
 			};
 		}
 
