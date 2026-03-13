@@ -151,10 +151,10 @@ namespace ISpanShop.Services.Orders
 			return await _orderRepository.GetMonthlySalesTrendAsync(storeId, startDate, endDate);
 		}
 
-		public async Task<ApexChartDataDto> GetOthersCategoryDetailAsync(int? storeId, string period, string type)
+		public async Task<ApexChartDataDto> GetCategoryDetailAsync(int? storeId, string period, string type, string categoryName)
 		{
 			var (start, end, _, _) = ParsePeriod(period);
-			return await _orderRepository.GetOthersCategoryDetailAsync(storeId, start, end, type);
+			return await _orderRepository.GetCategoryDetailAsync(storeId, start, end, type, categoryName);
 		}
 	}
 }

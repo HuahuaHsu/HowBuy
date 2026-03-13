@@ -188,9 +188,9 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Orders
 		}
 
 		[HttpGet]
-		public async Task<IActionResult> GetOtherCategoriesDetail(int? storeId, string period = "month", string type = "Sales")
+		public async Task<IActionResult> GetCategoryDetail(int? storeId, string period, string type, string categoryName)
 		{
-			var data = await _dashboardService.GetOthersCategoryDetailAsync(storeId, period, type);
+			var data = await _dashboardService.GetCategoryDetailAsync(storeId, period, type, categoryName);
 			return Json(data);
 		}
 	}

@@ -416,9 +416,7 @@
                         events: {
                             dataPointSelection: function(event, chartContext, config) {
                                 const label = config.w.config.labels[config.dataPointIndex];
-                                if (label === '其他') {
-                                    showOthersDetail('Sales');
-                                }
+                                showCategoryDetail('Sales', label);
                             }
                         }
                     },
@@ -518,9 +516,7 @@
                                     label = config.w.config.xaxis.categories[config.dataPointIndex];
                                 }
                                 
-                                if (label === '其他') {
-                                    showOthersDetail('Revenue');
-                                }
+                                showCategoryDetail('Revenue', label);
                             }
                         }
                     },
@@ -589,13 +585,13 @@
         }
 
         let othersChart;
-        function showOthersDetail(type) {
+        function showCategoryDetail(type, categoryName) {
             const period = $('#periodFilter').val();
             const storeId = $('#storeFilter').val();
             const denominator = type === 'Sales' ? grandTotalSales : grandTotalRevenue;
             
-            $.get(`/Orders/GetOtherCategoriesDetail?type=${type}&period=${period}&storeId=${storeId}`, function(data) {
-                if(!data || !data.series || data.series.length === 0) {
+            $.get(`/Orders/GetCategoryDetail?type=${type}&period=${period}&storeId=${storeId}&categoryName=${encodeURIComponent(categoryName)}`, function(data) {
+                if(!data || !data.series || data.series.length === 0 || data.labels.length === 0) {
                     alert('沒有更多細節數據');
                     return;
                 }
@@ -604,9 +600,10 @@
                 const othersTotal = rawData.reduce((a, b) => a + b, 0);
                 const othersToGrandPercent = denominator > 0 ? ((othersTotal / denominator) * 100).toFixed(1) : 0;
 
-                // 動態更新標題：加入總計佔全體比例
+                // 動態更新標題
                 const typeText = type === 'Sales' ? '銷售量' : '營收額';
-                $('#othersDetailTitle').html(`「其他」類別細節 - ${typeText}分解 <span class="badge bg-label-primary ms-2">(總計佔全體 ${othersToGrandPercent}%)</span>`);
+                const titlePrefix = categoryName === '其他' ? '「其他」類別細節' : `「${categoryName}」子類別明細`;
+                $('#othersDetailTitle').html(`${titlePrefix} - ${typeText}分解 <span class="badge bg-label-primary ms-2">(總計佔全體 ${othersToGrandPercent}%)</span>`);
 
                 const options = {
                     series: [{
