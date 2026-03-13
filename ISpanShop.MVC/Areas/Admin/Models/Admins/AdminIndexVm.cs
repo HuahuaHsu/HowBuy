@@ -19,19 +19,15 @@ namespace ISpanShop.MVC.Areas.Admin.Models.Admins
 		public AdminCreateVm CreateForm { get; set; } = new AdminCreateVm();
 
 		/// <summary>
-		/// 新增成功後產生的帳號
-		/// </summary>
-		public string GeneratedAccount { get; set; }
-
-		/// <summary>
 		/// 操作結果訊息（成功/失敗）
 		/// </summary>
 		public string Message { get; set; }
 
 		/// <summary>
-		/// 角色下拉選單來源
+		/// 系統預產的下一個帳號（Modal 唯讀顯示用）
 		/// </summary>
-		public List<PermissionDto> PermissionOptions { get; set; }
+		public string NextAccount { get; set; } = "";
+
 	}
 }
 

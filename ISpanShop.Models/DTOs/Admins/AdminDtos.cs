@@ -84,11 +84,7 @@ namespace ISpanShop.Models.DTOs.Admins
 	/// </summary>
 	public class AdminCreateDto
 	{
-		[Required(ErrorMessage = "{0}為必填")]
-		[StringLength(50, MinimumLength = 3, ErrorMessage = "{0}長度必須在3-50個字符之間")]
-		[Display(Name = "帳號")]
-		public string Account { get; set; }
-
+			
 		[Required(ErrorMessage = "{0}為必填")]
 		[Display(Name = "初始密碼")]
 		public string Password { get; set; }

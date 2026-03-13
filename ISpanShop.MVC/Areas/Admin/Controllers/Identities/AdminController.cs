@@ -26,15 +26,13 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Identities
 			try
 			{
 				var admins = _adminService.GetAllAdmins().ToList();
-				var permissions = _adminService.GetAllPermissions().ToList();
 				var adminLevels = _adminService.GetSelectableAdminLevels().ToList();
 
 				var viewModel = new AdminIndexVm
 				{
 					Admins = admins,
-					PermissionOptions = permissions,
+					NextAccount = _adminService.GetNextAccount(),   // 新增
 					Message = TempData["Message"]?.ToString(),
-					GeneratedAccount = TempData["GeneratedAccount"]?.ToString(),
 					CreateForm = new AdminCreateVm
 					{
 						AdminLevelOptions = adminLevels
@@ -47,7 +45,6 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Identities
 				var emptyVm = new AdminIndexVm
 				{
 					Admins = new List<AdminDto>(),
-					PermissionOptions = new List<PermissionDto>(),
 					CreateForm = new AdminCreateVm(),
 					Message = $"載入管理員列表失敗: {ex.Message}"
 				};

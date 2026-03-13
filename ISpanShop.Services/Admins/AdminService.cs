@@ -186,27 +186,35 @@ public class AdminService : IAdminService
 		return _adminRepository.GetAllPermissions();
 	}
 
+	public string GetNextAccount()
+	{
+		int seq = _adminRepository.GetNextAdminSequence();
+		return $"ADM{seq:D3}";
+	}
+
 	public (bool IsSuccess, string Message) CreateAdmin(AdminCreateDto dto)
 	{
 		try
 		{
-			// 1. 確認帳號不重複
-			if (_adminRepository.IsAccountExists(dto.Account))
-				return (false, "帳號已存在，請使用其他帳號");
-
-			// 2. 不可指派超級管理員身分
+			// 1. 不可指派超級管理員身分
 			if (dto.AdminLevelId == 1)
 				return (false, "無法直接指派超級管理員身分");
 
-			// 3. Email 自動組成
-			string email = $"{dto.Account}@ispan.com";
+			// 2. 自動生成帳號
+			int seq = _adminRepository.GetNextAdminSequence();
+			string account = $"ADM{seq:D3}";
+			string email = $"{account}@ispan.com";
+
+			// 3. 確認帳號不重複
+			if (_adminRepository.IsAccountExists(account))
+				return (false, "帳號已存在，請稍後重試");
 
 			// 4. Hash 密碼
 			string passwordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
 
 			// 5. 新增
 			bool success = _adminRepository.CreateAdmin(
-				dto.Account, email, passwordHash, roleId: 1, dto.AdminLevelId);
+				account, email, passwordHash, roleId: 1, dto.AdminLevelId);
 
 			return success
 				? (true, "管理員新增成功")

@@ -24,6 +24,6 @@ namespace ISpanShop.Services.Admins
 		AdminDto? VerifyLogin(string account, string password);
 		(bool IsSuccess, string Message) ChangePassword(AdminChangePasswordDto dto);
 		bool UpdateAdminRole(int adminId, int roleId, int currentAdminId);
-		
+		string GetNextAccount();
 	}
 }
