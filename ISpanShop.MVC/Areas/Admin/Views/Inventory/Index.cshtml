@@ -4,18 +4,20 @@
     ViewData["Title"] = "庫存監控";
     string  stockStatus    = ViewBag.StockStatus as string ?? "";
     string? keyword        = ViewBag.Keyword as string;
-    int?    categoryId     = ViewBag.CategoryId as int?;
-    int?    storeId        = ViewBag.StoreId as int?;
-    int?    minStock       = ViewBag.MinStock as int?;
-    int?    maxStock       = ViewBag.MaxStock as int?;
-    string  sortBy         = ViewBag.SortBy as string ?? "";
-    int     totalVariants  = (int)(ViewBag.TotalVariants  ?? 0);
-    int     lowStockCount  = (int)(ViewBag.LowStockCount  ?? 0);
-    int     zeroStockCount = (int)(ViewBag.ZeroStockCount ?? 0);
-    int     normalCount    = (int)(ViewBag.NormalCount    ?? 0);
+    int?    parentCategoryId = ViewBag.ParentCategoryId as int?;
+    int?    categoryId       = ViewBag.CategoryId as int?;
+    int?    storeId          = ViewBag.StoreId as int?;
+    int?    minStock         = ViewBag.MinStock as int?;
+    int?    maxStock         = ViewBag.MaxStock as int?;
+    string  sortBy           = ViewBag.SortBy as string ?? "";
+    int     totalVariants    = (int)(ViewBag.TotalVariants  ?? 0);
+    int     lowStockCount    = (int)(ViewBag.LowStockCount  ?? 0);
+    int     zeroStockCount   = (int)(ViewBag.ZeroStockCount ?? 0);
+    int     normalCount      = (int)(ViewBag.NormalCount    ?? 0);
 
-    var categories = ViewBag.Categories as List<(int Id, string Name)> ?? new List<(int, string)>();
-    var stores     = ViewBag.Stores     as List<(int Id, string Name)> ?? new List<(int, string)>();
+    var mainCategories = ViewBag.MainCategories as List<(int Id, string Name)> ?? new List<(int, string)>();
+    var subCategories  = ViewBag.SubCategories  as List<(int Id, string Name)> ?? new List<(int, string)>();
+    var stores         = ViewBag.Stores          as List<(int Id, string Name)> ?? new List<(int, string)>();
 }
 
 <div class="container-fluid py-4 font-noto">
@@ -69,29 +71,38 @@
         <form method="get" asp-action="Index">
             <div class="row g-3 align-items-end">
 
-                @* 關鍵字 *@
+                @* 第一排 *@
                 <div class="col-md-3">
                     <label class="form-label">關鍵字搜尋</label>
                     <div class="input-group">
-                        <span class="input-group-text"><i class="bx bx-search"></i></span>
+                        <span class="input-group-text bg-light border-end-0"><i class="bx bx-search"></i></span>
                         <input type="text" name="keyword" value="@keyword" class="form-control border-start-0 ps-0"
-                               placeholder="商品名稱、規格名稱、SKU..." autocomplete="one-time-code">
+                               placeholder="商品名稱、規格、SKU..." autocomplete="off">
                     </div>
                 </div>
 
-                @* 分類 *@
                 <div class="col-md-2">
-                    <label class="form-label">分類</label>
-                    <select name="categoryId" class="form-select">
-                        <option value="">全部分類</option>
-                        @foreach (var c in categories)
+                    <label class="form-label">主分類</label>
+                    <select id="parentCategoryId" name="parentCategoryId" class="form-select">
+                        <option value="">全部主分類</option>
+                        @foreach (var c in mainCategories)
+                        {
+                            <option value="@c.Id" selected="@(parentCategoryId == c.Id)">@c.Name</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label">子分類</label>
+                    <select id="categoryId" name="categoryId" class="form-select">
+                        <option value="">全部子分類</option>
+                        @foreach (var c in subCategories)
                         {
                             <option value="@c.Id" selected="@(categoryId == c.Id)">@c.Name</option>
                         }
                     </select>
                 </div>
 
-                @* 賣家 *@
                 <div class="col-md-2">
                     <label class="form-label">賣家</label>
                     <select name="storeId" class="form-select">
@@ -103,8 +114,7 @@
                     </select>
                 </div>
 
-                @* 庫存狀態 *@
-                <div class="col-md-2">
+                <div class="col-md-3">
                     <label class="form-label">庫存狀態</label>
                     <select name="stockStatus" class="form-select">
                         <option value=""       selected="@(stockStatus == "")">全部狀態</option>
@@ -114,20 +124,19 @@
                     </select>
                 </div>
 
-                @* 庫存範圍 *@
-                <div class="col-md-2">
+                @* 第二排 *@
+                <div class="col-md-3">
                     <label class="form-label">庫存範圍</label>
-                    <div class="d-flex align-items-center gap-1">
-                        <input type="number" name="minStock" value="@minStock" class="form-control form-control-sm text-center"
-                               placeholder="最小" min="0" style="width:68px;">
-                        <span class="text-muted small">~</span>
-                        <input type="number" name="maxStock" value="@maxStock" class="form-control form-control-sm text-center"
-                               placeholder="最大" min="0" style="width:68px;">
+                    <div class="input-group">
+                        <input type="number" name="minStock" value="@minStock" class="form-control text-center"
+                               placeholder="最小值" min="0">
+                        <span class="input-group-text bg-light border-start-0 border-end-0 px-2 text-muted">-</span>
+                        <input type="number" name="maxStock" value="@maxStock" class="form-control text-center"
+                               placeholder="最大值" min="0">
                     </div>
                 </div>
 
-                @* 排序 *@
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="form-label">排序方式</label>
                     <select name="sortBy" class="form-select">
                         <option value=""           selected="@(sortBy == "")">低庫存優先</option>
@@ -138,12 +147,14 @@
                     </select>
                 </div>
 
-                @* 按鈕 *@
-                <div class="col-12 d-flex gap-2 justify-content-end pt-1">
-                    <button type="submit" class="btn btn-primary rounded-pill px-4">
+                @* 按鈕區塊佔用其餘 7 欄位對齊右下角 *@
+                <div class="col-md-7 d-flex justify-content-end gap-2">
+                    <a href="@Url.Action("Index")" class="btn btn-outline-secondary rounded-pill px-4">
+                        <i class="bx bx-reset me-1"></i>重設
+                    </a>
+                    <button type="submit" class="btn btn-primary rounded-pill px-5 shadow-sm">
                         <i class="bx bx-filter-alt me-1"></i>套用篩選
                     </button>
-                    <a href="@Url.Action("Index")" class="btn btn-outline-secondary rounded-pill px-3">重設</a>
                 </div>
 
             </div>
@@ -314,7 +325,7 @@
             <ul class="pagination justify-content-center gap-2">
                 <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
                     <a class="page-link shadow-sm rounded-pill px-3"
-                       href="@Url.Action("Index", new { page = Model.CurrentPage - 1, keyword, stockStatus, categoryId, storeId, minStock, maxStock, sortBy })">
+                       href="@Url.Action("Index", new { page = Model.CurrentPage - 1, keyword, stockStatus, parentCategoryId, categoryId, storeId, minStock, maxStock, sortBy })">
                         <i class="bx bx-chevron-left me-1"></i> 上一頁
                     </a>
                 </li>
@@ -325,7 +336,7 @@
                         <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
                             <a class="page-link shadow-sm rounded-circle fw-bold"
                                style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;"
-                               href="@Url.Action("Index", new { page = i, keyword, stockStatus, categoryId, storeId, minStock, maxStock, sortBy })">@i</a>
+                               href="@Url.Action("Index", new { page = i, keyword, stockStatus, parentCategoryId, categoryId, storeId, minStock, maxStock, sortBy })">@i</a>
                         </li>
                     }
                     else if (i == Model.CurrentPage - 3 || i == Model.CurrentPage + 3)
@@ -337,7 +348,7 @@
                 }
                 <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
                     <a class="page-link shadow-sm rounded-pill px-3"
-                       href="@Url.Action("Index", new { page = Model.CurrentPage + 1, keyword, stockStatus, categoryId, storeId, minStock, maxStock, sortBy })">
+                       href="@Url.Action("Index", new { page = Model.CurrentPage + 1, keyword, stockStatus, parentCategoryId, categoryId, storeId, minStock, maxStock, sortBy })">
                         下一頁 <i class="bx bx-chevron-right ms-1"></i>
                     </a>
                 </li>
@@ -529,6 +540,26 @@
 @section Scripts {
 <script>
     var urlGetProductDetailsPartial = '@Url.Action("GetProductDetailsPartial", "Products", new { area = "Admin" })';
+    var urlGetSubCategories = '@Url.Action("GetSubCategories", "Inventory", new { area = "Admin" })';
+
+    document.getElementById('parentCategoryId').addEventListener('change', function() {
+        var parentId = this.value;
+        var subSelect = document.getElementById('categoryId');
+        subSelect.innerHTML = '<option value="">全部子分類</option>';
+        
+        if (parentId) {
+            fetch(urlGetSubCategories + '?parentId=' + parentId)
+                .then(res => res.json())
+                .then(data => {
+                    data.forEach(sub => {
+                        var opt = document.createElement('option');
+                        opt.value = sub.id;
+                        opt.textContent = sub.name;
+                        subSelect.appendChild(opt);
+                    });
+                });
+        }
+    });
 
     window.openProductOffcanvas = function (id, name) {
         var body    = document.getElementById('productDetailOffcanvasBody');
