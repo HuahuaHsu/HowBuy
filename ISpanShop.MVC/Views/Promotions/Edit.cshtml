@@ -1,4 +1,4 @@
-@model ISpanShop.MVC.Areas.Admin.Models.Promotions.PromotionFormVm
+@model ISpanShop.MVC.Models.Promotions.PromotionFormVm
 
 @{
     Layout = "~/Views/Shared/_SneatLayout.cshtml";
@@ -489,7 +489,7 @@
         const kw = document.getElementById('productSearch')?.value ?? '';
         const tbody = document.getElementById('productModalBody');
         tbody.innerHTML = '<tr><td colspan="4" class="text-center py-3 text-muted">搜尋中...</td></tr>';
-        const res  = await fetch(`/Admin/Promotions/SearchProducts?keyword=${encodeURIComponent(kw)}`);
+        const res  = await fetch(`/Promotions/SearchProducts?keyword=${encodeURIComponent(kw)}`);
         const list = await res.json();
         tbody.innerHTML = list.map(p => {
             const chk = selectedItems.some(x => x.productId === p.id) ? 'checked' : '';
@@ -562,7 +562,7 @@
             });
             const result = await res.json();
             if (result.success) {
-                window.location.href = '/Admin/Promotions';
+                window.location.href = '/Promotions';
             } else {
                 showMsg('error', result.message || '儲存失敗');
                 btn.disabled = false;

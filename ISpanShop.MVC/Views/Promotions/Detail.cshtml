@@ -1,4 +1,4 @@
-@model ISpanShop.MVC.Areas.Admin.Models.Promotions.PromotionDetailVm
+@model ISpanShop.MVC.Models.Promotions.PromotionDetailVm
 
 @{
     Layout = "~/Views/Shared/_SneatLayout.cshtml";
@@ -301,11 +301,11 @@
         const token = document.querySelector('[name="__RequestVerificationToken"]').value;
         const fd = new FormData();
         fd.append('__RequestVerificationToken', token);
-        const res    = await fetch(`/Admin/Promotions/Approve/${promotionId}`, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd });
+        const res    = await fetch(`/Promotions/Approve/${promotionId}`, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd });
         const result = await res.json();
         if (result.success) {
             showMsg('success', result.message);
-            setTimeout(() => location.href = '/Admin/Promotions', 1500);
+            setTimeout(() => location.href = '/Promotions', 1500);
         } else {
             showMsg('error', result.message);
         }
@@ -318,11 +318,11 @@
         const fd = new FormData();
         fd.append('__RequestVerificationToken', token);
         fd.append('reason', reason);
-        const res    = await fetch(`/Admin/Promotions/Reject/${promotionId}`, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd });
+        const res    = await fetch(`/Promotions/Reject/${promotionId}`, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd });
         const result = await res.json();
         if (result.success) {
             showMsg('success', result.message);
-            setTimeout(() => location.href = '/Admin/Promotions', 1500);
+            setTimeout(() => location.href = '/Promotions', 1500);
         } else {
             showMsg('error', result.message);
         }
@@ -343,5 +343,3 @@
     }
 </script>
 }
-
-

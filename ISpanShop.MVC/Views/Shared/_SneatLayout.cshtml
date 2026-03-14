@@ -631,18 +631,14 @@
                     </span>
                     <div class="menu-sub">
                         <ul>
-                            <li class="menu-item @(isPromotionActive && action == "Index" ? "active" : "")">
-                                <a href="@Url.Action("Index", "Promotions", new { area = "Admin" })" class="menu-link">活動列表</a>
-                            </li>
-                            <li class="menu-item @(isPromotionActive && action == "Create" ? "active" : "")">
-                                <a href="@Url.Action("Create", "Promotions", new { area = "Admin" })" class="menu-link">建立活動</a>
+                            <li class="menu-item @(isPromotionActive ? "active" : "")">
+                                <a href="@Url.Action("Index", "Promotions")" class="menu-link">活動管理</a>
                             </li>
                         </ul>
                     </div>
                     <div class="menu-flyout">
                         <div class="menu-flyout-title">促銷管理</div>
-                        <a href="@Url.Action("Index",  "Promotions", new { area = "Admin" })">活動列表</a>
-                        <a href="@Url.Action("Create", "Promotions", new { area = "Admin" })">建立活動</a>
+                        <a href="@Url.Action("Index", "Promotions")">活動管理</a>
                     </div>
                 </li>
 

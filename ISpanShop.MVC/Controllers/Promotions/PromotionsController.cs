@@ -1,10 +1,9 @@
-using ISpanShop.MVC.Areas.Admin.Models.Promotions;
+using ISpanShop.MVC.Models.Promotions;
 using Microsoft.AspNetCore.Mvc;
 
-namespace ISpanShop.MVC.Areas.Admin.Controllers.Promotions
+namespace ISpanShop.MVC.Controllers.Promotions
 {
-    [Area("Admin")]
-    [Route("Admin/Promotions")]
+    [Route("Promotions")]
     public class PromotionsController : Controller
     {
         // ===================================================================
@@ -14,11 +13,11 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Promotions
 
         private static readonly List<MockSellerVm> _sellers = new()
         {
-            new() { Id = 1, Name = "Apple 台灣授權店" },
-            new() { Id = 2, Name = "Samsung 官方旗艦店" },
-            new() { Id = 3, Name = "數位精品館" },
-            new() { Id = 4, Name = "家電特賣城" },
-            new() { Id = 5, Name = "遊戲天堂" },
+            new() { Id = 1, Name = "Apple 台灣授權店",   Rating = 4.8, ApprovalRate = 95, ViolationCount = 0, TotalPromotions = 12 },
+            new() { Id = 2, Name = "Samsung 官方旗艦店", Rating = 4.5, ApprovalRate = 72, ViolationCount = 2, TotalPromotions = 18 },
+            new() { Id = 3, Name = "數位精品館",          Rating = 4.2, ApprovalRate = 88, ViolationCount = 1, TotalPromotions =  8 },
+            new() { Id = 4, Name = "家電特賣城",          Rating = 3.9, ApprovalRate = 65, ViolationCount = 3, TotalPromotions = 15 },
+            new() { Id = 5, Name = "遊戲天堂",            Rating = 4.6, ApprovalRate = 91, ViolationCount = 0, TotalPromotions = 11 },
         };
 
         private static readonly List<MockProductVm> _products = new()
@@ -108,7 +107,8 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Promotions
         // ===================================================================
         // Index
         // ===================================================================
-        [HttpGet]
+        [HttpGet("")]
+        [HttpGet("Index")]
         public IActionResult Index(string? keyword, string? status, int? type, int page = 1, int pageSize = 10)
         {
             var now = DateTime.Now;
@@ -167,7 +167,7 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Promotions
                     }).ToList()
             };
 
-            return View("~/Areas/Admin/Views/Promotions/Index.cshtml", vm);
+            return View(vm);
         }
 
         // ===================================================================
@@ -182,7 +182,7 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Promotions
                 EndTime   = DateTime.Now.AddDays(8).Date.AddHours(23).AddMinutes(59),
                 Sellers   = _sellers.ToList()
             };
-            return View("~/Areas/Admin/Views/Promotions/Create.cshtml", vm);
+            return View(vm);
         }
 
         // ===================================================================
@@ -287,7 +287,7 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Promotions
             ViewBag.OnlyEndTime      = onlyEndTime && !canEdit;
             ViewBag.PromotionStatus  = promo.Status;
             ViewBag.RejectReason     = promo.RejectReason ?? "";
-            return View("~/Areas/Admin/Views/Promotions/Edit.cshtml", vm);
+            return View(vm);
         }
 
         // ===================================================================
@@ -347,27 +347,32 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Promotions
         [HttpGet("Detail/{id}")]
         public IActionResult Detail(int id)
         {
-            var promo = _store.FirstOrDefault(p => p.Id == id && !p.IsDeleted);
+            var promo  = _store.FirstOrDefault(p => p.Id == id && !p.IsDeleted);
             if (promo == null) return NotFound();
+            var seller = _sellers.FirstOrDefault(s => s.Id == promo.SellerId);
 
             var vm = new PromotionDetailVm
             {
-                Id            = promo.Id,
-                Name          = promo.Name,
-                Description   = promo.Description,
-                PromotionType = promo.PromotionType,
-                StartTime     = promo.StartTime,
-                EndTime       = promo.EndTime,
-                Status        = promo.Status,
-                SellerName    = promo.SellerName,
-                RejectReason  = promo.RejectReason,
-                ReviewedAt    = promo.ReviewedAt,
-                CreatedAt     = promo.CreatedAt,
-                Items         = promo.Items,
-                Rules         = promo.Rules
+                Id                  = promo.Id,
+                Name                = promo.Name,
+                Description         = promo.Description,
+                PromotionType       = promo.PromotionType,
+                StartTime           = promo.StartTime,
+                EndTime             = promo.EndTime,
+                Status              = promo.Status,
+                SellerName          = promo.SellerName,
+                RejectReason        = promo.RejectReason,
+                ReviewedAt          = promo.ReviewedAt,
+                CreatedAt           = promo.CreatedAt,
+                SellerRating        = seller?.Rating          ?? 0,
+                SellerApprovalRate  = seller?.ApprovalRate    ?? 0,
+                SellerViolations    = seller?.ViolationCount  ?? 0,
+                SellerTotalPromos   = seller?.TotalPromotions ?? 0,
+                Items               = promo.Items,
+                Rules               = promo.Rules
             };
 
-            return View("~/Areas/Admin/Views/Promotions/Detail.cshtml", vm);
+            return View(vm);
         }
 
         // ===================================================================
@@ -376,27 +381,32 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Promotions
         [HttpGet("GetPromotionDetailsPartial")]
         public IActionResult GetPromotionDetailsPartial(int id)
         {
-            var promo = _store.FirstOrDefault(p => p.Id == id && !p.IsDeleted);
+            var promo  = _store.FirstOrDefault(p => p.Id == id && !p.IsDeleted);
             if (promo == null) return NotFound();
+            var seller = _sellers.FirstOrDefault(s => s.Id == promo.SellerId);
 
             var vm = new PromotionDetailVm
             {
-                Id            = promo.Id,
-                Name          = promo.Name,
-                Description   = promo.Description,
-                PromotionType = promo.PromotionType,
-                StartTime     = promo.StartTime,
-                EndTime       = promo.EndTime,
-                Status        = promo.Status,
-                SellerName    = promo.SellerName,
-                RejectReason  = promo.RejectReason,
-                ReviewedAt    = promo.ReviewedAt,
-                CreatedAt     = promo.CreatedAt,
-                Items         = promo.Items,
-                Rules         = promo.Rules
+                Id                  = promo.Id,
+                Name                = promo.Name,
+                Description         = promo.Description,
+                PromotionType       = promo.PromotionType,
+                StartTime           = promo.StartTime,
+                EndTime             = promo.EndTime,
+                Status              = promo.Status,
+                SellerName          = promo.SellerName,
+                RejectReason        = promo.RejectReason,
+                ReviewedAt          = promo.ReviewedAt,
+                CreatedAt           = promo.CreatedAt,
+                SellerRating        = seller?.Rating          ?? 0,
+                SellerApprovalRate  = seller?.ApprovalRate    ?? 0,
+                SellerViolations    = seller?.ViolationCount  ?? 0,
+                SellerTotalPromos   = seller?.TotalPromotions ?? 0,
+                Items               = promo.Items,
+                Rules               = promo.Rules
             };
 
-            return PartialView("~/Areas/Admin/Views/Promotions/_PromotionDetailsPartial.cshtml", vm);
+            return PartialView("_PromotionDetailsPartial", vm);
         }
 
         // ===================================================================

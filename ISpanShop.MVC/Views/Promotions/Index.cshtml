@@ -1,4 +1,4 @@
-@model ISpanShop.MVC.Areas.Admin.Models.Promotions.PromotionIndexVm
+@model ISpanShop.MVC.Models.Promotions.PromotionIndexVm
 
 @{
     Layout = "~/Views/Shared/_SneatLayout.cshtml";
@@ -40,9 +40,6 @@
             </h2>
             <p class="mb-0 text-muted" style="font-size:.875rem;">審核賣家申請的促銷活動，或直接建立平台活動</p>
         </div>
-        <a href="@Url.Action("Create")" class="btn btn-primary">
-            <i class="bx bx-plus me-1"></i>建立活動
-        </a>
     </div>
 
     @* TempData 訊息 *@
@@ -147,13 +144,13 @@
                     }
                 </ul>
                 @* 右側：類型 + 搜尋 *@
-                <form method="get" asp-action="Index" asp-controller="Promotions" asp-area="Admin" class="d-flex gap-2 align-items-center">
+                <form method="get" asp-action="Index" asp-controller="Promotions" class="d-flex gap-2 align-items-center">
                     <input type="hidden" name="status" value="@Model.StatusFilter" />
                     <select name="type" class="form-select form-select-sm" style="width:140px;" onchange="this.form.submit()">
-                        <option value="" @@(Model.TypeFilter == null ? "selected" : "")>所有類型</option>
-                        <option value="1" @@(Model.TypeFilter == 1 ? "selected" : "")>限時特賣</option>
-                        <option value="2" @@(Model.TypeFilter == 2 ? "selected" : "")>滿額折扣</option>
-                        <option value="3" @@(Model.TypeFilter == 3 ? "selected" : "")>限量搶購</option>
+                        <option value="" @@(Model.TypeFilter == null ? "selected=\"selected\"" : "")>所有類型</option>
+                        <option value="1" @@(Model.TypeFilter == 1 ? "selected=\"selected\"" : "")>限時特賣</option>
+                        <option value="2" @@(Model.TypeFilter == 2 ? "selected=\"selected\"" : "")>滿額折扣</option>
+                        <option value="3" @@(Model.TypeFilter == 3 ? "selected=\"selected\"" : "")>限量搶購</option>
                     </select>
                     <div class="input-group input-group-sm" style="width:250px;">
                         <input type="text" name="keyword" value="@Model.Keyword" class="form-control" placeholder="搜尋活動名稱或賣家..." />
@@ -185,6 +182,7 @@
                 <tbody>
                     @if (Model.Items.Any())
                     {
+                        int _ni = 0;
                         @foreach (var item in Model.Items)
                         {
                             <tr class="@(item.IsPending ? "pending-row" : "")">
@@ -207,18 +205,14 @@
                                     <div class="d-flex gap-1 justify-content-end">
                                         <button type="button"
                                                 class="act-icon"
-                                                title="詳情/審核"
-                                                onclick="openPromotionOffcanvas(@item.Id, '@Html.Raw(item.Name.Replace("'", "\\'"))')">
+                                                title="檢視"
+                                                onclick="openPromotionOffcanvas(@item.Id, '@Html.Raw(item.Name.Replace("'", "\\'"))', @_ni)">
                                             <i class="bx bx-show"></i>
-                                        </button>
-                                        <button type="button" class="act-icon danger"
-                                                onclick="confirmDelete(@item.Id, '@Html.Raw(item.Name.Replace("'","\\\'"))')"
-                                                title="刪除">
-                                            <i class="bx bx-trash"></i>
                                         </button>
                                     </div>
                                 </td>
                             </tr>
+                            _ni++;
                         }
                     }
                     else
@@ -277,10 +271,22 @@
 <div class="offcanvas offcanvas-end" tabindex="-1" id="promotionDetailOffcanvas"
      style="width:50vw; min-width:440px; max-width:720px;">
     <div class="offcanvas-header border-bottom py-3">
-        <h5 class="offcanvas-title fw-semibold" id="promotionDetailOffcanvasLabel">
+        <h5 class="offcanvas-title fw-semibold" id="promotionDetailOffcanvasLabel" style="min-width:0; flex:1;">
             <i class="bx bx-purchase-tag-alt me-2" style="color:#3182ce;"></i>
             <span id="promotionOffcanvasTitle">促銷活動詳情</span>
         </h5>
+        @* 快速導覽 ← → *@
+        <div class="d-flex align-items-center gap-1 mx-2 flex-shrink-0">
+            <span id="promoNavCounter" style="font-size:.78rem; color:#94a3b8; min-width:42px; text-align:center;"></span>
+            <button type="button" class="btn btn-sm btn-outline-secondary px-2 py-1" id="promoNavPrev"
+                    onclick="navigatePromotion(-1)" title="上一筆" disabled>
+                <i class="bx bx-chevron-left" style="font-size:1rem;"></i>
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary px-2 py-1" id="promoNavNext"
+                    onclick="navigatePromotion(1)" title="下一筆" disabled>
+                <i class="bx bx-chevron-right" style="font-size:1rem;"></i>
+            </button>
+        </div>
         <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="關閉"></button>
     </div>
     <div class="offcanvas-body p-0 overflow-auto" id="promotionDetailOffcanvasBody">
@@ -293,17 +299,69 @@
     </div>
 </div>
 
-@* 刪除確認隱藏 form *@
-<form id="deleteForm" method="post" style="display:none;">
+@* 拒絕原因 Modal *@
+<div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:480px;">
+        <div class="modal-content">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title fw-bold" style="color:#1e2d3d;">
+                    <i class="bx bx-x-circle me-2 text-danger"></i>拒絕活動
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-3" style="font-size:.875rem;">
+                    活動：<strong id="rejectModalName"></strong>
+                </p>
+                <div class="mb-2">
+                    <div style="font-size:.8rem; color:#64748b; margin-bottom:.4rem;">常用原因快選：</div>
+                    <div class="d-flex flex-wrap gap-1">
+                        @foreach (var qr in new[]{"圖片不符規範","折扣幅度異常","活動描述不清","時間區間有誤","商品資訊不完整"})
+                        {
+                            <button type="button" class="btn btn-sm btn-outline-secondary"
+                                    style="font-size:.78rem; padding:3px 10px;"
+                                    onclick="setRejectReason('@qr')">@qr</button>
+                        }
+                    </div>
+                </div>
+                <label class="form-label fw-semibold">拒絕原因 <span class="text-danger">*</span></label>
+                <textarea id="rejectReasonInput" class="form-control" rows="4"
+                          placeholder="請說明拒絕原因，此訊息將通知賣家..."></textarea>
+                <div id="rejectReasonError" class="text-danger mt-1" style="font-size:.813rem; display:none;">請填寫拒絕原因</div>
+            </div>
+            <div class="modal-footer border-top">
+                <button type="button" class="btn btn-label-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" id="rejectConfirmBtn" onclick="submitReject()">
+                    <i class="bx bx-send me-1"></i>送出拒絕
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* AJAX 用 antiforgery form *@
+<form id="actionForm" method="post" style="display:none;">
     @Html.AntiForgeryToken()
 </form>
 
 @section Scripts {
 <script>
-    // ── 開啟 Offcanvas 並 AJAX 載入詳情 ──
-    var _promoDetailUrl = '@Url.Action("GetPromotionDetailsPartial", "Promotions", new { area = "Admin" })';
+    // ── 促銷列表（供導覽用）──
+    var _promoList = [
+        @{ bool _pf = true; }
+        @foreach (var it in Model.Items) {
+            if (!_pf){<text>,</text>} _pf = false;
+            <text>{ id: @it.Id, name: '@Html.Raw(it.Name.Replace("\\","\\\\").Replace("'","\\'").Replace("\n","").Replace("\r",""))' }</text>
+        }
+    ];
+    var _currentNavIdx = -1;
 
-    function openPromotionOffcanvas(id, name) {
+    // ── 開啟 Offcanvas 並 AJAX 載入詳情 ──
+    var _promoDetailUrl = '@Url.Action("GetPromotionDetailsPartial", "Promotions")';
+
+    function openPromotionOffcanvas(id, name, idx) {
+        _currentNavIdx = (idx !== undefined) ? idx : -1;
+        _updateNavButtons();
         var body    = document.getElementById('promotionDetailOffcanvasBody');
         var titleEl = document.getElementById('promotionOffcanvasTitle');
         if (titleEl) titleEl.textContent = name || '促銷活動詳情';
@@ -325,23 +383,112 @@
             });
     }
 
-    // ── 刪除確認 ──
-    function confirmDelete(id, name) {
-        const doDelete = () => {
-            const form = document.getElementById('deleteForm');
-            form.action = `/Admin/Promotions/Delete/${id}`;
-            form.submit();
+    // ── 導覽上/下一筆 ──
+    function navigatePromotion(delta) {
+        var next = _currentNavIdx + delta;
+        if (next < 0 || next >= _promoList.length) return;
+        var p = _promoList[next];
+        openPromotionOffcanvas(p.id, p.name, next);
+    }
+
+    function _updateNavButtons() {
+        var prev    = document.getElementById('promoNavPrev');
+        var next    = document.getElementById('promoNavNext');
+        var counter = document.getElementById('promoNavCounter');
+        var total   = _promoList.length;
+        if (prev)    prev.disabled    = _currentNavIdx <= 0;
+        if (next)    next.disabled    = _currentNavIdx < 0 || _currentNavIdx >= total - 1;
+        if (counter) counter.textContent = total > 0 && _currentNavIdx >= 0
+            ? (_currentNavIdx + 1) + ' / ' + total : '';
+    }
+
+    // ── 核准 ──
+    async function approvePromotion(id, name) {
+        const doApprove = async () => {
+            const token = document.querySelector('#actionForm [name="__RequestVerificationToken"]').value;
+            const fd = new FormData();
+            fd.append('__RequestVerificationToken', token);
+            const res = await fetch(`/Promotions/Approve/${id}`, {
+                method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd
+            });
+            const result = await res.json();
+            if (result.success) {
+                showMsg('success', result.message);
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showMsg('error', result.message);
+            }
         };
+
         if (typeof Swal !== 'undefined') {
             Swal.fire({
-                icon: 'warning', title: '確認刪除',
-                text: `確定要刪除活動「${name}」嗎？此操作無法復原。`,
-                showCancelButton: true, confirmButtonColor: '#ea5455',
-                confirmButtonText: '刪除', cancelButtonText: '取消'
-            }).then(r => { if (r.isConfirmed) doDelete(); });
+                icon: 'question', title: '確認核准',
+                text: `確定要核准活動「${name}」嗎？`,
+                showCancelButton: true,
+                confirmButtonColor: '#10b981',
+                confirmButtonText: '核准', cancelButtonText: '取消'
+            }).then(r => { if (r.isConfirmed) doApprove(); });
         } else {
-            if (confirm(`確定要刪除活動「${name}」嗎？`)) doDelete();
+            if (confirm(`確定要核准活動「${name}」嗎？`)) doApprove();
         }
+    }
+
+    // ── 拒絕 Modal ──
+    var _rejectTargetId = null;
+
+    function openRejectModal(id, name) {
+        _rejectTargetId = id;
+        document.getElementById('rejectModalName').textContent = name;
+        document.getElementById('rejectReasonInput').value = '';
+        document.getElementById('rejectReasonError').style.display = 'none';
+        new bootstrap.Modal(document.getElementById('rejectModal')).show();
+    }
+
+    async function submitReject() {
+        const reason = document.getElementById('rejectReasonInput').value.trim();
+        if (!reason) {
+            document.getElementById('rejectReasonError').style.display = 'block';
+            return;
+        }
+        document.getElementById('rejectReasonError').style.display = 'none';
+
+        const btn = document.getElementById('rejectConfirmBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>送出中...';
+
+        const token = document.querySelector('#actionForm [name="__RequestVerificationToken"]').value;
+        const fd = new FormData();
+        fd.append('__RequestVerificationToken', token);
+        fd.append('reason', reason);
+
+        const res = await fetch(`/Promotions/Reject/${_rejectTargetId}`, {
+            method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd
+        });
+        const result = await res.json();
+
+        bootstrap.Modal.getInstance(document.getElementById('rejectModal')).hide();
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bx bx-send me-1"></i>送出拒絕';
+
+        if (result.success) {
+            showMsg('success', result.message);
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showMsg('error', result.message);
+        }
+    }
+
+    function showMsg(type, msg) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({ icon: type, text: msg, timer: type === 'success' ? 1800 : undefined, showConfirmButton: type !== 'success' });
+        } else { alert(msg); }
+    }
+
+    // ── 拒絕 Modal 快速原因填入 ──
+    function setRejectReason(text) {
+        document.getElementById('rejectReasonInput').value = text;
+        document.getElementById('rejectReasonError').style.display = 'none';
+        document.getElementById('rejectReasonInput').focus();
     }
 </script>
 }

@@ -1,4 +1,4 @@
-namespace ISpanShop.MVC.Areas.Admin.Models.Promotions
+namespace ISpanShop.MVC.Models.Promotions
 {
     // ── 狀態常數（對應 DB Promotion.Status）──
     // 0 = 待審核  1 = 已核准  2 = 已拒絕  3 = 已結束
@@ -134,6 +134,12 @@ namespace ISpanShop.MVC.Areas.Admin.Models.Promotions
         public DateTime? ReviewedAt   { get; set; }
         public DateTime CreatedAt     { get; set; }
 
+        // 賣家資訊（供審核參考）
+        public double SellerRating       { get; set; }
+        public int    SellerApprovalRate { get; set; }  // 0–100 (%)
+        public int    SellerViolations   { get; set; }
+        public int    SellerTotalPromos  { get; set; }
+
         public List<PromotionItemDetailVm> Items { get; set; } = new();
         public List<PromotionRuleDetailVm> Rules { get; set; } = new();
 
@@ -222,8 +228,12 @@ namespace ISpanShop.MVC.Areas.Admin.Models.Promotions
     // ────────────────────────────────
     public class MockSellerVm
     {
-        public int    Id   { get; set; }
-        public string Name { get; set; } = "";
+        public int    Id              { get; set; }
+        public string Name            { get; set; } = "";
+        public double Rating          { get; set; }   // 0.0 – 5.0
+        public int    ApprovalRate    { get; set; }   // 0 – 100 (%)
+        public int    ViolationCount  { get; set; }
+        public int    TotalPromotions { get; set; }
     }
 
     public class MockProductVm
