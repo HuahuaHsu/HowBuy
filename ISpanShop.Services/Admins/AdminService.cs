@@ -1,5 +1,7 @@
 using ISpanShop.Models.DTOs.Admins;
+using ISpanShop.Models.DTOs.Members;
 using ISpanShop.Repositories.Admins;
+using ISpanShop.Repositories.Members;
 using System.Text.RegularExpressions;
 using BCrypt.Net;
 
@@ -11,10 +13,12 @@ namespace ISpanShop.Services.Admins;
 public class AdminService : IAdminService
 {
 	private readonly IAdminRepository _adminRepository;
+	private readonly ILoginHistoryRepository _loginHistoryRepository;
 
-	public AdminService(IAdminRepository adminRepository)
+	public AdminService(IAdminRepository adminRepository, ILoginHistoryRepository loginHistoryRepository)
 	{
 		_adminRepository = adminRepository ?? throw new ArgumentNullException(nameof(adminRepository));
+		_loginHistoryRepository = loginHistoryRepository ?? throw new ArgumentNullException(nameof(loginHistoryRepository));
 	}
 
 	public IEnumerable<AdminDto> GetAllAdmins() //新增取得所有管理員（含實際權限)
@@ -109,7 +113,7 @@ public class AdminService : IAdminService
 		}
 	}
 
-	public AdminDto? VerifyLogin(string account, string password)
+	public AdminDto? VerifyLogin(string account, string password, string? ipAddress)
 	{
 		try
 		{
@@ -123,7 +127,18 @@ public class AdminService : IAdminService
 			}
 
 			// 3. BCrypt.Verify(password, admin.PasswordHash)
-			if (!BCrypt.Net.BCrypt.Verify(password, admin.PasswordHash))
+			bool isSuccessful = BCrypt.Net.BCrypt.Verify(password, admin.PasswordHash);
+
+			// 紀錄登入歷史
+			_loginHistoryRepository.Add(new LoginHistoryDto
+			{
+				UserId = admin.UserId,
+				LoginTime = DateTime.Now,
+				Ipaddress = ipAddress ?? "Unknown",
+				IsSuccessful = isSuccessful
+			});
+
+			if (!isSuccessful)
 			{
 				// 5. 驗證失敗 → 回傳 null
 				return null;

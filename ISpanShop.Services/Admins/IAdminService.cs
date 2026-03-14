@@ -22,7 +22,7 @@ namespace ISpanShop.Services.Admins
 		(bool IsSuccess, string Message) DeleteAdminLevel(int adminLevelId);
 
 		// 原有方法
-		AdminDto? VerifyLogin(string account, string password);
+		AdminDto? VerifyLogin(string account, string password, string? ipAddress);
 		(bool IsSuccess, string Message) ChangePassword(AdminChangePasswordDto dto);
 		bool UpdateAdminRole(int adminId, int roleId, int currentAdminId);
 		string GetNextAccount();

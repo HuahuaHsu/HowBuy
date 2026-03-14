@@ -171,6 +171,22 @@ namespace ISpanShop.Repositories.Members
 			_context.LoginHistories.AddRange(entities);
 			_context.SaveChanges();
 		}
+
+		public void Add(LoginHistoryDto loginHistory)
+		{
+			if (loginHistory == null) return;
+
+			var entity = new LoginHistory
+			{
+				UserId = loginHistory.UserId,
+				LoginTime = loginHistory.LoginTime ?? DateTime.Now,
+				Ipaddress = loginHistory.Ipaddress,
+				IsSuccessful = loginHistory.IsSuccessful
+			};
+
+			_context.LoginHistories.Add(entity);
+			_context.SaveChanges();
+		}
 	}
 }
 

@@ -29,7 +29,21 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers
         {
             if (!ModelState.IsValid) return View(form);
 
-            var admin = _adminService.VerifyLogin(form.Account, form.Password);
+            var remoteIp = HttpContext.Connection.RemoteIpAddress;
+            var ipAddress = remoteIp?.ToString();
+
+            // 如果是 IPv6 的回環位址 (::1)，轉換為熟悉的 127.0.0.1
+            if (ipAddress == "::1")
+            {
+                ipAddress = "127.0.0.1";
+            }
+            else if (remoteIp != null && remoteIp.IsIPv4MappedToIPv6)
+            {
+                // 如果是 IPv4-mapped IPv6 (例如 ::ffff:127.0.0.1)，則轉為純 IPv4
+                ipAddress = remoteIp.MapToIPv4().ToString();
+            }
+
+            var admin = _adminService.VerifyLogin(form.Account, form.Password, ipAddress);
             if (admin == null)
             {
                 form.Message = "帳號或密碼錯誤";
@@ -113,8 +127,9 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers
             {
 				// 修改成功後，為了取得完整 Claims，通常建議重新登入
 				// 重新查詢完整資料
+				var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
 				var admin = _adminService.VerifyLogin(
-					User.FindFirst(ClaimTypes.Name)?.Value ?? "", "");
+					User.FindFirst(ClaimTypes.Name)?.Value ?? "", "", ipAddress);
 				// ↑ 無法重新驗證密碼，改用 userId 直接查
 
 				// 簽出舊的暫時 Cookie

@@ -67,7 +67,7 @@
          "ObjectType": 0
       },
       {
-         "Name": "[dbo].[LoginHistory]",
+         "Name": "[dbo].[LoginHistories]",
          "ObjectType": 0
       },
       {
