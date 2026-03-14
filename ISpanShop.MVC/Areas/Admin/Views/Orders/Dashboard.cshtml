@@ -367,9 +367,17 @@
                                 <p class="text-muted small mb-0 mt-1" id="categoryDeltaDesc">分析各類別市佔率對比去年的增減情況，正值為擴張，負值為萎縮。</p>
                             </div>
                             <div class="d-flex align-items-center">
-                                <button type="button" class="btn btn-sm btn-label-secondary me-3" id="resetDeltaZoom">
-                                    <i class="bx bx-refresh me-1"></i> 重設縮放
-                                </button>
+                                <div class="btn-group btn-group-sm me-3">
+                                    <button type="button" class="btn btn-label-secondary" id="zoomInDelta" title="放大">
+                                        <i class="bx bx-zoom-in"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-label-secondary" id="zoomOutDelta" title="縮小">
+                                        <i class="bx bx-zoom-out"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-label-secondary" id="resetDeltaZoom" title="重設縮放">
+                                        <i class="bx bx-refresh"></i>
+                                    </button>
+                                </div>
                                 <span class="badge bg-label-primary">Competitive Analysis</span>
                             </div>
                         </div>
@@ -428,11 +436,15 @@
 
             refreshAllDashboard();
 
-            // 新增：重設縮放按鈕事件
+            // 新增：縮放按鈕事件
+            $('#zoomInDelta').on('click', function() {
+                if (deltaTrendChart) deltaTrendChart.zoomIn();
+            });
+            $('#zoomOutDelta').on('click', function() {
+                if (deltaTrendChart) deltaTrendChart.zoomOut();
+            });
             $('#resetDeltaZoom').on('click', function() {
-                if (deltaTrendChart) {
-                    deltaTrendChart.resetSeries();
-                }
+                if (deltaTrendChart) deltaTrendChart.resetSeries();
             });
         });
 
@@ -1193,11 +1205,10 @@
                 const maxPoint = Math.max(...allPoints);
                 const minPoint = Math.min(...allPoints);
 
-                // 設定稍微寬一點點的邊界 (5% 緩衝)，避免頂部 Marker 被切掉
-                const range = maxPoint - minPoint;
-                const buffer = range * 0.1 || 1; // 至少保留 1% 緩衝避免 range 為 0
-                const yMax = maxPoint + buffer;
-                const yMin = minPoint - buffer;
+                // 設定以 5% 為單位的刻度邏輯
+                const yMin = Math.floor(minPoint / 5) * 5 - 5; // 向下取 5 的倍數並多給一格緩衝
+                const yMax = Math.ceil(maxPoint / 5) * 5 + 5;  // 向上取 5 的倍數並多給一格緩衝
+                const tickAmount = (yMax - yMin) / 5;
 
                 const options = {
                     series: trendSeries,
@@ -1206,6 +1217,14 @@
                         type: 'line',
                         toolbar: { 
                             show: false 
+                        },
+                        zoom: {
+                            enabled: true,
+                            type: 'x',
+                            autoScaleYaxis: true
+                        },
+                        panning: {
+                            enabled: true
                         },
                         fontFamily: 'Public Sans, -apple-system, sans-serif'
                     },
@@ -1237,9 +1256,10 @@
                     yaxis: {
                         min: yMin,
                         max: yMax,
-                        forceNiceScale: false, // 關閉 ApexCharts 的「整數化」刻度邏輯
+                        tickAmount: tickAmount,
+                        forceNiceScale: false,
                         labels: {
-                            formatter: (val) => (val > 0 ? '+' : '') + val.toFixed(1) + '%'
+                            formatter: (val) => (val > 0 ? '+' : '') + Math.round(val) + '%'
                         }
                     },
                     tooltip: {
