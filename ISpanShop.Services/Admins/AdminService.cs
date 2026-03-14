@@ -83,6 +83,32 @@ public class AdminService : IAdminService
 		}
 	}
 
+	public (bool IsSuccess, string Message) ResetAdminPassword(AdminResetPasswordDto dto)
+	{
+		try
+		{
+			// 1. 密碼檢查
+			if (string.IsNullOrWhiteSpace(dto.NewPassword) || dto.NewPassword.Length < 8)
+			{
+				return (false, "臨時密碼至少需 8 個字元");
+			}
+
+			// 2. Hash 新密碼
+			string passwordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+
+			// 3. 呼叫 Repository.ResetPassword()
+			bool success = _adminRepository.ResetPassword(dto.UserId, passwordHash);
+
+			return success
+				? (true, "管理員密碼已重設，該員工下次登入需修改密碼")
+				: (false, "重設密碼失敗");
+		}
+		catch (Exception ex)
+		{
+			return (false, $"發生錯誤: {ex.Message}");
+		}
+	}
+
 	public AdminDto? VerifyLogin(string account, string password)
 	{
 		try

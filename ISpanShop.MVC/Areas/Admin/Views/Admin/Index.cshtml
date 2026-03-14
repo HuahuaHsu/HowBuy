@@ -110,6 +110,19 @@
                                             </td>
                                             <td>@admin.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td>
                                             <td class="text-end">
+                                                <button type="button" class="btn btn-sm btn-outline-primary"
+                                                        onclick="openEditAdminOffcanvas({
+                                                            userId: @admin.UserId,
+                                                            account: '@admin.Account',
+                                                            email: '@admin.Email',
+                                                            adminLevelId: @(admin.AdminLevelId ?? 0),
+                                                            isBlacklisted: @(admin.IsBlacklisted ? "true" : "false"),
+                                                            isSuperAdmin: @(admin.AdminLevelId == 1 ? "true" : "false"),
+                                                            isSelf: @(admin.UserId.ToString() == currentUserId ? "true" : "false")
+                                                        })">
+                                                    編輯
+                                                </button>
+
                                                 @if (!admin.IsBlacklisted && admin.UserId.ToString() != currentUserId && admin.AdminLevelId != 1)
                                                 {
                                                     <form method="post" asp-action="DeactivateAdmin" class="d-inline" onsubmit="return confirm('確認要停用此管理員嗎？');">
@@ -406,4 +419,80 @@
             editModal.show();
         }
     </script>
+    <script>
+        function openEditAdminOffcanvas(data) {
+            document.getElementById('editAdminUserId').value = data.userId;
+            document.getElementById('editAdminResetUserId').value = data.userId;
+            document.getElementById('editAdminAccount').value = data.account;
+            document.getElementById('editAdminEmail').value = data.email;
+            document.getElementById('editAdminLevelId').value = data.adminLevelId || "";
+            document.getElementById('editAdminIsBlacklisted').checked = data.isBlacklisted;
+
+            // 超級管理員不可修改身分和狀態
+            const isSuperAdmin = data.isSuperAdmin;
+            const isSelf = data.isSelf;
+
+            document.getElementById('editAdminLevelId').disabled = isSuperAdmin;
+            document.getElementById('editAdminIsBlacklisted').disabled = isSuperAdmin || isSelf;
+            document.getElementById('editAdminSubmitBtn').disabled = isSuperAdmin && !isSelf; // 如果是超管且不是自己，其實也不應該改，但這裡主要限制身分和狀態
+
+            var offcanvas = new bootstrap.Offcanvas(document.getElementById('editAdminOffcanvas'));
+            offcanvas.show();
+        }
+    </script>
 }
+
+@* ── 編輯管理員側拉 Panel (Offcanvas) ── *@
+<div class="offcanvas offcanvas-end" tabindex="-1" id="editAdminOffcanvas" aria-labelledby="editAdminOffcanvasLabel">
+    <div class="offcanvas-header border-bottom">
+        <h5 id="editAdminOffcanvasLabel" class="offcanvas-title fw-bold">編輯管理員資料</h5>
+        <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+        <form method="post" asp-action="UpdateAdmin">
+            <input type="hidden" name="UserId" id="editAdminUserId" />
+            <div class="mb-3">
+                <label class="form-label">帳號</label>
+                <input type="text" id="editAdminAccount" class="form-control" readonly disabled />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">電子信箱</label>
+                <input type="text" id="editAdminEmail" class="form-control" readonly disabled />
+            </div>
+            <div class="mb-3">
+                <label for="editAdminLevelId" class="form-label">身分等級</label>
+                <select name="AdminLevelId" id="editAdminLevelId" class="form-select">
+                    @if (Model.CreateForm?.AdminLevelOptions != null)
+                    {
+                        @foreach (var level in Model.CreateForm.AdminLevelOptions)
+                        {
+                            <option value="@level.AdminLevelId">@level.LevelName</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="mb-4">
+                <label class="form-label">帳號狀態</label>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" name="IsBlacklisted" id="editAdminIsBlacklisted" value="true" />
+                    <label class="form-check-label" for="editAdminIsBlacklisted">停權 (黑名單)</label>
+                </div>
+            </div>
+            <button type="submit" id="editAdminSubmitBtn" class="btn btn-primary w-100 mb-3">儲存變更</button>
+        </form>
+
+        <hr class="my-4" />
+
+        <div class="password-reset-section">
+            <h6 class="fw-bold mb-3">重設臨時密碼</h6>
+            <p class="text-muted small mb-3">重設後，該管理員下次登入時將被要求強制修改密碼。</p>
+            <form method="post" asp-action="ResetPassword" onsubmit="return confirm('確認要重設密碼嗎？');">
+                <input type="hidden" name="UserId" id="editAdminResetUserId" />
+                <div class="mb-3">
+                    <input type="password" name="NewPassword" class="form-control" placeholder="輸入新的臨時密碼" required minlength="8" />
+                </div>
+                <button type="submit" class="btn btn-outline-warning w-100">送出臨時密碼</button>
+            </form>
+        </div>
+    </div>
+</div>

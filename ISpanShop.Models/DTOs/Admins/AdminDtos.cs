@@ -186,4 +186,16 @@ namespace ISpanShop.Models.DTOs.Admins
 		[Display(Name = "權限列表")]
 		public List<int> PermissionIds { get; set; } = new List<int>();
 	}
+
+	/// <summary>
+	/// 重設管理員密碼 DTO
+	/// </summary>
+	public class AdminResetPasswordDto
+	{
+		public int UserId { get; set; }
+
+		[Required(ErrorMessage = "{0}為必填")]
+		[Display(Name = "臨時密碼")]
+		public string NewPassword { get; set; }
+	}
 }

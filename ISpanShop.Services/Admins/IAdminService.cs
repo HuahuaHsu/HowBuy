@@ -14,6 +14,7 @@ namespace ISpanShop.Services.Admins
 		(bool IsSuccess, string Message) CreateAdmin(AdminCreateDto dto);
 		(bool IsSuccess, string Message) UpdateAdmin(AdminUpdateDto dto);
 		(bool IsSuccess, string Message) DeactivateAdmin(int userId, int currentUserId);
+		(bool IsSuccess, string Message) ResetAdminPassword(AdminResetPasswordDto dto);
 
 		// 身分管理
 		(bool IsSuccess, string Message) CreateAdminLevel(AdminLevelCreateDto dto);

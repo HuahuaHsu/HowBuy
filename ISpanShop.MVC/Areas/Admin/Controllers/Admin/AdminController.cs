@@ -20,6 +20,10 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Admin
 
 		public IActionResult Index()
 		{
+			var levelId = User.FindFirst("AdminLevelId")?.Value;
+			if (levelId != "1")
+				return RedirectToAction("Dashboard", "Orders", new { area = "Admin" });
+
 			try
 			{
 				var viewModel = new AdminIndexVm
@@ -49,6 +53,9 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Admin
 		[HttpPost]
 		public IActionResult CreateAdmin(AdminCreateVm form)
 		{
+			if (User.FindFirst("AdminLevelId")?.Value != "1")
+				return RedirectToAction("Dashboard", "Orders", new { area = "Admin" });
+
 			if (!ModelState.IsValid)
 			{
 				TempData["Message"] = "表單驗證失敗，請檢查輸入內容";
@@ -70,6 +77,9 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Admin
 		[HttpPost]
 		public IActionResult UpdateAdmin(AdminUpdateDto dto)
 		{
+			if (User.FindFirst("AdminLevelId")?.Value != "1")
+				return RedirectToAction("Dashboard", "Orders", new { area = "Admin" });
+
 			var result = _adminService.UpdateAdmin(dto);
 			TempData["Message"] = result.Message;
 			TempData["ActiveTab"] = "tab1";
@@ -79,6 +89,9 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Admin
 		[HttpPost]
 		public IActionResult DeactivateAdmin(int userId)
 		{
+			if (User.FindFirst("AdminLevelId")?.Value != "1")
+				return RedirectToAction("Dashboard", "Orders", new { area = "Admin" });
+
 			var currentUserIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
 				?? User.FindFirst("userid")?.Value;
 
@@ -96,8 +109,30 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Admin
 		}
 
 		[HttpPost]
+		public IActionResult ResetPassword(AdminResetPasswordDto dto)
+		{
+			if (User.FindFirst("AdminLevelId")?.Value != "1")
+				return RedirectToAction("Dashboard", "Orders", new { area = "Admin" });
+
+			if (!ModelState.IsValid)
+			{
+				TempData["Message"] = "資料格式錯誤";
+				TempData["ActiveTab"] = "tab1";
+				return RedirectToAction("Index");
+			}
+
+			var result = _adminService.ResetAdminPassword(dto);
+			TempData["Message"] = result.Message;
+			TempData["ActiveTab"] = "tab1";
+			return RedirectToAction("Index");
+		}
+
+		[HttpPost]
 		public IActionResult CreateAdminLevel(AdminLevelCreateVm form)
 		{
+			if (User.FindFirst("AdminLevelId")?.Value != "1")
+				return RedirectToAction("Dashboard", "Orders", new { area = "Admin" });
+
 			if (!ModelState.IsValid)
 			{
 				TempData["Message"] = "表單驗證失敗，請檢查輸入內容";
@@ -120,6 +155,9 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Admin
 		[HttpPost]
 		public IActionResult UpdateAdminLevel(AdminLevelUpdateDto dto)
 		{
+			if (User.FindFirst("AdminLevelId")?.Value != "1")
+				return RedirectToAction("Dashboard", "Orders", new { area = "Admin" });
+
 			var result = _adminService.UpdateAdminLevelConfig(dto);
 			TempData["Message"] = result.Message;
 			TempData["ActiveTab"] = "tab2";
@@ -129,6 +167,9 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Admin
 		[HttpPost]
 		public IActionResult DeleteAdminLevel(int adminLevelId)
 		{
+			if (User.FindFirst("AdminLevelId")?.Value != "1")
+				return RedirectToAction("Dashboard", "Orders", new { area = "Admin" });
+
 			var result = _adminService.DeleteAdminLevel(adminLevelId);
 			TempData["Message"] = result.Message;
 			TempData["ActiveTab"] = "tab2";

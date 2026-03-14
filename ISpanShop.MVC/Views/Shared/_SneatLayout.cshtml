@@ -770,34 +770,38 @@
                 @{
                     var isAdminCtrl = ctrl == "Admin";
                     bool isRoleTab = Context.Request.Query["activeTab"] == "tab2";
+                    var isAdminLevel1 = User.FindFirst("AdminLevelId")?.Value == "1";
                 }
 
-                <li class="menu-item has-sub @(isAdminCtrl ? "active" : "")">
-                    <span class="menu-link">
-                        <span class="mini-wrap">
+                @if (isAdminLevel1)
+                {
+                    <li class="menu-item has-sub @(isAdminCtrl ? "active" : "")">
+                        <span class="menu-link">
+                            <span class="mini-wrap">
+                                <i class="menu-icon bx bx-shield-quarter"></i>
+                                <span class="menu-short">權限</span>
+                            </span>
                             <i class="menu-icon bx bx-shield-quarter"></i>
-                            <span class="menu-short">權限</span>
+                            <span class="menu-label">管理員權限</span>
+                            <i class="menu-arrow bx bx-chevron-right"></i>
                         </span>
-                        <i class="menu-icon bx bx-shield-quarter"></i>
-                        <span class="menu-label">管理員權限</span>
-                        <i class="menu-arrow bx bx-chevron-right"></i>
-                    </span>
-                    <div class="menu-sub">
-                        <ul>
-                            <li class="menu-item @(isAdminCtrl && !isRoleTab ? "active" : "")" id="menu-admin-tab1">
-                                <a href="@Url.Action("Index", "Admin", new { area = "Admin", activeTab = "tab1" })" class="menu-link">管理員帳號</a>
-                            </li>
-                            <li class="menu-item @(isAdminCtrl && isRoleTab ? "active" : "")" id="menu-admin-tab2">
-                                <a href="@Url.Action("Index", "Admin", new { area = "Admin", activeTab = "tab2" })" class="menu-link">身分與權限</a>
-                            </li>
-                        </ul>
-                    </div>
-                    <div class="menu-flyout">
-                        <div class="menu-flyout-title">管理員權限</div>
-                        <a href="@Url.Action("Index", "Admin", new { area = "Admin", activeTab = "tab1" })">管理員帳號</a>
-                        <a href="@Url.Action("Index", "Admin", new { area = "Admin", activeTab = "tab2" })">身分與權限</a>
-                    </div>
-                </li>
+                        <div class="menu-sub">
+                            <ul>
+                                <li class="menu-item @(isAdminCtrl && !isRoleTab ? "active" : "")" id="menu-admin-tab1">
+                                    <a href="@Url.Action("Index", "Admin", new { area = "Admin", activeTab = "tab1" })" class="menu-link">管理員帳號</a>
+                                </li>
+                                <li class="menu-item @(isAdminCtrl && isRoleTab ? "active" : "")" id="menu-admin-tab2">
+                                    <a href="@Url.Action("Index", "Admin", new { area = "Admin", activeTab = "tab2" })" class="menu-link">身分與權限</a>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="menu-flyout">
+                            <div class="menu-flyout-title">管理員權限</div>
+                            <a href="@Url.Action("Index", "Admin", new { area = "Admin", activeTab = "tab1" })">管理員帳號</a>
+                            <a href="@Url.Action("Index", "Admin", new { area = "Admin", activeTab = "tab2" })">身分與權限</a>
+                        </div>
+                    </li>
+                }
 
             </ul>
         </aside>

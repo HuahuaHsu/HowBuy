@@ -52,5 +52,8 @@ namespace ISpanShop.Repositories.Admins
 		bool HasAdminsBoundToLevel(int adminLevelId);
 		IEnumerable<PermissionDto> GetAllPermissions();
 
+		/// <summary>重設密碼並強制下次登入修改</summary>
+		bool ResetPassword(int userId, string passwordHash);
+
 	}
 }

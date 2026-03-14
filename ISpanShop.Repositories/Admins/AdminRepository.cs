@@ -828,5 +828,34 @@ namespace ISpanShop.Repositories.Admins
 			}
 			return permissions;
 		}
+
+		/// <summary>重設密碼並強制下次登入修改</summary>
+		public bool ResetPassword(int userId, string passwordHash)
+		{
+			try
+			{
+				using (SqlConnection conn = new SqlConnection(_connectionString))
+				{
+					conn.Open();
+					string query = @"
+						UPDATE Users
+						SET Password = @PasswordHash,
+							IsFirstLogin = 1,
+							UpdatedAt = GETDATE()
+						WHERE Id = @UserId";
+
+					using (SqlCommand cmd = new SqlCommand(query, conn))
+					{
+						cmd.Parameters.AddWithValue("@UserId", userId);
+						cmd.Parameters.AddWithValue("@PasswordHash", passwordHash);
+						return cmd.ExecuteNonQuery() > 0;
+					}
+				}
+			}
+			catch (SqlException ex)
+			{
+				throw new InvalidOperationException("重設管理員密碼失敗", ex);
+			}
+		}
 	}
 }
