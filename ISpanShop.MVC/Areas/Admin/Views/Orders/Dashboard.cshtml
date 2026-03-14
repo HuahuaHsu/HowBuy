@@ -410,7 +410,7 @@
 @section Scripts {
     <script src="~/sneat/assets/vendor/libs/apex-charts/apexcharts.js"></script>
     <script>
-        let trendChart, pieChart, top10Chart, categoryChart, comparisonChart, growthGaugeChart;
+        let trendChart, pieChart, top10Chart, categoryChart, comparisonChart, growthGaugeChart, deltaTrendChart, growthBridgeChart;
         let grandTotalSales = 0;    // 全域變數：總銷售量
         let grandTotalRevenue = 0;  // 全域變數：總營收額
         let currentCategoryChartType = 'bar'; // 預設為柱狀圖
@@ -436,15 +436,35 @@
 
             refreshAllDashboard();
 
-            // 新增：縮放按鈕事件
+            // 新增：縮放按鈕事件 (使用 zoomX 確保在 Toolbar 隱藏時仍有效)
+            let currentZoomLevel = 0;
             $('#zoomInDelta').on('click', function() {
-                if (deltaTrendChart) deltaTrendChart.zoomIn();
+                if (deltaTrendChart) {
+                    currentZoomLevel++;
+                    const min = 1 + currentZoomLevel;
+                    const max = 12 - currentZoomLevel;
+                    if (min < max) {
+                        deltaTrendChart.zoomX(min, max);
+                    } else {
+                        currentZoomLevel--; // 達到極限，退回
+                    }
+                }
             });
             $('#zoomOutDelta').on('click', function() {
-                if (deltaTrendChart) deltaTrendChart.zoomOut();
+                if (deltaTrendChart) {
+                    currentZoomLevel = Math.max(0, currentZoomLevel - 1);
+                    if (currentZoomLevel === 0) {
+                        deltaTrendChart.resetSeries();
+                    } else {
+                        deltaTrendChart.zoomX(1 + currentZoomLevel, 12 - currentZoomLevel);
+                    }
+                }
             });
             $('#resetDeltaZoom').on('click', function() {
-                if (deltaTrendChart) deltaTrendChart.resetSeries();
+                if (deltaTrendChart) {
+                    currentZoomLevel = 0;
+                    deltaTrendChart.resetSeries();
+                }
             });
         });
 
@@ -1111,7 +1131,6 @@
             });
         }
 
-        let growthBridgeChart;
         function loadGrowthBridgeChart(y1, y2, storeId) {
             $.get(`/Orders/GetGrowthBridgeData?year1=${y1}&year2=${y2}&storeId=${storeId}`, function(data) {
                 if (!data || data.length === 0) return;
@@ -1189,7 +1208,6 @@
             });
         }
 
-        let deltaTrendChart;
         function loadCategoryDeltaTrend(y1, y2, storeId) {
             $.get(`/Orders/GetCategoryMonthlyGrowth?year1=${y1}&year2=${y2}&storeId=${storeId}`, function(data) {
                 if (!data || data.length === 0) return;
