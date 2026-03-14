@@ -256,7 +256,7 @@
                 <h5 class="card-title mb-0 fw-bold">全站類別構成</h5>
             </div>
             <div class="card-body">
-                <div id="productPieChart"></div>
+                <div id="categoryCompositionChart"></div>
             </div>
         </div>
     </div>
@@ -266,13 +266,13 @@
         <div class="card h-100 border-0 shadow-sm">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0 fw-bold">熱銷類別</h5>
-                <select id="top10OrderBy" class="form-select form-select-sm w-auto" onchange="loadTop10Chart()">
+                <select id="topSellingCategoriesOrderBy" class="form-select form-select-sm w-auto" onchange="loadTopSellingCategoriesChart()">
                     <option value="volume">依銷量</option>
                     <option value="revenue">依銷售額</option>
                 </select>
             </div>
             <div class="card-body">
-                <div id="top10Chart"></div>
+                <div id="topSellingCategoriesChart"></div>
             </div>
         </div>
     </div>
@@ -410,7 +410,7 @@
 @section Scripts {
     <script src="~/sneat/assets/vendor/libs/apex-charts/apexcharts.js"></script>
     <script>
-        let trendChart, pieChart, top10Chart, categoryChart, comparisonChart, growthGaugeChart, deltaTrendChart, growthBridgeChart;
+        let trendChart, categoryCompositionChart, topSellingCategoriesChart, categoryChart, comparisonChart, growthGaugeChart, deltaTrendChart, growthBridgeChart;
         let grandTotalSales = 0;    // 全域變數：總銷售量
         let grandTotalRevenue = 0;  // 全域變數：總營收額
         let currentCategoryChartType = 'bar'; // 預設為柱狀圖
@@ -471,8 +471,8 @@
         function refreshAllDashboard() {
             refreshMetrics();
             loadTrendChart();
-            loadPieChart();
-            loadTop10Chart();
+            loadCategoryCompositionChart();
+            loadTopSellingCategoriesChart();
             loadCategoryContribution();
             loadComparisonChart();
         }
@@ -613,10 +613,10 @@
             if(trendChart) trendChart.updateOptions({ chart: { type: type } });
         }
 
-        function loadPieChart() {
+        function loadCategoryCompositionChart() {
             const period = $('#periodFilter').val();
             const storeId = $('#storeFilter').val();
-            $.get(`/Orders/GetProductSalesChart?type=Pie&period=${period}&storeId=${storeId}`, function(data) {
+            $.get(`/Orders/GetCategoryCompositionChart?type=Pie&period=${period}&storeId=${storeId}`, function(data) {
                 if(!data.series || data.series.length === 0) return;
                 
                 const realSeries = data.series[0].data;
@@ -681,17 +681,17 @@
                         }
                     }
                 };
-                if(pieChart) pieChart.destroy();
-                pieChart = new ApexCharts(document.querySelector("#productPieChart"), options);
-                pieChart.render();
+                if(categoryCompositionChart) categoryCompositionChart.destroy();
+                categoryCompositionChart = new ApexCharts(document.querySelector("#categoryCompositionChart"), options);
+                categoryCompositionChart.render();
             });
         }
 
-        function loadTop10Chart() {
+        function loadTopSellingCategoriesChart() {
             const period = $('#periodFilter').val();
             const storeId = $('#storeFilter').val();
-            const orderBy = $('#top10OrderBy').val();
-            $.get(`/Orders/GetTop10Products?period=${period}&storeId=${storeId}&orderBy=${orderBy}`, function(data) {
+            const orderBy = $('#topSellingCategoriesOrderBy').val();
+            $.get(`/Orders/GetTopSellingCategories?period=${period}&storeId=${storeId}&orderBy=${orderBy}`, function(data) {
                 const barColors = data.map(item => getCategoryColor(item.categoryName));
                 const options = {
                     series: [{ 
@@ -772,9 +772,9 @@
                         }
                     }
                 };
-                if(top10Chart) top10Chart.destroy();
-                top10Chart = new ApexCharts(document.querySelector("#top10Chart"), options);
-                top10Chart.render();
+                if(topSellingCategoriesChart) topSellingCategoriesChart.destroy();
+                topSellingCategoriesChart = new ApexCharts(document.querySelector("#topSellingCategoriesChart"), options);
+                topSellingCategoriesChart.render();
             });
         }
 

@@ -133,9 +133,9 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Orders
 
 		// AJAX API：取得各商品銷售狀況 (長條圖 / 圓餅圖)
 		[HttpGet]
-		public async Task<IActionResult> GetProductSalesChart(int? storeId, string period = "month", string type = "Bar")
+		public async Task<IActionResult> GetCategoryCompositionChart(int? storeId, string period = "month", string type = "Bar")
 		{
-			var chartData = await _dashboardService.GetProductSalesChartAsync(storeId, period, type);
+			var chartData = await _dashboardService.GetCategoryCompositionChartAsync(storeId, period, type);
 			return Json(chartData);
 		}
 
@@ -147,11 +147,11 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Orders
 			return Json(data);
 		}
 
-		// AJAX API：取得熱銷 Top 10
+		// AJAX API：取得熱銷類別
 		[HttpGet]
-		public async Task<IActionResult> GetTop10Products(int? storeId, string period = "month", string orderBy = "revenue")
+		public async Task<IActionResult> GetTopSellingCategories(int? storeId, string period = "month", string orderBy = "revenue")
 		{
-			var top10 = await _dashboardService.GetTop10ProductsAsync(storeId, period, orderBy);
+			var top10 = await _dashboardService.GetTopSellingCategoriesAsync(storeId, period, orderBy);
 			return Json(top10);
 		}
 

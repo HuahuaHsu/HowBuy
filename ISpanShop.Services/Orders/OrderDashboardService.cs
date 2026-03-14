@@ -140,15 +140,15 @@ namespace ISpanShop.Services.Orders
 			};
 		}
 
-		public async Task<ApexChartDataDto> GetProductSalesChartAsync(int? storeId, string period, string chartType)
+		public async Task<ApexChartDataDto> GetCategoryCompositionChartAsync(int? storeId, string period, string chartType)
 		{
 			var (start, end, _, _) = ParsePeriod(period);
 
 			if (chartType == "Pie")
 			{
-				return await _orderRepository.GetProductSalesPieChartAsync(storeId, start, end);
+				return await _orderRepository.GetCategoryCompositionPieChartAsync(storeId, start, end);
 			}
-			return await _orderRepository.GetProductSalesBarChartAsync(storeId, start, end);
+			return await _orderRepository.GetCategoryCompositionBarChartAsync(storeId, start, end);
 		}
 
 		public async Task<ApexChartDataDto> GetMonthlySalesTrendAsync(int? storeId, int? year)
@@ -161,10 +161,10 @@ namespace ISpanShop.Services.Orders
 			return await _orderRepository.GetMonthlySalesTrendAsync(storeId, startDate, endDate);
 		}
 
-		public async Task<List<TopProductSalesDto>> GetTop10ProductsAsync(int? storeId, string period, string orderBy)
+		public async Task<List<TopProductSalesDto>> GetTopSellingCategoriesAsync(int? storeId, string period, string orderBy)
 		{
 			var (start, end, _, _) = ParsePeriod(period);
-			return await _orderRepository.GetTop10ProductsAsync(storeId, start, end, orderBy);
+			return await _orderRepository.GetTopSellingCategoriesAsync(storeId, start, end, orderBy);
 		}
 
 		public async Task<ApexChartDataDto> GetCategoryContributionAsync(int? storeId, string period)

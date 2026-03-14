@@ -243,7 +243,7 @@ namespace ISpanShop.Repositories.Orders
 			};
 		}
 
-		public async Task<ApexChartDataDto> GetProductSalesBarChartAsync(int? storeId, DateTime startDate, DateTime endDate)
+		public async Task<ApexChartDataDto> GetCategoryCompositionBarChartAsync(int? storeId, DateTime startDate, DateTime endDate)
 		{
 			var query = _context.OrderDetails
 				.Include(od => od.Order)
@@ -272,7 +272,7 @@ namespace ISpanShop.Repositories.Orders
 			return dto;
 		}
 
-		public async Task<ApexChartDataDto> GetProductSalesPieChartAsync(int? storeId, DateTime startDate, DateTime endDate)
+		public async Task<ApexChartDataDto> GetCategoryCompositionPieChartAsync(int? storeId, DateTime startDate, DateTime endDate)
 		{
 			// 需求：改為抓取全站「主類別」構成 (商品數量)
 			var query = _context.Products
@@ -347,7 +347,7 @@ namespace ISpanShop.Repositories.Orders
 			return dto;
 		}
 
-		public async Task<List<TopProductSalesDto>> GetTop10ProductsAsync(int? storeId, DateTime startDate, DateTime endDate, string orderBy)
+		public async Task<List<TopProductSalesDto>> GetTopSellingCategoriesAsync(int? storeId, DateTime startDate, DateTime endDate, string orderBy)
 		{
 			// 需求：改為抓取「熱銷類別」聚合統計 (初始顯示主類別)
 			var query = _context.OrderDetails
