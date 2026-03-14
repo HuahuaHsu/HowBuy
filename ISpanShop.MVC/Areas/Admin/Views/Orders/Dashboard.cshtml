@@ -366,7 +366,12 @@
                                 <h5 class="card-title mb-0 fw-bold">類別市佔百分點變動趨勢圖 (Market Share YoY Delta) <span class="badge bg-label-info ms-2 small comp-year-label"></span></h5>
                                 <p class="text-muted small mb-0 mt-1" id="categoryDeltaDesc">分析各類別市佔率對比去年的增減情況，正值為擴張，負值為萎縮。</p>
                             </div>
-                            <span class="badge bg-label-primary">Competitive Analysis</span>
+                            <div class="d-flex align-items-center">
+                                <button type="button" class="btn btn-sm btn-label-secondary me-3" id="resetDeltaZoom">
+                                    <i class="bx bx-refresh me-1"></i> 重設縮放
+                                </button>
+                                <span class="badge bg-label-primary">Competitive Analysis</span>
+                            </div>
                         </div>
                         <div id="categoryDeltaLineChart" class="px-3"></div>
                     </div>
@@ -422,6 +427,13 @@
             })
 
             refreshAllDashboard();
+
+            // 新增：重設縮放按鈕事件
+            $('#resetDeltaZoom').on('click', function() {
+                if (deltaTrendChart) {
+                    deltaTrendChart.resetSeries();
+                }
+            });
         });
 
         function refreshAllDashboard() {
@@ -1175,13 +1187,25 @@
                     data: item.monthlyGrowthRates
                 }));
 
+                // 動態計算所有數據點中的最大與最小值
+                let allPoints = [];
+                trendSeries.forEach(s => allPoints.push(...s.data));
+                const maxPoint = Math.max(...allPoints);
+                const minPoint = Math.min(...allPoints);
+
+                // 設定稍微寬一點點的邊界 (5% 緩衝)，避免頂部 Marker 被切掉
+                const range = maxPoint - minPoint;
+                const buffer = range * 0.1 || 1; // 至少保留 1% 緩衝避免 range 為 0
+                const yMax = maxPoint + buffer;
+                const yMin = minPoint - buffer;
+
                 const options = {
                     series: trendSeries,
                     chart: {
                         height: 450,
                         type: 'line',
                         toolbar: { 
-                            show: false // 移除匯出、放大縮小等功能
+                            show: false 
                         },
                         fontFamily: 'Public Sans, -apple-system, sans-serif'
                     },
@@ -1193,8 +1217,7 @@
                     },
                     legend: {
                         position: 'top',
-                        horizontalAlign: 'center', // 置中顯示，避免靠右被切掉
-                        offsetY: 0, // 移除負向位移，確保不被吃掉
+                        horizontalAlign: 'center',
                         onItemHover: { highlightDataSeries: true }
                     },
                     markers: {
@@ -1205,20 +1228,18 @@
                         yaxis: [{
                             y: 0,
                             borderColor: '#8592a3',
-                            strokeDashArray: 0,
-                            label: {
-                                borderColor: '#8592a3',
-                                style: { color: '#fff', background: '#8592a3' },
-                                text: '基準線 (0%)'
-                            }
+                            strokeDashArray: 0
                         }]
                     },
                     xaxis: {
                         categories: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
                     },
                     yaxis: {
+                        min: yMin,
+                        max: yMax,
+                        forceNiceScale: false, // 關閉 ApexCharts 的「整數化」刻度邏輯
                         labels: {
-                            formatter: (val) => (val > 0 ? '+' : '') + val.toFixed(0) + '%'
+                            formatter: (val) => (val > 0 ? '+' : '') + val.toFixed(1) + '%'
                         }
                     },
                     tooltip: {
