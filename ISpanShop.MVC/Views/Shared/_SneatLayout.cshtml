@@ -81,7 +81,6 @@
             flex-shrink: 0;
             overflow: hidden;
             transition: padding var(--transition);
-            /* 展開時讓 logo icon 對齊選單 icon（左邊距 1.25rem，icon 寬 1.2rem，置中在 34px 範圍內） */
             padding-left: 1.75rem;
         }
 
@@ -131,7 +130,6 @@
             display: block !important;
         }
 
-        /* 每個主選單項目加上底部間距，製造分隔感 */
         .menu-inner > .menu-item,
         .menu-inner > .menu-header {
             margin-bottom: 6px;
@@ -193,7 +191,6 @@
         .mini-wrap {
             display: none !important;
         }
-        /* In expanded state, standalone icons show; mini-wrap hidden */
 
         /* SUBMENU */
         .menu-sub {
@@ -250,12 +247,12 @@
         .menu-sub > ul > .menu-item.active:last-child > .menu-link {
             border-radius: 0 0 6px 6px;
         }
-        /* submenu items: use opacity animation only when NOT pre-open */
+
         .menu-sub > ul > .menu-item {
             opacity: 0;
             transition: opacity 0.2s ease;
         }
-            /* items already visible on page load - no animation */
+
             .menu-sub > ul > .menu-item.pre-open {
                 opacity: 1 !important;
                 transition: none !important;
@@ -396,7 +393,6 @@
             margin: 0 4px;
         }
 
-        /* menu-link 改成 block 置中容器，mini-wrap 控制 icon+短標籤緊靠 */
         body.sidebar-collapsed .menu-link,
         html.pre-collapsed .menu-link {
             display: block !important;
@@ -433,7 +429,6 @@
             white-space: nowrap;
         }
 
-        /* hide standalone icons when collapsed - only mini-wrap icons show */
         body.sidebar-collapsed .menu-link > .menu-icon,
         html.pre-collapsed .menu-link > .menu-icon {
             display: none !important;
@@ -455,7 +450,6 @@
             margin: 0 4px !important;
         }
 
-        /* 收合時選單間距 */
         body.sidebar-collapsed .menu-inner > .menu-item,
         html.pre-collapsed .menu-inner > .menu-item {
             margin-bottom: 16px;
@@ -582,7 +576,9 @@
                     var isOrderActive = ctrl == "Orders" || ctrl == "ShipmentWorkstation" || ctrl == "ReturnRequests" || ctrl == "OrderTracking";
                     var isContentSupportActive = ctrl == "SupportTickets" || ctrl == "SensitiveWords" || ctrl == "SensitiveWordCategories";
                     var isPaymentActive = ctrl == "PaymentManagement";
+                    var isStoreActive = ctrl == "Stores"; // ← 新增
                 }
+
                 <li class="menu-header"><span>營運管理</span></li>
 
                 <li class="menu-item has-sub @(ctrl == "Products" ? "active" : "")">
@@ -702,6 +698,7 @@
                         <a href="@Url.Action("Index", "OrderTracking", new { area = "Admin" })" class="text-info fw-bold">訂單追蹤(測試)</a>
                     </div>
                 </li>
+
                 <li class="menu-item @(isPaymentActive ? "active" : "")">
                     <a href="@Url.Action("Index", "PaymentManagement", new { area = "Admin" })" class="menu-link">
                         <span class="mini-wrap">
@@ -743,6 +740,7 @@
                         <a href="@Url.Action("Index", "SensitiveWordCategories", new { area = "Admin" })">敏感字分類管理</a>
                     </div>
                 </li>
+
                 <li class="menu-header"><span>帳號管理</span></li>
 
                 <li class="menu-item @(ctrl == "Member" ? "active" : "")">
@@ -753,6 +751,18 @@
                         </span>
                         <i class="menu-icon bx bx-user"></i>
                         <span class="menu-label">會員管理</span>
+                    </a>
+                </li>
+
+                @* ── 店家管理（新增）── *@
+                <li class="menu-item @(isStoreActive ? "active" : "")">
+                    <a href="@Url.Action("Index", "Stores", new { area = "Admin" })" class="menu-link">
+                        <span class="mini-wrap">
+                            <i class="menu-icon bx bx-store-alt"></i>
+                            <span class="menu-short">店家</span>
+                        </span>
+                        <i class="menu-icon bx bx-store-alt"></i>
+                        <span class="menu-label">店家管理</span>
                     </a>
                 </li>
 
@@ -885,14 +895,12 @@
     @await RenderSectionAsync("Scripts", required: false)
 
     <script>
-        // 搜尋輸入框關閉瀏覽器自動完成（new-password 比 off 更有效）
         document.querySelectorAll(
             'input[type="search"], input[type="text"][name="keyword"], input[type="text"][name="search"]'
         ).forEach(function(el) {
             el.setAttribute('autocomplete', 'new-password');
         });
 
-        // 全站 jQuery Validate 訊息中文化（需在 _ValidationScriptsPartial 載入後執行）
         if (window.jQuery && typeof jQuery.validator !== 'undefined') {
             jQuery.extend(jQuery.validator.messages, {
                 required: '此欄位為必填',
@@ -944,7 +952,6 @@
     </script>
 
     <script>
-        // 全站 HTML5 驗證訊息中文化
         document.addEventListener('invalid', function (e) {
             var v    = e.target.validity;
             var name = (e.target.name || '').toLowerCase();
@@ -980,15 +987,10 @@
             function isCollapsed() { return body.classList.contains('sidebar-collapsed'); }
             function isDesktop()   { return window.innerWidth >= DESKTOP; }
 
-            /* 儲存當前頁面 title，下次進入前先顯示 */
             sessionStorage.setItem('pageTitle', document.title);
 
-            /* 展開時隱藏 mini-wrap，只在收合時才用 */
             function applyExpandedIcons() {
                 document.querySelectorAll('.menu-link .mini-wrap').forEach(function(w){ w.style.display='none'; });
-            }
-            function applyCollapsedIcons() {
-                /* collapsed 狀態：用 CSS 控制，不需要 JS */
             }
 
             if (html.classList.contains('pre-collapsed')) {
@@ -1002,7 +1004,6 @@
                 document.querySelectorAll('.has-sub').forEach(function (item) {
                     if (item.querySelector('.menu-sub .menu-item.active')) {
                         item.classList.add('open');
-                        /* mark children already-visible: skip flash on same-page re-render */
                         item.querySelectorAll('.menu-sub > ul > .menu-item').forEach(function(li){
                             li.classList.add('pre-open');
                         });
@@ -1012,7 +1013,6 @@
 
             requestAnimationFrame(function () {
                 html.removeAttribute('data-open-menu');
-
                 requestAnimationFrame(function () {
                     document.querySelectorAll('.menu-sub').forEach(function (sub) {
                         sub.classList.add('animated');

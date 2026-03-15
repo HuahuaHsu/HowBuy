@@ -128,10 +128,10 @@
             - 權限：[Authorize(Roles = "SuperAdmin")]
             - Actions：
                 GET  Index()
-                     → 取得所有管理員列表 + 角色選單，回傳 AdminIndexVm
+                     -> 取得所有管理員列表 + 角色選單，回傳 AdminIndexVm
                 POST UpdateRole(int adminId, int roleId)
-                     → 呼叫 AdminService.UpdateAdminRole()
-                     → 操作完成後 RedirectToAction("Index")
+                     -> 呼叫 AdminService.UpdateAdminRole()
+                     -> 操作完成後 RedirectToAction("Index")
 
         [V] 建立 View Index.cshtml
             - 位置：ISpanShop.MVC/Views/Admins/Index.cshtml
@@ -279,10 +279,10 @@ STEP 3：商務邏輯層 (ISpanShop.Services)
 
     - VerifyLogin 邏輯：
         1. 呼叫 GetAdminByAccount(account)
-        2. 帳號不存在 → 回傳 null
+        2. 帳號不存在 -> 回傳 null
         3. BCrypt.Verify(password, admin.PasswordHash)
-        4. 驗證成功 → 回傳 AdminDto（含 IsFirstLogin）
-        5. 驗證失敗 → 回傳 null
+        4. 驗證成功 -> 回傳 AdminDto（含 IsFirstLogin）
+        5. 驗證失敗 -> 回傳 null
 
     - ChangePassword 邏輯：
         1. NewPassword == ConfirmPassword
@@ -339,21 +339,21 @@ STEP 5：展示層 (ISpanShop.MVC) - 管理員管理頁面
     - 位置：ISpanShop.MVC/Controllers/AdminsController.cs
 
     GET Index()
-        → admins         = AdminService.GetAllAdmins()
-        → levelOptions   = AdminService.GetSelectableAdminLevels()
-        → 組成 AdminIndexVm 回傳
+        -> admins         = AdminService.GetAllAdmins()
+        -> levelOptions   = AdminService.GetSelectableAdminLevels()
+        -> 組成 AdminIndexVm 回傳
 
     POST CreateAdmin(AdminCreateVm form)
-         → 呼叫 AdminService.CreateAdmin()
-         → 成功：TempData["GeneratedAccount"] = result.GeneratedAccount
+         -> 呼叫 AdminService.CreateAdmin()
+         -> 成功：TempData["GeneratedAccount"] = result.GeneratedAccount
                  TempData["Message"] = "帳號建立成功"
-         → RedirectToAction("Index")
+         -> RedirectToAction("Index")
 
     POST DeactivateAdmin(int userId)
-         → 從 Claims 取得 currentUserId
-         → 呼叫 AdminService.DeactivateAdmin()
-         → TempData["Message"] = 結果訊息
-         → RedirectToAction("Index")
+         -> 從 Claims 取得 currentUserId
+         -> 呼叫 AdminService.DeactivateAdmin()
+         -> TempData["Message"] = 結果訊息
+         -> RedirectToAction("Index")
 
 [V] 更新 Index.cshtml
 
@@ -403,32 +403,32 @@ STEP 6：展示層 (ISpanShop.MVC) - 實作管理員登入功能
     - 位置：ISpanShop.MVC/Controllers/AuthController.cs
 
     GET  Login()
-         → 顯示登入頁
+         -> 顯示登入頁
 
     POST Login(AdminLoginVm form)
-         → 呼叫 AdminService.VerifyLogin()
-         → 失敗：回傳錯誤訊息至 View
-         → 成功且 IsFirstLogin = true：
+         -> 呼叫 AdminService.VerifyLogin()
+         -> 失敗：回傳錯誤訊息至 View
+         -> 成功且 IsFirstLogin = true：
               SignInAsync 建立暫時 Claims
               RedirectToAction("ChangePassword")
-         → 成功且 IsFirstLogin = false：
+         -> 成功且 IsFirstLogin = false：
               SignInAsync 建立完整 Claims
               （含 UserId, Account, RoleName, AdminLevelId）
               RedirectToAction("Index", "Admins")
 
     GET  ChangePassword()
-         → [Authorize] 需已登入
-         → 顯示修改密碼頁
+         -> [Authorize] 需已登入
+         -> 顯示修改密碼頁
 
     POST ChangePassword(AdminChangePasswordVm form)
-         → 從 Claims 取得 UserId
-         → 呼叫 AdminService.ChangePassword()
-         → 成功：RedirectToAction("Index", "Admins")
-         → 失敗：回傳錯誤訊息至 View
+         -> 從 Claims 取得 UserId
+         -> 呼叫 AdminService.ChangePassword()
+         -> 成功：RedirectToAction("Index", "Admins")
+         -> 失敗：回傳錯誤訊息至 View
 
     GET  Logout()
-         → SignOutAsync
-         → RedirectToAction("Login")
+         -> SignOutAsync
+         -> RedirectToAction("Login")
 
 [V] 建立 Views/Auth/Login.cshtml
     - 帳號輸入欄（格式提示：ADM001）
@@ -618,13 +618,13 @@ STEP 3：更新商務邏輯層 (ISpanShop.Services)
         2. 呼叫 Repository.CreateAdminLevel()
 
     - UpdateAdminLevelConfig 邏輯：
-        1. AdminLevelId == 1 → 拒絕，回傳「系統預設身分不可修改」
+        1. AdminLevelId == 1 -> 拒絕，回傳「系統預設身分不可修改」
         2. 呼叫 Repository.UpdateAdminLevelConfig()
 
     - DeleteAdminLevel 邏輯：
-        1. AdminLevelId == 1 → 拒絕，回傳「系統預設身分不可刪除」
+        1. AdminLevelId == 1 -> 拒絕，回傳「系統預設身分不可刪除」
         2. HasAdminsBoundToLevel() 為 true
-           → 拒絕，回傳「尚有管理員綁定此身分，請先解除綁定」
+           -> 拒絕，回傳「尚有管理員綁定此身分，請先解除綁定」
         3. 呼叫 Repository.DeleteAdminLevel()
 
 ------------------------------------------------------------
@@ -765,7 +765,7 @@ STEP 5：更新展示層 (ISpanShop.MVC)
 注意事項
 ------------------------------------------------------------
   * 權限以 AdminLevelPermissions 為準，無個別微調
-  * 個別客製需求 → 新增一個專屬身分來達成
+  * 個別客製需求 -> 新增一個專屬身分來達成
   * AdminLevelId = 1（超級管理員）在 Service 層直接擋
     不依賴資料庫欄位判斷
   * 新增帳號時 AdminLevelOptions 排除 AdminLevelId = 1
@@ -897,10 +897,10 @@ STEP 5：更新展示層 (ISpanShop.MVC)
     - 位置：Areas/Admin/Controllers/Admin/AdminController.cs
     - 新增：
         POST ResetPassword(AdminResetPasswordDto dto)
-            → AdminService.ResetAdminPassword()
-            → TempData["Message"] = 結果訊息
-            → TempData["ActiveTab"] = "tab1"
-            → RedirectToAction("Index")
+            -> AdminService.ResetAdminPassword()
+            -> TempData["Message"] = 結果訊息
+            -> TempData["ActiveTab"] = "tab1"
+            -> RedirectToAction("Index")
  
 [V] AdminController 加上權限檢查
     - 在 Index() 開頭加：
@@ -1072,16 +1072,16 @@ STEP 3：商務邏輯層 (ISpanShop.Services)
     - ToggleVerified 邏輯：
         1. 呼叫 Repository.ToggleVerified()
         2. 回傳結果訊息
-           isVerified = true  → "已通過審核"
-           isVerified = false → "已取消審核"
+           isVerified = true  -> "已通過審核"
+           isVerified = false -> "已取消審核"
 
     - ToggleBlacklist 邏輯：
         1. 呼叫 GetStoreById() 取得 UserId
-        2. 若 Store 不存在 → 回傳 (false, "找不到該店家")
+        2. 若 Store 不存在 -> 回傳 (false, "找不到該店家")
         3. 呼叫 Repository.ToggleBlacklist(userId, isBlacklisted)
         4. 回傳結果訊息
-           isBlacklisted = true  → "已封鎖店家"
-           isBlacklisted = false → "已解除封鎖"
+           isBlacklisted = true  -> "已封鎖店家"
+           isBlacklisted = false -> "已解除封鎖"
 
 ------------------------------------------------------------
 STEP 4：依賴注入設定 (ISpanShop.MVC)
@@ -1095,19 +1095,19 @@ STEP 4：依賴注入設定 (ISpanShop.MVC)
 STEP 5：展示層 (ISpanShop.MVC)
 ------------------------------------------------------------
 
-[ ] 建立 StoreIndexVm
+[V ] 建立 StoreIndexVm
     - 位置：ISpanShop.MVC/Areas/Admin/Models/Stores/StoreIndexVm.cs
     - 內容：
         List<StoreDto>  Stores
         string?         Message
 
-[ ] 建立 StoreDetailVm
+[ V] 建立 StoreDetailVm
     - 位置：ISpanShop.MVC/Areas/Admin/Models/Stores/StoreDetailVm.cs
     - 內容：
         StoreDetailDto  Store
         string?         Message
 
-[ ] 建立 StoresController
+[ V] 建立 StoresController
     - 位置：ISpanShop.MVC/Areas/Admin/Controllers/Stores/StoresController.cs
     - 注意：加上 Area 標記與授權
 
@@ -1116,54 +1116,54 @@ STEP 5：展示層 (ISpanShop.MVC)
     public class StoresController : Controller
     {
         GET  Index()
-             → StoreService.GetAllStores()
-             → Message = TempData["Message"]
-             → 組成 StoreIndexVm 回傳
+             -> StoreService.GetAllStores()
+             -> Message = TempData["Message"]
+             -> 組成 StoreIndexVm 回傳
 
         GET  Edit(int storeId)
-             → StoreService.GetStoreById(storeId)
-             → 若找不到 → RedirectToAction("Index")
-             → 組成 StoreDetailVm
-             → return PartialView("_EditPartial", vm)
+             -> StoreService.GetStoreById(storeId)
+             -> 若找不到 -> RedirectToAction("Index")
+             -> 組成 StoreDetailVm
+             -> return PartialView("_EditPartial", vm)
 
         POST ToggleVerified(int storeId, bool isVerified)
-             → StoreService.ToggleVerified()
-             → TempData["Message"] = 結果訊息
-             → RedirectToAction("Index")
+             -> StoreService.ToggleVerified()
+             -> TempData["Message"] = 結果訊息
+             -> RedirectToAction("Index")
 
         POST ToggleBlacklist(int storeId, bool isBlacklisted)
-             → StoreService.ToggleBlacklist()
-             → TempData["Message"] = 結果訊息
-             → RedirectToAction("Index")
+             -> StoreService.ToggleBlacklist()
+             -> TempData["Message"] = 結果訊息
+             -> RedirectToAction("Index")
     }
 
-[ ] 建立 Index.cshtml
+[ V] 建立 Index.cshtml
     - 位置：ISpanShop.MVC/Areas/Admin/Views/Stores/Index.cshtml
 
-    ★ 頁面標題：「店家管理」
+     頁面標題：「店家管理」
 
-    ★ TempData 提示區塊：
+     TempData 提示區塊：
         @if (Model.Message != null)
         {
             <div class="alert">@Model.Message</div>
         }
 
-    ★ 列表欄位：
+     列表欄位：
         店家 ID、店家名稱、店主帳號、商品數、
         審核狀態、封鎖狀態、操作
 
-    ★ 審核狀態 Badge：
-        IsVerified = true  → 綠色「已審核」
-        IsVerified = false → 黃色「待審核」
+     審核狀態 Badge：
+        IsVerified = true  -> 綠色「已審核」
+        IsVerified = false -> 黃色「待審核」
 
-    ★ 封鎖狀態 Badge：
-        IsBlacklisted = true  → 紅色「已封鎖」
-        IsBlacklisted = false → 灰色「正常」
+     封鎖狀態 Badge：
+        IsBlacklisted = true  -> 紅色「已封鎖」
+        IsBlacklisted = false -> 灰色「正常」
 
-    ★ 操作欄：
+     操作欄：
         「查看/編輯」按鈕
-        → 以 AJAX 載入 _EditPartial 至 Modal 中
-        → 範例：
+        -> 以 AJAX 載入 _EditPartial 至 Modal 中
+        -> 範例：
           <button onclick="loadStoreDetail(@store.StoreId)">
               查看/編輯
           </button>
@@ -1188,17 +1188,17 @@ STEP 5：展示層 (ISpanShop.MVC)
     - 位置：ISpanShop.MVC/Areas/Admin/Views/Stores/_EditPartial.cshtml
     - @model StoreDetailVm
 
-    ★ 唯讀資訊區塊：
-        店家 ID         → @Model.Store.StoreId
-        店家名稱        → @Model.Store.StoreName
-        店主帳號        → @Model.Store.OwnerAccount
-        店家描述        → @Model.Store.Description
-        建立時間        → @Model.Store.CreatedAt
-        商品總數        → @Model.Store.ProductCount
-        上架中商品數    → @Model.Store.ActiveProductCount
-        累計銷售量      → @Model.Store.TotalSales
+     唯讀資訊區塊：
+        店家 ID         -> @Model.Store.StoreId
+        店家名稱        -> @Model.Store.StoreName
+        店主帳號        -> @Model.Store.OwnerAccount
+        店家描述        -> @Model.Store.Description
+        建立時間        -> @Model.Store.CreatedAt
+        商品總數        -> @Model.Store.ProductCount
+        上架中商品數    -> @Model.Store.ActiveProductCount
+        累計銷售量      -> @Model.Store.TotalSales
 
-    ★ 審核狀態切換：
+     審核狀態切換：
         @if (!Model.Store.IsVerified)
         {
             <form method="post" asp-area="Admin"
@@ -1226,7 +1226,7 @@ STEP 5：展示層 (ISpanShop.MVC)
             </form>
         }
 
-    ★ 封鎖狀態切換：
+     封鎖狀態切換：
         @if (!Model.Store.IsBlacklisted)
         {
             <form method="post" asp-area="Admin"
@@ -1255,9 +1255,9 @@ STEP 5：展示層 (ISpanShop.MVC)
             </form>
         }
 
-    ★ 警示文字（封鎖說明）：
+     警示文字（封鎖說明）：
         <p class="text-warning text-sm">
-            ※ 封鎖店家將同步封鎖該店主的會員帳號
+            封鎖店家將同步封鎖該店主的會員帳號
         </p>
 
 ------------------------------------------------------------

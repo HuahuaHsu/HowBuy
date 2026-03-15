@@ -1,0 +1,132 @@
+@using ISpanShop.MVC.Areas.Admin.Models.Stores
+@model StoreIndexVm
+
+@{
+    Layout = "~/Views/Shared/_SneatLayout.cshtml";
+    ViewData["Title"] = "店家管理";
+}
+
+<div class="container-xxl flex-grow-1 container-p-y">
+    <h4 class="fw-bold py-3 mb-4">
+        <span class="text-muted fw-light">商店管理 /</span> 店家列表
+    </h4>
+
+    @if (Model.Message != null)
+    {
+        <div class="alert alert-primary alert-dismissible" role="alert">
+            @Model.Message
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="card">
+        <h5 class="card-header d-flex justify-content-between align-items-center">
+            店家管理
+        </h5>
+        <div class="table-responsive text-nowrap">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>店家 ID</th>
+                        <th>店家名稱</th>
+                        <th>店主帳號</th>
+                        <th>商品數</th>
+                        <th>審核狀態</th>
+                        <th>封鎖狀態</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody class="table-border-bottom-0">
+                    @foreach (var store in Model.Stores)
+                    {
+                        <tr>
+                            <td><strong>#@store.StoreId</strong></td>
+                            <td>@store.StoreName</td>
+                            <td>@store.OwnerAccount</td>
+                            <td>@store.ProductCount</td>
+                            <td>
+                                @if (store.IsVerified)
+                                {
+                                    <span class="badge bg-label-success me-1">已審核</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-label-warning me-1">待審核</span>
+                                }
+                            </td>
+                            <td>
+                                @if (store.IsBlacklisted)
+                                {
+                                    <span class="badge bg-label-danger me-1">已封鎖</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-label-secondary me-1">正常</span>
+                                }
+                            </td>
+                            <td>
+                                <button type="button" class="btn btn-sm btn-outline-primary" 
+                                        onclick="loadStoreDetail(@store.StoreId)">
+                                    <i class="bx bx-edit-alt me-1"></i> 查看/編輯
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Store Detail Modal -->
+<div class="modal fade" id="storeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content" id="storeModalContent">
+            <!-- Content loaded via AJAX -->
+            <div class="modal-body text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const storeModal = new bootstrap.Modal(document.getElementById('storeModal'));
+        const modalContent = document.getElementById('storeModalContent');
+
+        function loadStoreDetail(storeId) {
+            // 顯示載入中的狀態
+            modalContent.innerHTML = `
+                <div class="modal-body text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>`;
+            
+            storeModal.show();
+
+            fetch(`/Admin/Stores/Edit?storeId=${storeId}`)
+                .then(response => {
+                    if (!response.ok) throw new Error('網路回應不正確');
+                    return response.text();
+                })
+                .then(html => {
+                    modalContent.innerHTML = html;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    modalContent.innerHTML = `
+                        <div class="modal-header">
+                            <h5 class="modal-title">發生錯誤</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body text-danger">
+                            無法載入店家資訊，請稍後再試。
+                        </div>`;
+                });
+        }
+    </script>
+}

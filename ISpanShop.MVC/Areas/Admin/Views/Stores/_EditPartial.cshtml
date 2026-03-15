@@ -1,0 +1,105 @@
+@using ISpanShop.MVC.Areas.Admin.Models.Stores
+@model StoreDetailVm
+
+<div class="modal-header">
+    <h5 class="modal-title" id="storeModalLabel">店家詳細資訊 - @Model.Store.StoreName</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<div class="modal-body">
+    <div class="row g-3">
+        <!-- 唯讀資訊區塊 -->
+        <div class="col-md-6">
+            <label class="form-label fw-bold">店家 ID</label>
+            <p class="form-control-plaintext">#@Model.Store.StoreId</p>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label fw-bold">店主帳號</label>
+            <p class="form-control-plaintext">@Model.Store.OwnerAccount</p>
+        </div>
+        <div class="col-12">
+            <label class="form-label fw-bold">店家名稱</label>
+            <p class="form-control-plaintext">@Model.Store.StoreName</p>
+        </div>
+        <div class="col-12">
+            <label class="form-label fw-bold">店家描述</label>
+            <p class="form-control-plaintext">@(string.IsNullOrEmpty(Model.Store.Description) ? "(無描述)" : Model.Store.Description)</p>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label fw-bold">建立時間</label>
+            <p class="form-control-plaintext">@Model.Store.CreatedAt?.ToString("yyyy-MM-dd HH:mm")</p>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label fw-bold">商品總數 (未刪除)</label>
+            <p class="form-control-plaintext">@Model.Store.ProductCount 筆</p>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label fw-bold">上架中商品數</label>
+            <p class="form-control-plaintext text-success">@Model.Store.ActiveProductCount 筆</p>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label fw-bold">累計銷售量</label>
+            <p class="form-control-plaintext text-primary">@Model.Store.TotalSales.ToString("N0")</p>
+        </div>
+
+        <hr class="my-2" />
+
+        <!-- 操作區塊 -->
+        <div class="col-12 d-flex gap-3">
+            <!-- 審核操作 -->
+            @if (!Model.Store.IsVerified)
+            {
+                <form method="post" asp-area="Admin" asp-controller="Stores" asp-action="ToggleVerified">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="storeId" value="@Model.Store.StoreId" />
+                    <input type="hidden" name="isVerified" value="true" />
+                    <button type="submit" class="btn btn-success">
+                        <i class="bx bx-check me-1"></i> 通過審核
+                    </button>
+                </form>
+            }
+            else
+            {
+                <form method="post" asp-area="Admin" asp-controller="Stores" asp-action="ToggleVerified">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="storeId" value="@Model.Store.StoreId" />
+                    <input type="hidden" name="isVerified" value="false" />
+                    <button type="submit" class="btn btn-outline-warning">
+                        <i class="bx bx-undo me-1"></i> 取消審核
+                    </button>
+                </form>
+            }
+
+            <!-- 封鎖操作 -->
+            @if (!Model.Store.IsBlacklisted)
+            {
+                <form method="post" asp-area="Admin" asp-controller="Stores" asp-action="ToggleBlacklist">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="storeId" value="@Model.Store.StoreId" />
+                    <input type="hidden" name="isBlacklisted" value="true" />
+                    <button type="submit" class="btn btn-danger" onclick="return confirm('確定要封鎖此店家？')">
+                        <i class="bx bx-block me-1"></i> 封鎖店家
+                    </button>
+                </form>
+            }
+            else
+            {
+                <form method="post" asp-area="Admin" asp-controller="Stores" asp-action="ToggleBlacklist">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="storeId" value="@Model.Store.StoreId" />
+                    <input type="hidden" name="isBlacklisted" value="false" />
+                    <button type="submit" class="btn btn-outline-success">
+                        <i class="bx bx-refresh me-1"></i> 解除封鎖
+                    </button>
+                </form>
+            }
+        </div>
+        <div class="col-12">
+            <p class="text-warning small mb-0">
+                <i class="bx bx-info-circle me-1"></i> ※ 封鎖店家將同步封鎖該店主的會員帳號，使其無法登入平台。
+            </p>
+        </div>
+    </div>
+</div>
+<div class="modal-footer">
+    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">關閉</button>
+</div>
