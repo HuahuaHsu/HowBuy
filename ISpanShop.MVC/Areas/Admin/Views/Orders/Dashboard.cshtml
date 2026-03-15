@@ -961,7 +961,8 @@
                             borderRadius: 4,
                             distributed: true,
                             dataLabels: { 
-                                position: 'top'
+                                position: 'top',
+                                hideOverflowingLabels: false
                             }
                         }
                     },
@@ -982,7 +983,8 @@
                                 return '$' + formatRevenue(val);
                             }
                         },
-                        offsetX: 10
+                        offsetX: 25, // 增加偏移量，確保長文字(如 $116.9 萬) 不會蓋到柱子
+                        dropShadow: { enabled: false }
                     },
                     colors: data.labels.map(name => getCategoryColor(name)),
                     xaxis: { 
