@@ -266,10 +266,7 @@
         <div class="card h-100 border-0 shadow-sm">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0 fw-bold">熱銷類別</h5>
-                <select id="topSellingCategoriesOrderBy" class="form-select form-select-sm w-auto" onchange="loadTopSellingCategoriesChart()">
-                    <option value="volume">依銷量</option>
-                    <option value="revenue">依銷售額</option>
-                </select>
+                <span class="badge bg-label-primary">依銷量</span>
             </div>
             <div class="card-body">
                 <div id="topSellingCategoriesChart"></div>
@@ -690,13 +687,13 @@
         function loadTopSellingCategoriesChart() {
             const period = $('#periodFilter').val();
             const storeId = $('#storeFilter').val();
-            const orderBy = $('#topSellingCategoriesOrderBy').val();
+            const orderBy = 'volume'; // 固定為銷量
             $.get(`/Orders/GetTopSellingCategories?period=${period}&storeId=${storeId}&orderBy=${orderBy}`, function(data) {
                 const barColors = data.map(item => getCategoryColor(item.categoryName));
                 const options = {
                     series: [{ 
-                        name: orderBy === 'revenue' ? '銷售額' : '銷量', 
-                        data: data.map(x => orderBy === 'revenue' ? x.salesRevenue : x.salesVolume) 
+                        name: '銷量', 
+                        data: data.map(x => x.salesVolume) 
                     }],
                     chart: { 
                         type: 'bar', 
@@ -706,7 +703,7 @@
                         events: {
                             dataPointSelection: function(event, chartContext, config) {
                                 const label = config.w.config.xaxis.categories[config.dataPointIndex];
-                                const type = orderBy === 'revenue' ? 'Revenue' : 'Sales';
+                                const type = 'Sales';
                                 showCategoryDetail(type, label);
                             }
                         }
@@ -733,19 +730,15 @@
                             colors: ['#566a7f'] 
                         },
                         formatter: function(val) {
-                            return orderBy === 'revenue' ? '$' + formatRevenue(val) : val + ' 件';
+                            return val + ' 件';
                         }
                     },
                     xaxis: { 
                         categories: data.map(x => x.productName),
                         labels: {
                             formatter: function(val) {
-                                if (orderBy === 'revenue') {
-                                    return formatRevenue(val);
-                                } else {
-                                    // 銷量(件數)只顯示整數標籤
-                                    return (val % 1 === 0) ? val : '';
-                                }
+                                // 銷量(件數)只顯示整數標籤
+                                return (val % 1 === 0) ? val : '';
                             }
                         },
                         crosshairs: {
@@ -764,11 +757,7 @@
                         intersect: false,
                         y: {
                             formatter: function(val) {
-                                if (orderBy === 'revenue') {
-                                    return '$' + val.toLocaleString();
-                                } else {
-                                    return val.toLocaleString() + ' 件';
-                                }
+                                return val.toLocaleString() + ' 件';
                             }
                         }
                     }
