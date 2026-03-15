@@ -30,7 +30,7 @@ namespace ISpanShop.Services.Admins
 		bool UpdateAdminRole(int adminId, int roleId, int currentAdminId);
 		string GetNextAccount();
 
-        /// <summary>取得管理員及其擁有的所有權限清單</summary>
-        AdminPermissionDto GetAdminWithPermissions(int adminId);
+		/// <summary>取得管理員及其擁有的所有權限清單</summary>
+		AdminLoginClaimsDto GetAdminWithPermissions(int adminId);
 	}
 }

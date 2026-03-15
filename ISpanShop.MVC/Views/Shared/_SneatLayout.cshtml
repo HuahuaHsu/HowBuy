@@ -1,4 +1,5 @@
-﻿<!DOCTYPE html>
+@using ISpanShop.Common.Helpers
+<!DOCTYPE html>
 <html lang="zh-Hant" dir="ltr" data-theme="theme-default"
       data-assets-path="/sneat/assets/"
       data-template="vertical-menu-template-free">
@@ -576,241 +577,287 @@
                     var isOrderActive = ctrl == "Orders" || ctrl == "ShipmentWorkstation" || ctrl == "ReturnRequests" || ctrl == "OrderTracking";
                     var isContentSupportActive = ctrl == "SupportTickets" || ctrl == "SensitiveWords" || ctrl == "SensitiveWordCategories";
                     var isPaymentActive = ctrl == "PaymentManagement";
-                    var isStoreActive = ctrl == "Stores"; // ← 新增
+                    var isStoreActive = ctrl == "Stores";
+
+                    bool showOperations =
+                        User.HasPermission("product_manage") ||
+                        User.HasPermission("store_manage") ||
+                        User.HasPermission("cashflow_manage") ||
+                        User.HasPermission("ticket_manage") ||
+                        User.HasPermission("sensitive_manage");
+
+                    bool showAccount =
+                        User.HasPermission("member_manage") ||
+                        User.HasPermission("store_manage") ||
+                        User.IsSuperAdmin();
                 }
 
-                <li class="menu-header"><span>營運管理</span></li>
-
-                <li class="menu-item has-sub @(ctrl == "Products" ? "active" : "")">
-                    <span class="menu-link">
-                        <span class="mini-wrap">
-                            <i class="menu-icon bx bx-store"></i>
-                            <span class="menu-short">商品</span>
-                        </span>
-                        <i class="menu-icon bx bx-store"></i>
-                        <span class="menu-label">商品監管</span>
-                        <i class="menu-arrow bx bx-chevron-right"></i>
-                    </span>
-                    <div class="menu-sub">
-                        <ul>
-                            <li class="menu-item @(ctrl == "Products" && action == "Index" ? "active" : "")">
-                                <a href="@Url.Action("Index", "Products", new { area = "Admin" })" class="menu-link">商品總覽</a>
-                            </li>
-                            <li class="menu-item @(ctrl == "Products" && action == "PendingReview" ? "active" : "")">
-                                <a href="@Url.Action("PendingReview", "Products", new { area = "Admin" })" class="menu-link">商品審核</a>
-                            </li>
-                        </ul>
-                    </div>
-                    <div class="menu-flyout">
-                        <div class="menu-flyout-title">商品監管</div>
-                        <a href="@Url.Action("Index", "Products", new { area = "Admin" })">商品總覽</a>
-                        <a href="@Url.Action("PendingReview", "Products", new { area = "Admin" })">商品審核</a>
-                    </div>
-                </li>
-
-                <li class="menu-item has-sub @(isCatActive ? "active" : "")">
-                    <span class="menu-link">
-                        <span class="mini-wrap">
-                            <i class="menu-icon bx bx-category"></i>
-                            <span class="menu-short">分類</span>
-                        </span>
-                        <i class="menu-icon bx bx-category"></i>
-                        <span class="menu-label">分類管理</span>
-                        <i class="menu-arrow bx bx-chevron-right"></i>
-                    </span>
-                    <div class="menu-sub">
-                        <ul>
-                            <li class="menu-item @(ctrl == "CategoryManage" ? "active" : "")">
-                                <a href="@Url.Action("Index", "CategoryManage", new { area = "Admin" })" class="menu-link">分類總覽</a>
-                            </li>
-                            <li class="menu-item @(ctrl == "CategorySpecs" ? "active" : "")">
-                                <a href="@Url.Action("Index", "CategorySpecs", new { area = "Admin" })" class="menu-link">分類屬性</a>
-                            </li>
-                        </ul>
-                    </div>
-                    <div class="menu-flyout">
-                        <div class="menu-flyout-title">分類管理</div>
-                        <a href="@Url.Action("Index", "CategoryManage", new { area = "Admin" })">分類總覽</a>
-                        <a href="@Url.Action("Index", "CategorySpecs", new { area = "Admin" })">分類屬性</a>
-                    </div>
-                </li>
-
-                <li class="menu-item has-sub @(isInvActive ? "active" : "")">
-                    <span class="menu-link">
-                        <span class="mini-wrap">
-                            <i class="menu-icon bx bx-package"></i>
-                            <span class="menu-short">庫存</span>
-                        </span>
-                        <i class="menu-icon bx bx-package"></i>
-                        <span class="menu-label">庫存監控</span>
-                        <i class="menu-arrow bx bx-chevron-right"></i>
-                    </span>
-                    <div class="menu-sub">
-                        <ul>
-                            <li class="menu-item @(isInvActive && action == "Index" ? "active" : "")">
-                                <a href="@Url.Action("Index", "Inventory", new { area = "Admin" })" class="menu-link">庫存監控</a>
-                            </li>
-                        </ul>
-                    </div>
-                    <div class="menu-flyout">
-                        <div class="menu-flyout-title">庫存監控</div>
-                        <a href="@Url.Action("Index", "Inventory", new { area = "Admin" })">庫存監控</a>
-                    </div>
-                </li>
-
-                <li class="menu-item has-sub @(isOrderActive ? "active" : "")">
-                    <span class="menu-link">
-                        <span class="mini-wrap">
-                            <i class="menu-icon bx bx-receipt"></i>
-                            <span class="menu-short">訂單</span>
-                        </span>
-                        <i class="menu-icon bx bx-receipt"></i>
-                        <span class="menu-label">訂單管理</span>
-                        <i class="menu-arrow bx bx-chevron-right"></i>
-                    </span>
-                    <div class="menu-sub">
-                        <ul>
-                            <li class="menu-item @(ctrl == "Orders" && action == "Index" ? "active" : "")">
-                                <a href="@Url.Action("Index", "Orders", new { area = "Admin" })" class="menu-link">全部訂單</a>
-                            </li>
-                            <li class="menu-item @(ctrl == "ShipmentWorkstation" ? "active" : "")">
-                                <a href="@Url.Action("Index", "ShipmentWorkstation", new { area = "Admin" })" class="menu-link">待出貨</a>
-                            </li>
-                            <li class="menu-item @(ctrl == "ReturnRequests" ? "active" : "")">
-                                <a href="@Url.Action("Index", "ReturnRequests", new { area = "Admin" })" class="menu-link">退貨申請</a>
-                            </li>
-                            <li class="menu-item">
-                                <hr class="mx-3 my-2" style="border-top: 1px solid rgba(255,255,255,0.15);" />
-                            </li>
-                            <li class="menu-item @(ctrl == "OrderTracking" ? "active" : "")">
-                                <a href="@Url.Action("Index", "OrderTracking", new { area = "Admin" })" class="menu-link text-info fw-bold">
-                                    <i class="bx bx-search-alt-2 me-2"></i>訂單追蹤(測試)
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                    <div class="menu-flyout">
-                        <div class="menu-flyout-title">訂單管理</div>
-                        <a href="@Url.Action("Index", "Orders", new { area = "Admin" })">全部訂單</a>
-                        <a href="@Url.Action("Index", "ShipmentWorkstation", new { area = "Admin" })">待出貨</a>
-                        <a href="@Url.Action("Index", "ReturnRequests", new { area = "Admin" })">退貨申請</a>
-                        <hr class="my-1 border-light opacity-25" />
-                        <a href="@Url.Action("Index", "OrderTracking", new { area = "Admin" })" class="text-info fw-bold">訂單追蹤(測試)</a>
-                    </div>
-                </li>
-
-                <li class="menu-item @(isPaymentActive ? "active" : "")">
-                    <a href="@Url.Action("Index", "PaymentManagement", new { area = "Admin" })" class="menu-link">
-                        <span class="mini-wrap">
-                            <i class="menu-icon bx bx-dollar-circle"></i>
-                            <span class="menu-short">金流</span>
-                        </span>
-                        <i class="menu-icon bx bx-dollar-circle"></i>
-                        <span class="menu-label">金流紀錄</span>
-                    </a>
-                </li>
-
-                <li class="menu-item has-sub @(isContentSupportActive ? "active" : "")">
-                    <span class="menu-link">
-                        <span class="mini-wrap">
-                            <i class="menu-icon bx bx-support"></i>
-                            <span class="menu-short">客服</span>
-                        </span>
-                        <i class="menu-icon bx bx-support"></i>
-                        <span class="menu-label">內容與客服管理</span>
-                        <i class="menu-arrow bx bx-chevron-right"></i>
-                    </span>
-                    <div class="menu-sub">
-                        <ul>
-                            <li class="menu-item @(ctrl == "SupportTickets" ? "active" : "")">
-                                <a href="@Url.Action("Index", "SupportTickets", new { area = "Admin" })" class="menu-link">客服中心</a>
-                            </li>
-                            <li class="menu-item @(ctrl == "SensitiveWords" ? "active" : "")">
-                                <a href="@Url.Action("Index", "SensitiveWords", new { area = "Admin" })" class="menu-link">敏感字管理</a>
-                            </li>
-                            <li class="menu-item @(ctrl == "SensitiveWordCategories" ? "active" : "")">
-                                <a href="@Url.Action("Index", "SensitiveWordCategories", new { area = "Admin" })" class="menu-link">敏感字分類管理</a>
-                            </li>
-                        </ul>
-                    </div>
-                    <div class="menu-flyout">
-                        <div class="menu-flyout-title">內容與客服管理</div>
-                        <a href="@Url.Action("Index", "SupportTickets", new { area = "Admin" })">客服中心</a>
-                        <a href="@Url.Action("Index", "SensitiveWords", new { area = "Admin" })">敏感字管理</a>
-                        <a href="@Url.Action("Index", "SensitiveWordCategories", new { area = "Admin" })">敏感字分類管理</a>
-                    </div>
-                </li>
-
-                <li class="menu-header"><span>帳號管理</span></li>
-
-                <li class="menu-item @(ctrl == "Member" ? "active" : "")">
-                    <a href="@Url.Action("Index", "Member", new { area = "Admin" })" class="menu-link">
-                        <span class="mini-wrap">
-                            <i class="menu-icon bx bx-user"></i>
-                            <span class="menu-short">會員</span>
-                        </span>
-                        <i class="menu-icon bx bx-user"></i>
-                        <span class="menu-label">會員管理</span>
-                    </a>
-                </li>
-
-                @* ── 店家管理（新增）── *@
-                <li class="menu-item @(isStoreActive ? "active" : "")">
-                    <a href="@Url.Action("Index", "Stores", new { area = "Admin" })" class="menu-link">
-                        <span class="mini-wrap">
-                            <i class="menu-icon bx bx-store-alt"></i>
-                            <span class="menu-short">店家</span>
-                        </span>
-                        <i class="menu-icon bx bx-store-alt"></i>
-                        <span class="menu-label">店家管理</span>
-                    </a>
-                </li>
-
-                <li class="menu-item @(ctrl == "LoginHistory" ? "active" : "")">
-                    <a href="@Url.Action("Index", "LoginHistory", new { area = "Admin" })" class="menu-link">
-                        <span class="mini-wrap">
-                            <i class="menu-icon bx bx-shield-quarter"></i>
-                            <span class="menu-short">登入</span>
-                        </span>
-                        <i class="menu-icon bx bx-shield-quarter"></i>
-                        <span class="menu-label">登入紀錄</span>
-                    </a>
-                </li>
-
-                @{
-                    var isAdminCtrl = ctrl == "Admin";
-                    bool isRoleTab = Context.Request.Query["activeTab"] == "tab2";
-                    var isAdminLevel1 = User.FindFirst("AdminLevelId")?.Value == "1";
-                }
-
-                @if (isAdminLevel1)
+                @if (showOperations)
                 {
-                    <li class="menu-item has-sub @(isAdminCtrl ? "active" : "")">
-                        <span class="menu-link">
-                            <span class="mini-wrap">
-                                <i class="menu-icon bx bx-shield-quarter"></i>
-                                <span class="menu-short">權限</span>
+                    <li class="menu-header"><span>營運管理</span></li>
+
+                    @if (User.HasPermission("product_manage"))
+                    {
+                        <li class="menu-item has-sub @(ctrl == "Products" ? "active" : "")">
+                            <span class="menu-link">
+                                <span class="mini-wrap">
+                                    <i class="menu-icon bx bx-store"></i>
+                                    <span class="menu-short">商品</span>
+                                </span>
+                                <i class="menu-icon bx bx-store"></i>
+                                <span class="menu-label">商品監管</span>
+                                <i class="menu-arrow bx bx-chevron-right"></i>
                             </span>
-                            <i class="menu-icon bx bx-shield-quarter"></i>
-                            <span class="menu-label">管理員權限</span>
-                            <i class="menu-arrow bx bx-chevron-right"></i>
-                        </span>
-                        <div class="menu-sub">
-                            <ul>
-                                <li class="menu-item @(isAdminCtrl && !isRoleTab ? "active" : "")" id="menu-admin-tab1">
-                                    <a href="@Url.Action("Index", "Admin", new { area = "Admin", activeTab = "tab1" })" class="menu-link">管理員帳號</a>
-                                </li>
-                                <li class="menu-item @(isAdminCtrl && isRoleTab ? "active" : "")" id="menu-admin-tab2">
-                                    <a href="@Url.Action("Index", "Admin", new { area = "Admin", activeTab = "tab2" })" class="menu-link">身分與權限</a>
-                                </li>
-                            </ul>
-                        </div>
-                        <div class="menu-flyout">
-                            <div class="menu-flyout-title">管理員權限</div>
-                            <a href="@Url.Action("Index", "Admin", new { area = "Admin", activeTab = "tab1" })">管理員帳號</a>
-                            <a href="@Url.Action("Index", "Admin", new { area = "Admin", activeTab = "tab2" })">身分與權限</a>
-                        </div>
-                    </li>
+                            <div class="menu-sub">
+                                <ul>
+                                    <li class="menu-item @(ctrl == "Products" && action == "Index" ? "active" : "")">
+                                        <a href="@Url.Action("Index", "Products", new { area = "Admin" })" class="menu-link">商品總覽</a>
+                                    </li>
+                                    <li class="menu-item @(ctrl == "Products" && action == "PendingReview" ? "active" : "")">
+                                        <a href="@Url.Action("PendingReview", "Products", new { area = "Admin" })" class="menu-link">商品審核</a>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="menu-flyout">
+                                <div class="menu-flyout-title">商品監管</div>
+                                <a href="@Url.Action("Index", "Products", new { area = "Admin" })">商品總覽</a>
+                                <a href="@Url.Action("PendingReview", "Products", new { area = "Admin" })">商品審核</a>
+                            </div>
+                        </li>
+
+                        <li class="menu-item has-sub @(isCatActive ? "active" : "")">
+                            <span class="menu-link">
+                                <span class="mini-wrap">
+                                    <i class="menu-icon bx bx-category"></i>
+                                    <span class="menu-short">分類</span>
+                                </span>
+                                <i class="menu-icon bx bx-category"></i>
+                                <span class="menu-label">分類管理</span>
+                                <i class="menu-arrow bx bx-chevron-right"></i>
+                            </span>
+                            <div class="menu-sub">
+                                <ul>
+                                    <li class="menu-item @(ctrl == "CategoryManage" ? "active" : "")">
+                                        <a href="@Url.Action("Index", "CategoryManage", new { area = "Admin" })" class="menu-link">分類總覽</a>
+                                    </li>
+                                    <li class="menu-item @(ctrl == "CategorySpecs" ? "active" : "")">
+                                        <a href="@Url.Action("Index", "CategorySpecs", new { area = "Admin" })" class="menu-link">分類屬性</a>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="menu-flyout">
+                                <div class="menu-flyout-title">分類管理</div>
+                                <a href="@Url.Action("Index", "CategoryManage", new { area = "Admin" })">分類總覽</a>
+                                <a href="@Url.Action("Index", "CategorySpecs", new { area = "Admin" })">分類屬性</a>
+                            </div>
+                        </li>
+                    }
+
+                    @if (User.HasPermission("store_manage"))
+                    {
+                        <li class="menu-item has-sub @(isInvActive ? "active" : "")">
+                            <span class="menu-link">
+                                <span class="mini-wrap">
+                                    <i class="menu-icon bx bx-package"></i>
+                                    <span class="menu-short">庫存</span>
+                                </span>
+                                <i class="menu-icon bx bx-package"></i>
+                                <span class="menu-label">庫存監控</span>
+                                <i class="menu-arrow bx bx-chevron-right"></i>
+                            </span>
+                            <div class="menu-sub">
+                                <ul>
+                                    <li class="menu-item @(isInvActive && action == "Index" ? "active" : "")">
+                                        <a href="@Url.Action("Index", "Inventory", new { area = "Admin" })" class="menu-link">庫存監控</a>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="menu-flyout">
+                                <div class="menu-flyout-title">庫存監控</div>
+                                <a href="@Url.Action("Index", "Inventory", new { area = "Admin" })">庫存監控</a>
+                            </div>
+                        </li>
+                    }
+
+                    @if (User.HasPermission("cashflow_manage"))
+                    {
+                        <li class="menu-item has-sub @(isOrderActive ? "active" : "")">
+                            <span class="menu-link">
+                                <span class="mini-wrap">
+                                    <i class="menu-icon bx bx-receipt"></i>
+                                    <span class="menu-short">訂單</span>
+                                </span>
+                                <i class="menu-icon bx bx-receipt"></i>
+                                <span class="menu-label">訂單管理</span>
+                                <i class="menu-arrow bx bx-chevron-right"></i>
+                            </span>
+                            <div class="menu-sub">
+                                <ul>
+                                    <li class="menu-item @(ctrl == "Orders" && action == "Index" ? "active" : "")">
+                                        <a href="@Url.Action("Index", "Orders", new { area = "Admin" })" class="menu-link">全部訂單</a>
+                                    </li>
+                                    <li class="menu-item @(ctrl == "ShipmentWorkstation" ? "active" : "")">
+                                        <a href="@Url.Action("Index", "ShipmentWorkstation", new { area = "Admin" })" class="menu-link">待出貨</a>
+                                    </li>
+                                    <li class="menu-item @(ctrl == "ReturnRequests" ? "active" : "")">
+                                        <a href="@Url.Action("Index", "ReturnRequests", new { area = "Admin" })" class="menu-link">退貨申請</a>
+                                    </li>
+                                    <li class="menu-item">
+                                        <hr class="mx-3 my-2" style="border-top: 1px solid rgba(255,255,255,0.15);" />
+                                    </li>
+                                    <li class="menu-item @(ctrl == "OrderTracking" ? "active" : "")">
+                                        <a href="@Url.Action("Index", "OrderTracking", new { area = "Admin" })" class="menu-link text-info fw-bold">
+                                            <i class="bx bx-search-alt-2 me-2"></i>訂單追蹤(測試)
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="menu-flyout">
+                                <div class="menu-flyout-title">訂單管理</div>
+                                <a href="@Url.Action("Index", "Orders", new { area = "Admin" })">全部訂單</a>
+                                <a href="@Url.Action("Index", "ShipmentWorkstation", new { area = "Admin" })">待出貨</a>
+                                <a href="@Url.Action("Index", "ReturnRequests", new { area = "Admin" })">退貨申請</a>
+                                <hr class="my-1 border-light opacity-25" />
+                                <a href="@Url.Action("Index", "OrderTracking", new { area = "Admin" })" class="text-info fw-bold">訂單追蹤(測試)</a>
+                            </div>
+                        </li>
+
+                        <li class="menu-item @(isPaymentActive ? "active" : "")">
+                            <a href="@Url.Action("Index", "PaymentManagement", new { area = "Admin" })" class="menu-link">
+                                <span class="mini-wrap">
+                                    <i class="menu-icon bx bx-dollar-circle"></i>
+                                    <span class="menu-short">金流</span>
+                                </span>
+                                <i class="menu-icon bx bx-dollar-circle"></i>
+                                <span class="menu-label">金流紀錄</span>
+                            </a>
+                        </li>
+                    }
+
+                    @if (User.HasPermission("ticket_manage") || User.HasPermission("sensitive_manage"))
+                    {
+                        <li class="menu-item has-sub @(isContentSupportActive ? "active" : "")">
+                            <span class="menu-link">
+                                <span class="mini-wrap">
+                                    <i class="menu-icon bx bx-support"></i>
+                                    <span class="menu-short">客服</span>
+                                </span>
+                                <i class="menu-icon bx bx-support"></i>
+                                <span class="menu-label">內容與客服管理</span>
+                                <i class="menu-arrow bx bx-chevron-right"></i>
+                            </span>
+                            <div class="menu-sub">
+                                <ul>
+                                    @if (User.HasPermission("ticket_manage"))
+                                    {
+                                        <li class="menu-item @(ctrl == "SupportTickets" ? "active" : "")">
+                                            <a href="@Url.Action("Index", "SupportTickets", new { area = "Admin" })" class="menu-link">客服中心</a>
+                                        </li>
+                                    }
+                                    @if (User.HasPermission("sensitive_manage"))
+                                    {
+                                        <li class="menu-item @(ctrl == "SensitiveWords" ? "active" : "")">
+                                            <a href="@Url.Action("Index", "SensitiveWords", new { area = "Admin" })" class="menu-link">敏感字管理</a>
+                                        </li>
+                                        <li class="menu-item @(ctrl == "SensitiveWordCategories" ? "active" : "")">
+                                            <a href="@Url.Action("Index", "SensitiveWordCategories", new { area = "Admin" })" class="menu-link">敏感字分類管理</a>
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                            <div class="menu-flyout">
+                                <div class="menu-flyout-title">內容與客服管理</div>
+                                @if (User.HasPermission("ticket_manage"))
+                                {
+                                    <a href="@Url.Action("Index", "SupportTickets", new { area = "Admin" })">客服中心</a>
+                                }
+                                @if (User.HasPermission("sensitive_manage"))
+                                {
+                                    <a href="@Url.Action("Index", "SensitiveWords", new { area = "Admin" })">敏感字管理</a>
+                                    <a href="@Url.Action("Index", "SensitiveWordCategories", new { area = "Admin" })">敏感字分類管理</a>
+                                }
+                            </div>
+                        </li>
+                    }
+                }
+
+                @if (showAccount)
+                {
+                    <li class="menu-header"><span>帳號管理</span></li>
+
+                    @if (User.HasPermission("member_manage"))
+                    {
+                        <li class="menu-item @(ctrl == "Member" ? "active" : "")">
+                            <a href="@Url.Action("Index", "Member", new { area = "Admin" })" class="menu-link">
+                                <span class="mini-wrap">
+                                    <i class="menu-icon bx bx-user"></i>
+                                    <span class="menu-short">會員</span>
+                                </span>
+                                <i class="menu-icon bx bx-user"></i>
+                                <span class="menu-label">會員管理</span>
+                            </a>
+                        </li>
+                    }
+
+                    @if (User.HasPermission("store_manage"))
+                    {
+                        <li class="menu-item @(isStoreActive ? "active" : "")">
+                            <a href="@Url.Action("Index", "Stores", new { area = "Admin" })" class="menu-link">
+                                <span class="mini-wrap">
+                                    <i class="menu-icon bx bx-store-alt"></i>
+                                    <span class="menu-short">店家</span>
+                                </span>
+                                <i class="menu-icon bx bx-store-alt"></i>
+                                <span class="menu-label">店家管理</span>
+                            </a>
+                        </li>
+                    }
+
+                    @if (User.IsSuperAdmin())
+                    {
+                        <li class="menu-item @(ctrl == "LoginHistory" ? "active" : "")">
+                            <a href="@Url.Action("Index", "LoginHistory", new { area = "Admin" })" class="menu-link">
+                                <span class="mini-wrap">
+                                    <i class="menu-icon bx bx-shield-quarter"></i>
+                                    <span class="menu-short">登入</span>
+                                </span>
+                                <i class="menu-icon bx bx-shield-quarter"></i>
+                                <span class="menu-label">登入紀錄</span>
+                            </a>
+                        </li>
+
+                        
+                            var isAdminCtrl = ctrl == "Admin";
+                            bool isRoleTab = Context.Request.Query["activeTab"] == "tab2";
+                        
+
+                        <li class="menu-item has-sub @(isAdminCtrl ? "active" : "")">
+                            <span class="menu-link">
+                                <span class="mini-wrap">
+                                    <i class="menu-icon bx bx-shield-quarter"></i>
+                                    <span class="menu-short">權限</span>
+                                </span>
+                                <i class="menu-icon bx bx-shield-quarter"></i>
+                                <span class="menu-label">管理員權限</span>
+                                <i class="menu-arrow bx bx-chevron-right"></i>
+                            </span>
+                            <div class="menu-sub">
+                                <ul>
+                                    <li class="menu-item @(isAdminCtrl && !isRoleTab ? "active" : "")" id="menu-admin-tab1">
+                                        <a href="@Url.Action("Index", "Admin", new { area = "Admin", activeTab = "tab1" })" class="menu-link">管理員帳號</a>
+                                    </li>
+                                    <li class="menu-item @(isAdminCtrl && isRoleTab ? "active" : "")" id="menu-admin-tab2">
+                                        <a href="@Url.Action("Index", "Admin", new { area = "Admin", activeTab = "tab2" })" class="menu-link">身分與權限</a>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="menu-flyout">
+                                <div class="menu-flyout-title">管理員權限</div>
+                                <a href="@Url.Action("Index", "Admin", new { area = "Admin", activeTab = "tab1" })">管理員帳號</a>
+                                <a href="@Url.Action("Index", "Admin", new { area = "Admin", activeTab = "tab2" })">身分與權限</a>
+                            </div>
+                        </li>
+                    }
                 }
 
             </ul>
@@ -943,7 +990,6 @@
                     if (onConfirm) onConfirm();
                 };
                 document.getElementById('_gCancel').onclick = function () {
-                    getModal().hide();
                     if (onCancel) onCancel();
                 };
                 getModal().show();

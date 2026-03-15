@@ -1436,7 +1436,7 @@ STEP 5：建立 RequirePermission Attribute (ISpanShop.MVC)
     - 回傳：403 提示頁面或 View
  
 ------------------------------------------------------------
-STEP 6：各 Controller 套用 Attribute
+[V]STEP 6：各 Controller 套用 Attribute
 ------------------------------------------------------------
  
 [ ] ProductsController（商品監管）

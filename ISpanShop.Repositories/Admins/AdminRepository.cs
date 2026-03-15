@@ -1104,9 +1104,6 @@ namespace ISpanShop.Repositories.Admins
 			return adminPermission;
 		}
 
-		AdminPermissionDto IAdminRepository.GetAdminWithPermissions(int adminId)
-		{
-			throw new NotImplementedException();
-		}
+		
 	}
 }

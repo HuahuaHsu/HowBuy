@@ -386,8 +386,10 @@ public class AdminService : IAdminService
 		}
 		}
 
-		public AdminPermissionDto GetAdminWithPermissions(int adminId)
-		{
+	public AdminLoginClaimsDto GetAdminWithPermissions(int adminId)
+	{
 		return _adminRepository.GetAdminWithPermissions(adminId);
-		}
-		}
+	}
+
+	
+}
