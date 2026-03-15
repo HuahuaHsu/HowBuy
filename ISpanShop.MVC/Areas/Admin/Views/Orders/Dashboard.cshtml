@@ -910,11 +910,31 @@
                 const othersTotal = rawData.reduce((a, b) => a + b, 0);
                 const othersToGrandPercent = denominator > 0 ? ((othersTotal / denominator) * 100).toFixed(1) : 0;
 
-                // 計算優化的最大值與刻度 (增加 25% 緩衝空間)
+                // 智慧型最大值計算邏輯 (參考熱銷類別成功案例)
                 const rawMax = rawData.length > 0 ? Math.max(...rawData) : 0;
-                let targetMax = Math.ceil(rawMax * 1.25);
-                if (targetMax < 4) targetMax = 4;
-                const finalMax = Math.ceil(targetMax / 4) * 4;
+                let finalMax = 4;
+                if (rawMax > 0) {
+                    // 1. 預留 30% 緩衝空間
+                    let target = rawMax * 1.3;
+                    
+                    // 2. 根據數據規模找漂亮的步長 (Step)
+                    // 如果數據小於 10，每格 2 或 5
+                    // 如果數據較大，找一個能讓 tickAmount=4 跑出漂亮整數的值
+                    let step;
+                    if (target <= 10) step = 2;
+                    else if (target <= 20) step = 5;
+                    else if (target <= 100) step = 10;
+                    else if (target <= 500) step = 50;
+                    else if (target <= 2000) step = 200;
+                    else if (target <= 10000) step = 1000;
+                    else step = Math.pow(10, Math.floor(Math.log10(target / 4))) * 2; // 大數據自動步長
+                    
+                    finalMax = Math.ceil(target / step) * step;
+                    // 確保能被 4 整除以便對齊刻度
+                    if (finalMax % 4 !== 0) {
+                        finalMax = Math.ceil(finalMax / (step * 4)) * (step * 4);
+                    }
+                }
 
                 // 動態更新標題
                 let typeText = '營收額';
