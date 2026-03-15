@@ -943,9 +943,8 @@
                         },
                         formatter: function(val) {
                             if (type === 'Sales' || type === 'Composition') {
-                                // 顯示：佔全體百分比
-                                if (denominator === 0) return '0%';
-                                return ((val / denominator) * 100).toFixed(1) + '%';
+                                // 顯示：實際件數
+                                return val.toLocaleString() + ' 件';
                             } else {
                                 // 營收顯示：格式化金額 (萬)
                                 return '$' + formatRevenue(val);
