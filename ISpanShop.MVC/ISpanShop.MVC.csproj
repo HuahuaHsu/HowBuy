@@ -29,6 +29,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Areas\Admin\Controllers\Stores\" />
+    <Folder Include="Areas\Admin\Models\Stores\" />
+    <Folder Include="Areas\Admin\Views\Stores\" />
     <Folder Include="Models\Orders\" />
   </ItemGroup>
 

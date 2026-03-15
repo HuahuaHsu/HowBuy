@@ -357,7 +357,7 @@ STEP 5：展示層 (ISpanShop.MVC) - 管理員管理頁面
 
 [V] 更新 Index.cshtml
 
-    ★ 建立成功提示區塊：
+     建立成功提示區塊：
         @if (TempData["GeneratedAccount"] != null)
         {
             <div class="bg-yellow-50 border border-yellow-300 p-4 rounded">
@@ -370,13 +370,13 @@ STEP 5：展示層 (ISpanShop.MVC) - 管理員管理頁面
             </div>
         }
 
-    ★ 新增管理員 Modal（兩個輸入欄位）：
+     新增管理員 Modal（兩個輸入欄位）：
         初始密碼輸入欄
         管理員等級下拉選單（來源：AdminLevelOptions，不含超級管理員）
 
-    ★ 列表新增 AdminLevelName 欄位顯示
+     列表新增 AdminLevelName 欄位顯示
 
-    ★ 停用按鈕：
+     停用按鈕：
         每列新增「停用」按鈕（含 JS confirm 確認）
         IsBlacklisted = true 的列顯示灰底並標記「已停用」
         自己那列停用按鈕設為 disabled
@@ -671,8 +671,8 @@ STEP 5：更新展示層 (ISpanShop.MVC)
 [V] 重寫 Index.cshtml
     - 位置：ISpanShop.MVC/Areas/Admin/Views/Admin/Index.cshtml
 
-    ★ 頁面標題：「後台權限與帳號管理」
-    ★ 右上角：「+ 新增管理員」按鈕
+     頁面標題：「後台權限與帳號管理」
+     右上角：「+ 新增管理員」按鈕
 
    [V] 移除底部「權限等級說明」區塊
     - 原本顯示：讀取 / 寫入 / 刪除 / 完整 的 CRUD 圖例
@@ -696,23 +696,23 @@ STEP 5：更新展示層 (ISpanShop.MVC)
 
     欄位：ID、管理員帳號、身分、實際擁有權限(Tags)、操作
 
-    ★ 權限 Tags 顯示：
+     權限 Tags 顯示：
         @foreach (var p in admin.ActualPermissions)
         {
             <span class="tag">@p.DisplayName</span>
         }
         若 ActualPermissions.Count == 0：顯示「無任何權限」
 
-    ★ 操作欄：編輯（✏️）、停用（🗑️）
+     操作欄：編輯（✏️）、停用（🗑️）
 
-    ★ 新增管理員 Modal：
+     新增管理員 Modal：
         管理員 ID：唯讀（顯示下一個可用 Id）
         登入帳號：文字輸入（非必填）
         登入密碼：文字輸入（必填）
         確認密碼：文字輸入（必填）
         指派身分：下拉選單（不含超級管理員選項）
 
-        ★ JS 連動：選身分時顯示對應預設權限（唯讀預覽）
+         JS 連動：選身分時顯示對應預設權限（唯讀預覽）
           const levelPermissions = @Html.Raw(Json.Serialize(
               Model.AdminLevels.ToDictionary(
                   l => l.AdminLevelId,
@@ -727,39 +727,39 @@ STEP 5：更新展示層 (ISpanShop.MVC)
                     `<span class="tag">${n}</span>`).join('');
             });
 
-    ★ 編輯管理員 Modal：
+     編輯管理員 Modal：
         ID：唯讀
         帳號：唯讀（鎖定）
         指派身分：下拉選單（可修改，不含超級管理員）
         密碼：隱藏
 
-    ★ 停用確認：JS confirm 二次確認
+     停用確認：JS confirm 二次確認
 
     ── Tab 2：身分與權限設定 ────────────────────
 
     欄位：ID、身分名稱、描述、預設功能權限(Tags)、操作
 
-    ★ 超級管理員列（AdminLevelId = 1）：
+     超級管理員列（AdminLevelId = 1）：
         名稱旁顯示「系統預設」標籤
         編輯 / 刪除按鈕 disabled
 
-    ★ 新增身分 Modal：
+     新增身分 Modal：
         身分名稱：必填
         描述：選填
         預設權限：Checkbox 群組（來源：AllPermissions）
 
-    ★ 編輯身分 Modal：
+     編輯身分 Modal：
         身分名稱：可修改
         描述：可修改
         預設權限：Checkbox 群組（預先勾選現有設定）
 
-    ★ 刪除：JS confirm 確認
+     刪除：JS confirm 確認
         失敗時 Toast 顯示「尚有管理員綁定此身分」提示
 
     ── 共用 ─────────────────────────────────────
 
-    ★ Toast 提示：從 TempData["Message"] 觸發
-    ★ 防呆：必填欄位未填阻擋送出並高亮錯誤欄位
+     Toast 提示：從 TempData["Message"] 觸發
+     防呆：必填欄位未填阻擋送出並高亮錯誤欄位
 
 ------------------------------------------------------------
 注意事項
@@ -855,19 +855,14 @@ STEP 5：更新展示層 (ISpanShop.MVC)
 
 【後台管理系統 - 管理員權限頁面優化】 
 
- 
-【STEP 1】DTO 新增
-------------------------------------------------------------
+ 【STEP 1】DTO 新增
 [V] 新增 AdminResetPasswordDto
     - 位置：ISpanShop.Models/DTOs/Admins/AdminDtos.cs
     - 欄位：
         int    UserId
         string NewPassword   // 管理員設定的臨時密碼
- 
-----------------------------------------------------------------
- 
+
 【STEP 2】Repository 新增
-------------------------------------------------------------
 [V] IAdminRepository 新增介面方法
     - 位置：ISpanShop.Repositories/Admins/IAdminRepository.cs
     - 新增：
@@ -883,10 +878,8 @@ STEP 5：更新展示層 (ISpanShop.MVC)
             UpdatedAt = GETDATE()
         WHERE Id = @UserId
  
-----------------------------------------------------------------
- 
+
 【STEP 3】Service 新增
-------------------------------------------------------------
 [V] IAdminService 新增介面方法
     - 位置：ISpanShop.Services/Admins/IAdminService.cs
     - 新增：
@@ -899,10 +892,7 @@ STEP 5：更新展示層 (ISpanShop.MVC)
         3. BCrypt Hash 新密碼
         4. 呼叫 Repository.ResetPassword()
  
-----------------------------------------------------------------
- 
 【STEP 4】Controller 更新
-------------------------------------------------------------
 [V] AdminController 新增 Action
     - 位置：Areas/Admin/Controllers/Admin/AdminController.cs
     - 新增：
@@ -919,10 +909,7 @@ STEP 5：更新展示層 (ISpanShop.MVC)
             return RedirectToAction("Dashboard", "Orders", new { area = "Admin" });
     - 所有 POST Action 也加相同檢查
  
-----------------------------------------------------------------
- 
 【STEP 5】View 更新
-------------------------------------------------------------
 [V] Index.cshtml 新增編輯側拉 Panel
     - 位置：Areas/Admin/Views/Admin/Index.cshtml
     - Tab1 表格每列操作欄加上「編輯」按鈕
@@ -936,11 +923,8 @@ STEP 5：更新展示層 (ISpanShop.MVC)
         超級管理員（AdminLevelId = 1）的身分等級和狀態不可修改
         不可修改自己的狀態
         重設密碼送出後 IsFirstLogin = 1，員工下次登入強制改密碼
- 
-----------------------------------------------------------------
- 
+
 【STEP 6】選單權限控制
-------------------------------------------------------------
 [V] _Layout.cshtml 隱藏「管理員管理」選單
     - 只有 AdminLevelId = 1 才顯示「管理員管理」選單項目
     - 修改方式：
@@ -948,3 +932,344 @@ STEP 5：更新展示層 (ISpanShop.MVC)
         {
             // 管理員管理選單 li
         }
+
+============================================================
+  店家管理 (Store Management) - 實作 Todolist
+  參考：會員管理頁面邏輯
+  資料來源：Stores + Products + Users
+  架構：Areas/Admin
+============================================================
+
+------------------------------------------------------------
+STEP 0：建立資料夾
+------------------------------------------------------------
+
+[ ] ISpanShop.Models/DTOs/Stores/
+[ ] ISpanShop.Repositories/Stores/
+[ ] ISpanShop.Services/Stores/
+[ ] ISpanShop.MVC/Areas/Admin/Controllers/Stores/
+[ ] ISpanShop.MVC/Areas/Admin/Models/Stores/
+[ ] ISpanShop.MVC/Areas/Admin/Views/Stores/
+
+------------------------------------------------------------
+STEP 1：定義資料傳輸物件 (ISpanShop.Models)
+------------------------------------------------------------
+
+[V] 新增 StoreDto
+    - 位置：ISpanShop.Models/DTOs/Stores/StoreDtos.cs
+    - 對應資料表：Stores JOIN Users
+    - 內容：
+        int       StoreId
+        int       UserId
+        string    OwnerAccount       // Users.Account（店主帳號）
+        string    StoreName          // Stores.StoreName
+        string?   Description        // Stores.Description
+        bool      IsVerified         // Stores.IsVerified
+        bool      IsBlacklisted      // Users.IsBlacklisted
+        DateTime? CreatedAt          // Stores.CreatedAt
+        int       ProductCount       // 商品數量（另查）
+
+[V] 新增 StoreDetailDto
+    - 位置：ISpanShop.Models/DTOs/Stores/StoreDtos.cs（同檔）
+    - 用途：_EditPartial 顯示詳細資訊
+    - 內容：
+        int       StoreId
+        int       UserId
+        string    OwnerAccount
+        string    StoreName
+        string?   Description
+        bool      IsVerified
+        bool      IsBlacklisted
+        DateTime? CreatedAt
+        int       ProductCount        // 商品總數（IsDeleted = 0）
+        int       ActiveProductCount  // 上架中商品數（Status = 1）
+        int       TotalSales          // 所有商品 TotalSales 加總
+
+------------------------------------------------------------
+STEP 2：資料存取層 (ISpanShop.Repositories)
+------------------------------------------------------------
+
+[V 新增 IStoreRepository
+    - 位置：ISpanShop.Repositories/Stores/IStoreRepository.cs
+    - 方法：
+        IEnumerable<StoreDto>  GetAllStores()
+        StoreDetailDto?        GetStoreById(int storeId)
+        bool                   ToggleVerified(int storeId, bool isVerified)
+        bool                   ToggleBlacklist(int userId, bool isBlacklisted)
+
+[V] 實作 StoreRepository（ADO.NET）
+    - 位置：ISpanShop.Repositories/Stores/StoreRepository.cs
+
+    - SQL GetAllStores：
+        SELECT S.Id            AS StoreId,
+               S.UserId,
+               U.Account       AS OwnerAccount,
+               S.StoreName,
+               S.Description,
+               S.IsVerified,
+               U.IsBlacklisted,
+               S.CreatedAt,
+               COUNT(P.Id)     AS ProductCount
+        FROM   Stores S
+        JOIN   Users U   ON S.UserId = U.Id
+        LEFT JOIN Products P ON P.StoreId = S.Id
+                             AND P.IsDeleted = 0
+        GROUP BY S.Id, S.UserId, U.Account, S.StoreName,
+                 S.Description, S.IsVerified,
+                 U.IsBlacklisted, S.CreatedAt
+        ORDER BY S.CreatedAt DESC
+
+    - SQL GetStoreById：
+        SELECT S.Id              AS StoreId,
+               S.UserId,
+               U.Account         AS OwnerAccount,
+               S.StoreName,
+               S.Description,
+               S.IsVerified,
+               U.IsBlacklisted,
+               S.CreatedAt,
+               COUNT(P.Id)       AS ProductCount,
+               SUM(CASE WHEN P.Status = 1
+                        THEN 1 ELSE 0 END)   AS ActiveProductCount,
+               ISNULL(SUM(P.TotalSales), 0)  AS TotalSales
+        FROM   Stores S
+        JOIN   Users U   ON S.UserId = U.Id
+        LEFT JOIN Products P ON P.StoreId = S.Id
+                             AND P.IsDeleted = 0
+        WHERE  S.Id = @StoreId
+        GROUP BY S.Id, S.UserId, U.Account, S.StoreName,
+                 S.Description, S.IsVerified,
+                 U.IsBlacklisted, S.CreatedAt
+
+    - SQL ToggleVerified：
+        UPDATE Stores
+        SET    IsVerified = @IsVerified
+        WHERE  Id = @StoreId
+
+    - SQL ToggleBlacklist：
+        UPDATE Users
+        SET    IsBlacklisted = @IsBlacklisted,
+               UpdatedAt = GETDATE()
+        WHERE  Id = @UserId
+
+------------------------------------------------------------
+STEP 3：商務邏輯層 (ISpanShop.Services)
+------------------------------------------------------------
+
+[ ] 新增 IStoreService
+    - 位置：ISpanShop.Services/Stores/IStoreService.cs
+    - 方法：
+        IEnumerable<StoreDto>  GetAllStores()
+        StoreDetailDto?        GetStoreById(int storeId)
+        (bool IsSuccess, string Message)
+            ToggleVerified(int storeId, bool isVerified)
+        (bool IsSuccess, string Message)
+            ToggleBlacklist(int storeId, bool isBlacklisted)
+
+[ ] 實作 StoreService
+    - 位置：ISpanShop.Services/Stores/StoreService.cs
+
+    - ToggleVerified 邏輯：
+        1. 呼叫 Repository.ToggleVerified()
+        2. 回傳結果訊息
+           isVerified = true  → "已通過審核"
+           isVerified = false → "已取消審核"
+
+    - ToggleBlacklist 邏輯：
+        1. 呼叫 GetStoreById() 取得 UserId
+        2. 若 Store 不存在 → 回傳 (false, "找不到該店家")
+        3. 呼叫 Repository.ToggleBlacklist(userId, isBlacklisted)
+        4. 回傳結果訊息
+           isBlacklisted = true  → "已封鎖店家"
+           isBlacklisted = false → "已解除封鎖"
+
+------------------------------------------------------------
+STEP 4：依賴注入設定 (ISpanShop.MVC)
+------------------------------------------------------------
+
+[ ] Program.cs 新增註冊
+    builder.Services.AddScoped<IStoreRepository, StoreRepository>();
+    builder.Services.AddScoped<IStoreService, StoreService>();
+
+------------------------------------------------------------
+STEP 5：展示層 (ISpanShop.MVC)
+------------------------------------------------------------
+
+[ ] 建立 StoreIndexVm
+    - 位置：ISpanShop.MVC/Areas/Admin/Models/Stores/StoreIndexVm.cs
+    - 內容：
+        List<StoreDto>  Stores
+        string?         Message
+
+[ ] 建立 StoreDetailVm
+    - 位置：ISpanShop.MVC/Areas/Admin/Models/Stores/StoreDetailVm.cs
+    - 內容：
+        StoreDetailDto  Store
+        string?         Message
+
+[ ] 建立 StoresController
+    - 位置：ISpanShop.MVC/Areas/Admin/Controllers/Stores/StoresController.cs
+    - 注意：加上 Area 標記與授權
+
+    [Area("Admin")]
+    [Authorize(Roles = "Admin")]
+    public class StoresController : Controller
+    {
+        GET  Index()
+             → StoreService.GetAllStores()
+             → Message = TempData["Message"]
+             → 組成 StoreIndexVm 回傳
+
+        GET  Edit(int storeId)
+             → StoreService.GetStoreById(storeId)
+             → 若找不到 → RedirectToAction("Index")
+             → 組成 StoreDetailVm
+             → return PartialView("_EditPartial", vm)
+
+        POST ToggleVerified(int storeId, bool isVerified)
+             → StoreService.ToggleVerified()
+             → TempData["Message"] = 結果訊息
+             → RedirectToAction("Index")
+
+        POST ToggleBlacklist(int storeId, bool isBlacklisted)
+             → StoreService.ToggleBlacklist()
+             → TempData["Message"] = 結果訊息
+             → RedirectToAction("Index")
+    }
+
+[ ] 建立 Index.cshtml
+    - 位置：ISpanShop.MVC/Areas/Admin/Views/Stores/Index.cshtml
+
+    ★ 頁面標題：「店家管理」
+
+    ★ TempData 提示區塊：
+        @if (Model.Message != null)
+        {
+            <div class="alert">@Model.Message</div>
+        }
+
+    ★ 列表欄位：
+        店家 ID、店家名稱、店主帳號、商品數、
+        審核狀態、封鎖狀態、操作
+
+    ★ 審核狀態 Badge：
+        IsVerified = true  → 綠色「已審核」
+        IsVerified = false → 黃色「待審核」
+
+    ★ 封鎖狀態 Badge：
+        IsBlacklisted = true  → 紅色「已封鎖」
+        IsBlacklisted = false → 灰色「正常」
+
+    ★ 操作欄：
+        「查看/編輯」按鈕
+        → 以 AJAX 載入 _EditPartial 至 Modal 中
+        → 範例：
+          <button onclick="loadStoreDetail(@store.StoreId)">
+              查看/編輯
+          </button>
+
+          <div id="storeModal" class="modal">
+              <div id="storeModalContent"></div>
+          </div>
+
+          <script>
+          function loadStoreDetail(storeId) {
+              fetch(`/Admin/Stores/Edit/${storeId}`)
+                  .then(r => r.text())
+                  .then(html => {
+                      document.getElementById('storeModalContent')
+                              .innerHTML = html;
+                      // 開啟 Modal
+                  });
+          }
+          </script>
+
+[ ] 建立 _EditPartial.cshtml
+    - 位置：ISpanShop.MVC/Areas/Admin/Views/Stores/_EditPartial.cshtml
+    - @model StoreDetailVm
+
+    ★ 唯讀資訊區塊：
+        店家 ID         → @Model.Store.StoreId
+        店家名稱        → @Model.Store.StoreName
+        店主帳號        → @Model.Store.OwnerAccount
+        店家描述        → @Model.Store.Description
+        建立時間        → @Model.Store.CreatedAt
+        商品總數        → @Model.Store.ProductCount
+        上架中商品數    → @Model.Store.ActiveProductCount
+        累計銷售量      → @Model.Store.TotalSales
+
+    ★ 審核狀態切換：
+        @if (!Model.Store.IsVerified)
+        {
+            <form method="post" asp-area="Admin"
+                  asp-controller="Stores"
+                  asp-action="ToggleVerified">
+                <input type="hidden" name="storeId"
+                       value="@Model.Store.StoreId" />
+                <input type="hidden" name="isVerified" value="true" />
+                <button type="submit" class="btn btn-success">
+                    通過審核
+                </button>
+            </form>
+        }
+        else
+        {
+            <form method="post" asp-area="Admin"
+                  asp-controller="Stores"
+                  asp-action="ToggleVerified">
+                <input type="hidden" name="storeId"
+                       value="@Model.Store.StoreId" />
+                <input type="hidden" name="isVerified" value="false" />
+                <button type="submit" class="btn btn-secondary">
+                    取消審核
+                </button>
+            </form>
+        }
+
+    ★ 封鎖狀態切換：
+        @if (!Model.Store.IsBlacklisted)
+        {
+            <form method="post" asp-area="Admin"
+                  asp-controller="Stores"
+                  asp-action="ToggleBlacklist">
+                <input type="hidden" name="storeId"
+                       value="@Model.Store.StoreId" />
+                <input type="hidden" name="isBlacklisted" value="true" />
+                <button type="submit" class="btn btn-danger"
+                        onclick="return confirm('確定要封鎖此店家？')">
+                    封鎖店家
+                </button>
+            </form>
+        }
+        else
+        {
+            <form method="post" asp-area="Admin"
+                  asp-controller="Stores"
+                  asp-action="ToggleBlacklist">
+                <input type="hidden" name="storeId"
+                       value="@Model.Store.StoreId" />
+                <input type="hidden" name="isBlacklisted" value="false" />
+                <button type="submit" class="btn btn-success">
+                    解除封鎖
+                </button>
+            </form>
+        }
+
+    ★ 警示文字（封鎖說明）：
+        <p class="text-warning text-sm">
+            ※ 封鎖店家將同步封鎖該店主的會員帳號
+        </p>
+
+------------------------------------------------------------
+注意事項
+------------------------------------------------------------
+  * Controller 需標記 [Area("Admin")]，否則路由無法對應
+  * _EditPartial 透過 AJAX 載入至 Modal，不做頁面跳轉
+  * 封鎖店家 = 更新 Users.IsBlacklisted
+    連帶影響：店主的前台會員帳號也會同步被封鎖
+    若需獨立控制，可未來在 Stores 資料表新增 IsActive 欄位
+  * ProductCount 只計算 IsDeleted = 0 的商品
+  * Products.Status = 1 假設為上架中
+    實作前請確認：SELECT DISTINCT Status FROM Products
+
+============================================================
