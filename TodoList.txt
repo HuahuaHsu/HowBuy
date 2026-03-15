@@ -1056,7 +1056,7 @@ STEP 2：資料存取層 (ISpanShop.Repositories)
 STEP 3：商務邏輯層 (ISpanShop.Services)
 ------------------------------------------------------------
 
-[ ] 新增 IStoreService
+[V] 新增 IStoreService
     - 位置：ISpanShop.Services/Stores/IStoreService.cs
     - 方法：
         IEnumerable<StoreDto>  GetAllStores()
@@ -1066,7 +1066,7 @@ STEP 3：商務邏輯層 (ISpanShop.Services)
         (bool IsSuccess, string Message)
             ToggleBlacklist(int storeId, bool isBlacklisted)
 
-[ ] 實作 StoreService
+[V] 實作 StoreService
     - 位置：ISpanShop.Services/Stores/StoreService.cs
 
     - ToggleVerified 邏輯：
@@ -1087,7 +1087,7 @@ STEP 3：商務邏輯層 (ISpanShop.Services)
 STEP 4：依賴注入設定 (ISpanShop.MVC)
 ------------------------------------------------------------
 
-[ ] Program.cs 新增註冊
+[V] Program.cs 新增註冊
     builder.Services.AddScoped<IStoreRepository, StoreRepository>();
     builder.Services.AddScoped<IStoreService, StoreService>();
 
