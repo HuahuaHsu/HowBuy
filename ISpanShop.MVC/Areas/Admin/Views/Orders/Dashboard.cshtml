@@ -719,20 +719,21 @@
                             dataLabels: { position: 'top' }
                         } 
                     },
+                    grid: {
+                        xaxis: { lines: { show: true } },
+                        padding: { right: 80 } // 增加右側留白空間，防止標籤被柱子吃掉
+                    },
                     dataLabels: {
                         enabled: true,
-                        offsetX: -6,
-                        style: { fontSize: '12px', colors: ['#fff'] },
+                        textAnchor: 'start', // 強制標籤從柱子末端開始排
+                        offsetX: 10,
+                        style: { 
+                            fontSize: '11px', 
+                            fontWeight: '600',
+                            colors: ['#566a7f'] 
+                        },
                         formatter: function(val) {
                             return orderBy === 'revenue' ? '$' + formatRevenue(val) : val + ' 件';
-                        },
-                        dropShadow: {
-                            enabled: true,
-                            top: 1,
-                            left: 1,
-                            blur: 1,
-                            color: '#000',
-                            opacity: 0.45
                         }
                     },
                     xaxis: { 
@@ -874,19 +875,11 @@
                                 const realVal = opts.w.config.series[opts.seriesIndex].data[opts.dataPointIndex];
                                 return '$' + formatRevenue(realVal);
                             },
-                            offsetY: 10, // 向下偏移一點，讓它進到柱位內部
+                            offsetY: -20,
                             style: { 
-                                fontSize: '12px',
-                                colors: ['#fff'], // 改為白色
-                                fontWeight: 600
-                            },
-                            dropShadow: {
-                                enabled: true,
-                                top: 1,
-                                left: 1,
-                                blur: 1,
-                                color: '#000',
-                                opacity: 0.45
+                                fontSize: '11px',
+                                fontWeight: '600',
+                                colors: ['#566a7f']
                             }
                         },
                         yaxis: {
@@ -956,8 +949,8 @@
                         textAnchor: 'start',
                         style: {
                             colors: ['#566a7f'],
-                            fontWeight: 600,
-                            fontSize: '12px'
+                            fontWeight: '600',
+                            fontSize: '11px'
                         },
                         formatter: function(val) {
                             if (type === 'Sales' || type === 'Composition') {
@@ -1045,16 +1038,28 @@
                         bar: {
                             horizontal: false,
                             columnWidth: '40%',
-                            borderRadius: 4
+                            borderRadius: 4,
+                            dataLabels: { position: 'top' } // 補上這一行，讓標籤浮在柱子頂端
                         }
                     },
-                    dataLabels: { enabled: false },
+                    dataLabels: { 
+                        enabled: true,
+                        offsetY: -20, // 向上浮動
+                        style: {
+                            fontSize: '11px',
+                            fontWeight: '600',
+                            colors: ['#566a7f']
+                        },
+                        formatter: (val) => formatRevenue(Math.abs(val))
+                    },
                     grid: { 
                         borderColor: '#f1f1f1',
                         strokeDashArray: 3,
-                        xaxis: { lines: { show: true } } 
+                        xaxis: { lines: { show: true } },
+                        padding: { top: 20, bottom: 20 } // 增加上下留白
                     },
                     yaxis: {
+                        forceNiceScale: true, // 自動調整刻度，確保標籤不會超出邊界
                         labels: { 
                             formatter: (val) => formatRevenue(Math.abs(val)) // 這裡取絕對值，讓下方也顯示正數
                         }
