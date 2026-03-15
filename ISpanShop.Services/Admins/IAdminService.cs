@@ -8,6 +8,7 @@ namespace ISpanShop.Services.Admins
 		// 查詢
 		IEnumerable<AdminDto> GetAllAdmins(AdminCriteria criteria = null);
 		PagedResult<AdminDto> SearchPaged(AdminCriteria criteria);
+		AdminDto? GetAdminById(int adminId);
 		IEnumerable<AdminLevelDto> GetAllAdminLevels();
 		IEnumerable<PermissionDto> GetAllPermissions();
 		IEnumerable<AdminLevelDto> GetSelectableAdminLevels();

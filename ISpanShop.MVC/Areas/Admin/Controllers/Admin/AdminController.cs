@@ -68,6 +68,30 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Admin
 			}
 		}
 
+		[HttpGet]
+		public IActionResult EditPartial(int id)
+		{
+			var admin = _adminService.GetAdminById(id);
+			if (admin == null) return NotFound();
+
+			var currentUserIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+				?? User.FindFirst("userid")?.Value;
+			
+			var viewModel = new AdminEditVm
+			{
+				UserId = admin.UserId,
+				Account = admin.Account,
+				Email = admin.Email,
+				AdminLevelId = admin.AdminLevelId,
+				IsBlacklisted = admin.IsBlacklisted,
+				IsSuperAdmin = admin.AdminLevelId == 1,
+				IsSelf = admin.UserId.ToString() == currentUserIdStr,
+				AdminLevelOptions = _adminService.GetSelectableAdminLevels().ToList()
+			};
+
+			return PartialView("_EditPartial", viewModel);
+		}
+
 		[HttpPost]
 		public IActionResult CreateAdmin(AdminCreateVm form)
 		{

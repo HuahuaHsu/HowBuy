@@ -61,6 +61,11 @@ public class AdminService : IAdminService
 		return PagedResult<AdminDto>.Create(admins, totalCount, criteria.PageNumber, criteria.PageSize);
 	}
 
+	public AdminDto? GetAdminById(int adminId)
+	{
+		return _adminRepository.GetAdminById(adminId);
+	}
+
 	
 	public IEnumerable<AdminLevelDto> GetSelectableAdminLevels()
 	{
