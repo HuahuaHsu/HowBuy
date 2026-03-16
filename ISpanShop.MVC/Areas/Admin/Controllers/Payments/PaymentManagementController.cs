@@ -26,14 +26,70 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Payments
 
 		public async Task<IActionResult> Index()
 		{
-			// 改為抓取 PaymentLogs，並包含 Order 資料
-			var logs = await _context.PaymentLogs
+			// 僅回傳空的 View，資料改由 AJAX 載入
+			return View();
+		}
+
+		[HttpPost]
+		public async Task<IActionResult> GetPaymentListAjax([FromBody] PaymentSearchDto searchParams)
+		{
+			var query = _context.PaymentLogs
 				.Include(pl => pl.Order)
-				.ThenInclude(o => o.User)
+				.AsQueryable();
+
+			// 1. 關鍵字搜尋 (訂單號、交易序號)
+			if (!string.IsNullOrEmpty(searchParams.Keyword))
+			{
+				query = query.Where(pl => 
+					pl.Order.OrderNumber.Contains(searchParams.Keyword) || 
+					pl.TradeNo.Contains(searchParams.Keyword) ||
+					pl.MerchantTradeNo.Contains(searchParams.Keyword));
+			}
+
+			// 2. 狀態篩選
+			if (searchParams.Status.HasValue)
+			{
+				query = query.Where(pl => pl.RtnCode == searchParams.Status.Value);
+			}
+
+			// 3. 計算總數
+			int totalCount = await query.CountAsync();
+
+			// 4. 分頁與排序
+			var items = await query
 				.OrderByDescending(pl => pl.CreatedAt)
+				.Skip((searchParams.PageNumber - 1) * searchParams.PageSize)
+				.Take(searchParams.PageSize)
+				.Select(pl => new {
+					pl.Id,
+					pl.OrderId,
+					OrderNumber = pl.Order.OrderNumber,
+					pl.TradeNo,
+					pl.MerchantTradeNo,
+					pl.PaymentType,
+					pl.TradeAmt,
+					pl.RtnCode,
+					pl.RtnMsg,
+					pl.PaymentDate,
+					pl.CreatedAt
+				})
 				.ToListAsync();
 
-			return View(logs);
+			return Json(new {
+				items,
+				totalCount,
+				pageNumber = searchParams.PageNumber,
+				pageSize = searchParams.PageSize,
+				totalPages = (int)Math.Ceiling((double)totalCount / searchParams.PageSize)
+			});
+		}
+
+		public class PaymentSearchDto
+		{
+			public string Keyword { get; set; }
+			public int? Status { get; set; }
+			public int PageNumber { get; set; } = 1;
+			public int PageSize { get; set; } = 10;
 		}
 
 		[HttpPost]
