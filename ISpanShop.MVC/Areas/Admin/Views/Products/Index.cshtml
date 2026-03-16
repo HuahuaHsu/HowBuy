@@ -90,8 +90,9 @@
             </div>
         </div>
         <div class="col-6 col-md">
-            <div class="stat-card stat-pending @(currentStatus == 2 ? "stat-active" : "")">
-                <a href="@Url.Action("Index", new { status = 2 })" class="stretched-link"></a>
+            <div class="stat-card stat-pending stat-card-clickable @(currentStatus == 2 ? "stat-active" : "")"
+                 onclick="navigateToPendingReviewPage(event)"
+                 title="點擊前往商品審核中心">
                 <div class="stat-icon"><i class="bx bx-time-five"></i></div>
                 <div class="stat-num">@countPending</div>
                 <div class="stat-label">待審核</div>
@@ -487,6 +488,19 @@
     .bg-forced-soft { background: #fde8e8; }
     .text-forced    { color: #9b1c1c !important; }
 
+    /* ── 可點擊的統計卡片（待審核卡片專用）── */
+    .stat-card-clickable {
+        cursor: pointer;
+        user-select: none;
+    }
+    .stat-card-clickable:hover {
+        border-color: #f59e0b !important;
+        box-shadow: 0 6px 20px rgba(245,158,11,0.25) !important;
+    }
+    .stat-card-clickable:active {
+        transform: translateY(-1px) !important;
+    }
+
     /* ── 篩選卡片（可收合）── */
     .filter-card {
         background: #fff; border-radius: 16px;
@@ -652,6 +666,22 @@
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
+        // ══════════════════════════════════════════════════════
+        //  待審核卡片點擊事件：跳轉到商品審核中心
+        // ══════════════════════════════════════════════════════
+        function navigateToPendingReviewPage(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            console.log('待審核卡片被點擊，準備跳轉到商品審核中心');
+            
+            // 設定 sessionStorage，確保左側選單「商品審核」項目會被標記為 active
+            sessionStorage.setItem('openMenuKey', 'products');
+            sessionStorage.setItem('pageTitle', '商品審核中心 - ISpanShop 後台管理系統');
+            
+            // 跳轉到商品審核中心頁面
+            window.location.href = '@Url.Action("PendingReview", "Products", new { area = "Admin" })';
+        }
+
         // ══════════════════════════════════════════════════════
         //  跨分頁多選：使用 sessionStorage 記憶已勾選的商品 ID
         // ══════════════════════════════════════════════════════

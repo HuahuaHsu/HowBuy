@@ -172,11 +172,28 @@ else
 
     @* ── 狀態 + 申請日期 ── *@
     <div class="d-flex align-items-center gap-3 mb-4">
-        <span style="display:inline-flex;align-items:center;gap:6px;
-                     background:@stBg;color:@stColor;border:1px solid @stBorder;
-                     padding:5px 14px;border-radius:20px;font-size:.9rem;font-weight:600;">
-            <i class="bx @stIcon"></i>@Model.StatusText
-        </span>
+        @if (Model.Status == 2)
+        {
+            @* 待審核狀態：可點擊跳轉到審核中心 *@
+            <span class="product-status-badge clickable-badge"
+                  style="display:inline-flex;align-items:center;gap:6px;
+                         background:@stBg;color:@stColor;border:1px solid @stBorder;
+                         padding:5px 14px;border-radius:20px;font-size:.9rem;font-weight:600;
+                         cursor:pointer;transition:all 0.2s ease;"
+                  onclick="navigateToPendingReview(event)"
+                  title="點擊前往商品審核中心">
+                <i class="bx @stIcon"></i>@Model.StatusText
+            </span>
+        }
+        else
+        {
+            @* 其他狀態：一般顯示 *@
+            <span style="display:inline-flex;align-items:center;gap:6px;
+                         background:@stBg;color:@stColor;border:1px solid @stBorder;
+                         padding:5px 14px;border-radius:20px;font-size:.9rem;font-weight:600;">
+                <i class="bx @stIcon"></i>@Model.StatusText
+            </span>
+        }
         @if (Model.CreatedAt.HasValue)
         {
             <span style="font-size:.88rem;color:#9ca3af;">
@@ -592,4 +609,32 @@ else
     .panel-footer-info-box.success { background: #f0fdf4; color: #15803d; }
     .panel-footer-info-box.danger  { background: #fff1f2; color: #991b1b; }
     .panel-footer-info-box.forced  { background: #fef2f2; color: #991b1b; }
+
+    /* ── 可點擊狀態 badge ── */
+    .clickable-badge:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+        opacity: 0.9;
+    }
+    .clickable-badge:active {
+        transform: translateY(0);
+    }
 </style>
+
+<script>
+    // ══════════════════════════════════════════════════════
+    //  待審核狀態 badge 點擊事件：跳轉到商品審核中心
+    // ══════════════════════════════════════════════════════
+    function navigateToPendingReview(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        console.log('待審核 badge 被點擊，準備跳轉到商品審核中心');
+        
+        // 設定 sessionStorage，確保左側選單「商品審核」項目會被標記為 active
+        sessionStorage.setItem('openMenuKey', 'products');
+        sessionStorage.setItem('pageTitle', '商品審核中心 - ISpanShop 後台管理系統');
+        
+        // 跳轉到商品審核中心頁面
+        window.location.href = '@Url.Action("PendingReview", "Products", new { area = "Admin" })';
+    }
+</script>
