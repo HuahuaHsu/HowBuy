@@ -2,6 +2,7 @@ using ISpanShop.Models.DTOs.Common;
 using ISpanShop.Models.EfModels;
 using ISpanShop.MVC.Areas.Admin.Models.Points;
 using ISpanShop.Services;
+using ISpanShop.Services.Members;
 using ISpanShop.Services.Payments;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
