@@ -114,6 +114,7 @@ namespace ISpanShop.MVC
 
 			
 
+			builder.Services.AddScoped<IPointRepository, PointRepository>();
 			builder.Services.AddScoped<PointService>();
 			builder.Services.AddScoped<PaymentService>();
 			builder.Services.AddScoped<CheckoutService>();

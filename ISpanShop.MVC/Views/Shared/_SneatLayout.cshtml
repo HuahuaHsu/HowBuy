@@ -591,6 +591,7 @@
                         User.HasPermission("member_manage") ||
                         User.HasPermission("store_manage") ||
                         User.IsSuperAdmin();
+                    var isPointActive = ctrl == "Points";
                 }
 
                 @if (showOperations)
