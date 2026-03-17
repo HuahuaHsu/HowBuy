@@ -1,4 +1,7 @@
 @model ISpanShop.MVC.Models.Promotions.PromotionDetailVm
+@{
+    var _isReviewMode = ViewBag.IsReviewMode ?? false;  // 是否從審核中心開啟
+}
 
 <style>
     .pd-info-row { display: flex; padding: .55rem 0; border-bottom: 1px solid #f1f5f9; }
@@ -432,7 +435,7 @@
 
 @* ── Sticky 底部操作欄（與商品審核中心統一樣式）── *@
 <div class="panel-action-footer">
-    @if (Model.IsPending)
+    @if (_isReviewMode && Model.IsPending)
     {
         <button type="button" class="btn btn-panel-approve"
                 onclick="pdApprovePromotion(@Model.Id)">

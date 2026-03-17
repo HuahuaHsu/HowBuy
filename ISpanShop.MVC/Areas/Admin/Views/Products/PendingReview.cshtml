@@ -1589,7 +1589,7 @@
             var alreadyOpen = document.getElementById('productDetailPanel').classList.contains('open');
             if (!alreadyOpen) _reviewSwitchMode(true, null);
 
-            fetch(urlGetProductDetailsPartial + '?id=' + id)
+            fetch(urlGetProductDetailsPartial + '?id=' + id + '&isReviewMode=true')
                 .then(function (res) {
                     if (!res.ok) throw new Error('HTTP ' + res.status);
                     return res.text();

@@ -427,9 +427,10 @@ else
     var _isApproved     = Model.ReviewStatus == 1;
     var _isRejectedView = Model.ReviewStatus == 2 && Model.Status != 4;
     var _isForcedFinal  = Model.Status == 4 && Model.ReviewStatus != 3;
+    var _isReviewMode   = ViewBag.IsReviewMode ?? false;  // 是否從審核中心開啟
 }
 <div class="panel-action-footer">
-    @if (_isPending)
+    @if (_isReviewMode && _isPending)
     {
         <button type="button" class="btn btn-panel-approve"
                 data-id="@Model.Id" data-name="@Model.Name">
@@ -440,7 +441,7 @@ else
             <i class="bx bx-x-circle me-2"></i>退回
         </button>
     }
-    else if (_isReApply)
+    else if (_isReviewMode && _isReApply)
     {
         @if (!string.IsNullOrWhiteSpace(Model.ForceOffShelfReason))
         {

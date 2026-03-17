@@ -172,14 +172,23 @@
                     @foreach (var (val, label, icon) in tabs)
                     {
                         var isActive = (Model.StatusFilter ?? "all") == val;
-                        var badge = val == "resubmitted" && Model.ReSubmittedCount > 0
-                            ? $" <span class=\"badge bg-info ms-1\">{Model.ReSubmittedCount}</span>"
-                            : val == "pending" && Model.PendingCount > 0
-                            ? $" <span class=\"badge bg-warning ms-1\">{Model.PendingCount}</span>"
-                            : "";
+                        var (badgeStyle, count) = val switch
+                        {
+                            "all"         => ("background:#e0e7ff;color:#3730a3", Model.AllCount),  // 修正：使用未經篩選的總筆數
+                            "pending"     => ("background:#fef3c7;color:#92400e", Model.PendingCount),
+                            "resubmitted" => ("background:#dbeafe;color:#1e40af", Model.ReSubmittedCount),
+                            "active"      => ("background:#d1fae5;color:#065f46", Model.ActiveCount),
+                            "upcoming"    => ("background:#dbeafe;color:#1e3a8a", Model.UpcomingCount),
+                            "rejected"    => ("background:#fee2e2;color:#991b1b", Model.RejectedCount),
+                            "ended"       => ("background:#f1f5f9;color:#475569", Model.EndedCount),
+                            _             => ("background:#f3f4f6;color:#374151", 0)
+                        };
                         <li class="nav-item">
                             <a href="@Url.Action("Index", new { keyword = Model.Keyword, status = val == "all" ? null : val, type = Model.TypeFilter })"
-                               class="nav-link @(isActive ? "active" : "")">@label@Html.Raw(badge)</a>
+                               class="nav-link @(isActive ? "active" : "")">
+                                @label
+                                <span class="badge rounded-pill ms-1" style="@badgeStyle;font-size:0.78rem;">@count</span>
+                            </a>
                         </li>
                     }
                 </ul>
@@ -187,10 +196,10 @@
                 <form method="get" asp-action="Index" asp-controller="Promotions" class="d-flex gap-2 align-items-center">
                     <input type="hidden" name="status" value="@Model.StatusFilter" />
                     <select name="type" class="form-select form-select-sm" style="width:140px;">
-                        <option value="" @@(Model.TypeFilter == null ? "selected=\"selected\"" : "")>所有類型</option>
-                        <option value="1" @@(Model.TypeFilter == 1 ? "selected=\"selected\"" : "")>限時特賣</option>
-                        <option value="2" @@(Model.TypeFilter == 2 ? "selected=\"selected\"" : "")>滿額折扣</option>
-                        <option value="3" @@(Model.TypeFilter == 3 ? "selected=\"selected\"" : "")>限量搶購</option>
+                        <option value="" selected="@(Model.TypeFilter == null ? "selected" : null)">所有類型</option>
+                        <option value="1" selected="@(Model.TypeFilter == 1 ? "selected" : null)">限時特賣</option>
+                        <option value="2" selected="@(Model.TypeFilter == 2 ? "selected" : null)">滿額折扣</option>
+                        <option value="3" selected="@(Model.TypeFilter == 3 ? "selected" : null)">限量搶購</option>
                     </select>
                     <div class="input-group input-group-sm" style="width:250px;">
                         <input type="text" name="keyword" value="@Model.Keyword" class="form-control" placeholder="搜尋活動名稱或賣家..." />
@@ -451,7 +460,7 @@
             _promoSwitchMode(true, null);
         }
 
-        fetch(_promoDetailUrl + '?id=' + id)
+        fetch(_promoDetailUrl + '?id=' + id + '&isReviewMode=true')
             .then(function (res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.text(); })
             .then(function (html) {
                 body.innerHTML = html;

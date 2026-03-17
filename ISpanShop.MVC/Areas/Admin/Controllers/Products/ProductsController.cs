@@ -662,7 +662,7 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Products
         /// <summary>
         /// [AJAX] 取得商品詳情 Partial View（供 Offcanvas 側邊欄使用）
         /// </summary>
-        public IActionResult GetProductDetailsPartial(int id)
+        public IActionResult GetProductDetailsPartial(int id, bool isReviewMode = false)
         {
             var productDto = _productService.GetProductDetail(id);
             if (productDto == null)
@@ -707,6 +707,7 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Products
                 }).ToList()
             };
 
+            ViewBag.IsReviewMode = isReviewMode;
             return PartialView("_ProductDetailsPartial", vm);
         }
 
