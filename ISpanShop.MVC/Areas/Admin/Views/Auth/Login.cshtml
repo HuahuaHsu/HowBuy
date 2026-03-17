@@ -78,27 +78,32 @@
             opacity: 0.4;
         }
 
-        /* ── 響應式方塊尺寸變數 ── */
+        /* ══════════ 融合場景 CSS ══════════ */
+        #ecomScene {
+            position: absolute;
+            inset: 0;
+            z-index: 3;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        /* ── 3D 旋轉方塊（響應式） ── */
         :root {
-            --cs: clamp(180px, 22vw, 440px);
+            --cs: 220px; /* JS 會在每幀覆寫，此為首幀備用值 */
             --cf: calc(var(--cs) * 0.5);
             --cfo: calc(var(--cs) * 0.25);
             --ctz: calc(var(--cs) * 0.25);
-            --cc: calc(var(--cs) * 0.15);
+            --cc: calc(var(--cs) * 0.18);
             --cco: calc((var(--cs) - var(--cc)) / 2);
         }
 
-        /* ── 3D 旋轉方塊場景 ── */
-        .scene {
+        .cube-scene {
             position: absolute;
-            right: clamp(1%, 3vw, 5%);
-            top: 50%;
-            transform: translateY(-50%);
             width: var(--cs);
             height: var(--cs);
-            perspective: calc(var(--cs) * 3.75);
-            z-index: 5;
+            perspective: calc(var(--cs) * 4);
             pointer-events: none;
+            /* JS 會動態設定 left / top */
         }
 
         .cube-wrapper {
@@ -106,16 +111,16 @@
             height: 100%;
             position: relative;
             transform-style: preserve-3d;
-            animation: rotateCube 20s linear infinite;
+            animation: rotateCube 22s linear infinite;
         }
 
         @@keyframes rotateCube {
             0% {
-                transform: rotateX(-20deg) rotateY(0deg);
+                transform: rotateX(-18deg) rotateY(0deg);
             }
 
             100% {
-                transform: rotateX(-20deg) rotateY(360deg);
+                transform: rotateX(-18deg) rotateY(360deg);
             }
         }
 
@@ -125,14 +130,11 @@
             height: var(--cf);
             top: var(--cfo);
             left: var(--cfo);
-            background: rgba(0,176,116,0.03);
-            border: 1px solid rgba(0,176,116,0.4);
-            backdrop-filter: blur(4px);
-            -webkit-backdrop-filter: blur(4px);
-            box-shadow: inset 0 0 30px rgba(0,176,116,0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            background: rgba(0,176,116,.04);
+            border: 1px solid rgba(0,176,116,.38);
+            backdrop-filter: blur(3px);
+            -webkit-backdrop-filter: blur(3px);
+            box-shadow: inset 0 0 20px rgba(0,176,116,.08);
         }
 
         .face-front {
@@ -153,93 +155,137 @@
 
         .face-top {
             transform: rotateX(90deg) translateZ(var(--ctz));
-            border-bottom: none;
-            background: rgba(0,176,116,0.08);
+            background: rgba(0,176,116,.09);
         }
 
         .face-bottom {
             transform: rotateX(-90deg) translateZ(var(--ctz));
         }
 
-        .cube-core {
+        .cube-core-dot {
             position: absolute;
             width: var(--cc);
             height: var(--cc);
             top: var(--cco);
             left: var(--cco);
-            background: rgba(0,176,116,0.8);
+            background: rgba(0,176,116,.85);
             border-radius: 50%;
-            box-shadow: 0 0 calc(var(--cc) * 0.85) calc(var(--cc) * 0.33) rgba(0,176,116,0.4);
+            box-shadow: 0 0 calc(var(--cc)*.9) calc(var(--cc)*.35) rgba(0,176,116,.45);
             animation: pulseCore 3s ease-in-out infinite alternate;
-            z-index: 1;
         }
 
         @@keyframes pulseCore {
             0% {
-                transform: scale(0.8);
-                opacity: 0.7;
+                transform: scale(.78);
+                opacity: .7;
             }
 
             100% {
-                transform: scale(1.2);
+                transform: scale(1.22);
                 opacity: 1;
             }
         }
-
-        /* ── 懸浮裝飾 Icon ── */
-        .floating-element {
+        /* 底部發光平台 */
+        .cube-platform {
             position: absolute;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.1);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            border-radius: 12px;
+            left: 50%;
+            bottom: 0;
+            transform: translate(-50%, 60%);
+            width: clamp(60px,8vw,140px);
+            height: clamp(8px,1.2vh,20px);
+            background: radial-gradient(ellipse at center, rgba(0,201,116,.38) 0%, transparent 70%);
+            filter: blur(5px);
+        }
+
+        /* 連線 */
+        .conn-line {
+            position: absolute;
+            height: 1px;
+            transform-origin: 0 50%;
+            pointer-events: none;
+        }
+
+        /* 衛星卡片共用 */
+        .orbit-card {
+            position: absolute;
+            transform: translate(-50%,-50%);
+            background: rgba(10,22,34,.75);
+            border-radius: clamp(10px,1vw,16px);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(0,176,116,.28);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.14), inset 1px 0 0 rgba(255,255,255,.07), 0 8px 28px rgba(0,0,0,.45);
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            color: #00B074;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            z-index: 10;
-            font-size: 1.3rem;
+            gap: clamp(3px,.4vw,7px);
+            transition: box-shadow .15s ease;
         }
 
-        .float-1 {
-            width: clamp(38px, 3.2vw, 56px);
-            height: clamp(38px, 3.2vw, 56px);
-            top: 10%;
-            right: 14%;
-            animation: floatAlt 5s ease-in-out infinite;
-        }
-
-        .float-2 {
-            width: clamp(42px, 3.6vw, 62px);
-            height: clamp(42px, 3.6vw, 62px);
-            bottom: 20%;
-            left: 52%;
-            animation: floatAlt 7s ease-in-out infinite 1s;
-        }
-
-        .float-3 {
-            width: clamp(34px, 2.8vw, 50px);
-            height: clamp(34px, 2.8vw, 50px);
-            top: 40%;
-            right: -1%;
-            animation: floatAlt 6s ease-in-out infinite 2s;
-        }
-
-        @@keyframes floatAlt {
-            0% {
-                transform: translateY(0px) rotate(0deg);
+            .orbit-card.flicker {
+                box-shadow: inset 0 1px 0 rgba(255,255,255,.24), inset 1px 0 0 rgba(255,255,255,.14), 0 8px 28px rgba(0,0,0,.45), 0 0 clamp(10px,1.4vw,20px) clamp(3px,.5vw,7px) rgba(0,201,116,.48);
             }
 
-            50% {
-                transform: translateY(-15px) rotate(5deg);
+            .orbit-card .card-icon {
+                color: #00C97A;
+                display: flex;
+                align-items: center;
+                justify-content: center;
             }
 
-            100% {
-                transform: translateY(0px) rotate(0deg);
+            .orbit-card .card-label {
+                color: rgba(255,255,255,.72);
+                font-weight: 500;
+                white-space: nowrap;
+                font-family: 'Public Sans',sans-serif;
             }
+
+        .card-hero {
+            width: clamp(50px,6.5vw,142px);
+            height: clamp(50px,5.3vw,122px);
+            border-color: rgba(0,201,116,.50);
+            z-index: 4;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.20), inset 1px 0 0 rgba(255,255,255,.10), 0 18px 50px rgba(0,0,0,.55), 0 0 clamp(12px,1.8vw,24px) rgba(0,201,116,.20);
         }
+
+            .card-hero .card-icon {
+                font-size: clamp(1.4rem,1.9vw,2.5rem);
+            }
+
+            .card-hero .card-label {
+                font-size: clamp(.62rem,.70vw,.85rem);
+            }
+
+        .card-normal {
+            width: clamp(62px,6.6vw,106px);
+            height: clamp(54px,5.8vw,92px);
+            z-index: 3;
+        }
+
+            .card-normal .card-icon {
+                font-size: clamp(1.05rem,1.35vw,1.9rem);
+            }
+
+            .card-normal .card-label {
+                font-size: clamp(.56rem,.60vw,.72rem);
+            }
+
+        .card-far {
+            width: clamp(48px,4.8vw,78px);
+            height: clamp(42px,4.4vw,70px);
+            filter: blur(2px);
+            opacity: .55;
+            z-index: 2;
+        }
+
+            .card-far .card-icon {
+                font-size: clamp(.85rem,1.05vw,1.45rem);
+            }
+
+            .card-far .card-label {
+                display: none;
+            }
 
         @@keyframes fadeInUp {
             from {
@@ -323,7 +369,7 @@
             flex-direction: column;
             justify-content: center;
             position: relative;
-            z-index: 2;
+            z-index: 6;
             padding: clamp(.75rem, 1.5vh, 2rem) 0;
             max-width: 52%;
         }
@@ -422,22 +468,23 @@
         .feature-list {
             display: flex;
             flex-direction: column;
-            gap: clamp(.5rem, 1vh, .9rem);
+            gap: clamp(.7rem, 1.4vh, 1.2rem);
             animation: fadeInUp .6s ease .65s both;
         }
 
         .feature-item {
             display: flex;
             align-items: center;
-            gap: clamp(.6rem, .8vw, .9rem);
+            gap: clamp(.6rem,.8vw,.9rem);
         }
 
         .feature-icon {
-            width: clamp(28px, 2.5vw, 38px);
-            height: clamp(28px, 2.5vw, 38px);
+            width: clamp(28px,2.5vw,38px);
+            height: clamp(28px,2.5vw,38px);
             border-radius: 9px;
-            background: rgba(0,176,116,.12);
-            border: 1px solid rgba(0,176,116,.2);
+            background: rgba(0,176,116,.1);
+            border: 1px solid rgba(0,201,116,.30);
+            box-shadow: 0 0 8px rgba(0,201,116,.12);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -445,12 +492,12 @@
         }
 
             .feature-icon i {
-                color: #00B074;
-                font-size: clamp(.85rem, .9vw, 1.1rem);
+                color: #00D484;
+                font-size: clamp(.85rem,.9vw,1.1rem);
             }
 
         .feature-text {
-            font-size: clamp(.74rem, .78vw, .88rem);
+            font-size: clamp(.74rem,.78vw,.88rem);
             color: #a9c1d8;
             line-height: 1.5;
         }
@@ -767,24 +814,22 @@
             <div class="bg-glow bg-glow-1"></div>
             <div class="bg-glow bg-glow-2"></div>
 
-            <!-- 3D 旋轉方塊場景 -->
-            <div class="scene">
-                <!-- 懸浮裝飾 Icon -->
-                <div class="floating-element float-1"><i class="bx bxs-shield-alt-2"></i></div>
-                <div class="floating-element float-2"><i class="bx bx-group"></i></div>
-                <div class="floating-element float-3"><i class="bx bx-server"></i></div>
+            <!-- ══ 融合場景：方塊核心 + 衛星卡片 ══ -->
+            <div id="ecomScene">
+                <canvas id="bgCanvas"></canvas>
 
-                <!-- 旋轉的 3D 透視方塊 -->
-                <div class="cube-wrapper">
-                    <div class="cube-core"></div>
-                    <div class="cube-face face-front">
-                        <i class="bx bx-package" style="color:rgba(0,176,116,0.30);font-size:3.5rem;"></i>
+                <!-- 3D 旋轉方塊（由 JS 定位） -->
+                <div class="cube-scene" id="cubeScene">
+                    <div class="cube-wrapper">
+                        <div class="cube-core-dot"></div>
+                        <div class="cube-face face-front"></div>
+                        <div class="cube-face face-back"></div>
+                        <div class="cube-face face-right"></div>
+                        <div class="cube-face face-left"></div>
+                        <div class="cube-face face-top"></div>
+                        <div class="cube-face face-bottom"></div>
                     </div>
-                    <div class="cube-face face-back"></div>
-                    <div class="cube-face face-right"></div>
-                    <div class="cube-face face-left"></div>
-                    <div class="cube-face face-top"></div>
-                    <div class="cube-face face-bottom"></div>
+                    <div class="cube-platform"></div>
                 </div>
             </div>
 
@@ -948,6 +993,174 @@
     </div>
 
     <script>
+        // ══════════ 融合場景：方塊核心 + 定錨浮動衛星卡片 ══════════
+        (function () {
+            var brandSide = document.querySelector('.brand-side');
+            var scene     = document.getElementById('ecomScene');
+            var canvas    = document.getElementById('bgCanvas');
+            var ctx       = canvas.getContext('2d');
+            var cubeScene = document.getElementById('cubeScene');
+
+            // 衛星卡片定義
+            // anchor: 相對方塊中心的偏移比例 [dx倍rate, dy倍rate]
+            // floatPhase / floatAmp: 各自獨立的漂浮節奏
+            var CARDS = [
+                { bxIcon:'bx-package',      label:'包裹訂單', type:'hero',   anchor:[ 0.8, -1.1], floatPhase:0,   floatAmp:10, floatSpeed:0.85 },  // 右上
+                { bxIcon:'bx-street-view',  label:'人員管理',   type:'normal', anchor:[ 1.2,  0.2], floatPhase:1.8, floatAmp:8,  floatSpeed:0.70 },  // 正右
+                { bxIcon:'bx-credit-card',  label:'金流結算', type:'normal', anchor:[ 1.3,  1.2], floatPhase:3.2, floatAmp:9,  floatSpeed:0.95 },  // 右下
+                { bxIcon:'bx-purchase-tag', label:'商品標籤', type:'far',    anchor:[ 1.5, -0.4], floatPhase:4.8, floatAmp:12, floatSpeed:0.58 },  // 遠右上（景深）
+                { bxIcon:'bx-layer',        label:'商品庫存', type:'normal', anchor:[-0.75, -1.25], floatPhase:2.5, floatAmp:11, floatSpeed:0.75 },  // 左上
+                { bxIcon:'bx-support',      label:'客服中心', type:'normal', anchor:[-0.40,  1.00], floatPhase:5.1, floatAmp:9,  floatSpeed:0.88 }
+
+                ];
+      
+            // 建立卡片 & 連線 DOM
+            var cardEls = [], lineEls = [];
+            CARDS.forEach(function (c) {
+                var el = document.createElement('div');
+                el.className = 'orbit-card card-' + c.type;
+                el.innerHTML = '<i class="bx ' + c.bxIcon + ' card-icon"></i>' +
+                               (c.type !== 'far' ? '<span class="card-label">' + c.label + '</span>' : '');
+                scene.appendChild(el);
+                cardEls.push(el);
+
+                var ln = document.createElement('div');
+                ln.className = 'conn-line';
+                scene.appendChild(ln);
+                lineEls.push(ln);
+            });
+
+            // 粒子
+            var PTCL_COUNT = 38;
+            var ptcls = [];
+            function resetPtcl(p) {
+                var sw = brandSide.offsetWidth, sh = brandSide.offsetHeight;
+                p.x    = Math.random() * sw;
+                p.y    = sh + Math.random() * 20;
+                p.vy   = 0.4 + Math.random() * 0.9;
+                p.vx   = (Math.random() - 0.5) * 0.4;
+                p.r    = 1 + Math.random() * 2.2;
+                p.life = 0;
+                p.maxL = 180 + Math.random() * 200;
+                p.flicker = false;
+            }
+            for (var pi = 0; pi < PTCL_COUNT; pi++) {
+                var p = {};
+                resetPtcl(p);
+                p.y = Math.random() * brandSide.offsetHeight;
+                ptcls.push(p);
+            }
+
+            // 資料流
+            var DATA_COLS = [];
+            function initDataCols() {
+                DATA_COLS = [];
+                var sw = brandSide.offsetWidth;
+                var cols = Math.floor(sw / 16);
+                for (var ci = 0; ci < cols; ci++) {
+                    DATA_COLS.push({
+                        x: ci * 16 + 8,
+                        y: Math.random() * brandSide.offsetHeight,
+                        speed: 0.5 + Math.random() * 1.2,
+                        chars: '0123456789ABCDEF#@@$%',
+                        cur: Math.floor(Math.random() * 20),
+                    });
+                }
+            }
+            initDataCols();
+
+            function resize() {
+                canvas.width  = brandSide.offsetWidth;
+                canvas.height = brandSide.offsetHeight;
+                initDataCols();
+            }
+            resize();
+            window.addEventListener('resize', resize);
+
+            function setConnLine(ln, x1, y1, x2, y2) {
+                var dx = x2 - x1, dy = y2 - y1;
+                var len = Math.sqrt(dx*dx + dy*dy);
+                var ang = Math.atan2(dy, dx) * 180 / Math.PI;
+                ln.style.cssText =
+                    'left:' + x1 + 'px;top:' + y1 + 'px;width:' + len + 'px;' +
+                    'transform:rotate(' + ang + 'deg);' +
+                    'background:linear-gradient(to right,rgba(0,201,116,.28),rgba(0,201,116,.02));';
+            }
+
+            var t = 0;
+
+            function loop() {
+                var sw = brandSide.offsetWidth, sh = brandSide.offsetHeight;
+                t += 0.016;
+
+                // ── 方塊尺寸：由 JS 計算，同步寫回 CSS 變數確保 cube DOM 一致 ──
+                // 等同 clamp(160px, 18vw, 320px) 但改用 brandSide 寬度比例
+                var cubeSize = Math.min(Math.max(140, sw * 0.30), 300);
+                document.documentElement.style.setProperty('--cs', cubeSize + 'px');
+
+                // 方塊中心（以 brand-side 內座標）
+                var cx = sw * 0.58, cy = sh * 0.60;
+                cubeScene.style.left = (cx - cubeSize / 2) + 'px';
+                cubeScene.style.top  = (cy - cubeSize / 2) + 'px';
+
+                // ── 衛星卡片：以同一個 cx/cy 為原點散開 ──
+                var rate = cubeSize * 0.75;
+                var cardPositions = [];
+                CARDS.forEach(function (c, i) {
+                    var bobY = Math.sin(t * c.floatSpeed + c.floatPhase) * c.floatAmp;
+                    var bobX = Math.cos(t * c.floatSpeed * 0.6 + c.floatPhase) * (c.floatAmp * 0.35);
+                    var x = cx + c.anchor[0] * rate + bobX;
+                    var y = cy + c.anchor[1] * rate + bobY;
+                    cardEls[i].style.left = x + 'px';
+                    cardEls[i].style.top  = y + 'px';
+                    setConnLine(lineEls[i], cx, cy, x, y);
+                    cardPositions.push({ x: x, y: y });
+                });
+
+                // ── Canvas：資料流 + 粒子 ──
+                ctx.clearRect(0, 0, sw, sh);
+
+                ctx.font = '10px monospace';
+                DATA_COLS.forEach(function (col) {
+                    col.y += col.speed;
+                    if (col.y > sh + 20) col.y = -16;
+                    col.cur = (col.cur + (Math.random() > 0.92 ? 1 : 0)) % col.chars.length;
+                    ctx.fillStyle = 'rgba(0,201,116,0.055)';
+                    ctx.fillText(col.chars[col.cur], col.x, col.y);
+                });
+
+                ptcls.forEach(function (p) {
+                    p.x += p.vx; p.y -= p.vy; p.life++;
+                    if (p.life > p.maxL || p.y < -10) resetPtcl(p);
+
+                    p.flicker = false;
+                    cardPositions.forEach(function (cp, ci) {
+                        var dx = p.x - cp.x, dy = p.y - cp.y;
+                        if (Math.sqrt(dx*dx + dy*dy) < 36) {
+                            p.flicker = true;
+                            if (!cardEls[ci]._flk) {
+                                cardEls[ci].classList.add('flicker');
+                                cardEls[ci]._flk = true;
+                                setTimeout(function(el){ el.classList.remove('flicker'); el._flk = false; }
+                                    .bind(null, cardEls[ci]), 280);
+                            }
+                        }
+                    });
+
+                    var alpha = Math.sin((p.life / p.maxL) * Math.PI) * (p.flicker ? 1 : 0.65);
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.r * (p.flicker ? 1.6 : 1), 0, Math.PI * 2);
+                    ctx.fillStyle = p.flicker
+                        ? 'rgba(0,228,140,' + alpha + ')'
+                        : 'rgba(0,176,116,' + alpha + ')';
+                    ctx.fill();
+                });
+
+                requestAnimationFrame(loop);
+            }
+            loop();
+        })();
+
         // 即時時鐘
         (function () {
             var weeks = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
