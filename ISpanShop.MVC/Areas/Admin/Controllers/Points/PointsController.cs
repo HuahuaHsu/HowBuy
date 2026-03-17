@@ -18,10 +18,10 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Points
     public class PointsController : AdminBaseController
     {
         private readonly PointService _pointService;
-        private readonly MemberService _memberService;
+        private readonly IMemberService _memberService;
         private readonly ISpanShopDBContext _context;
 
-        public PointsController(PointService pointService, MemberService memberService, ISpanShopDBContext context)
+        public PointsController(PointService pointService, IMemberService memberService, ISpanShopDBContext context)
         {
             _pointService = pointService;
             _memberService = memberService;

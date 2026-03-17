@@ -581,7 +581,22 @@
                     var isOrderActive = ctrl == "Orders" || ctrl == "ShipmentWorkstation" || ctrl == "ReturnRequests" || ctrl == "OrderTracking";
                     var isContentSupportActive = ctrl == "SupportTickets" || ctrl == "SensitiveWords" || ctrl == "SensitiveWordCategories";
                     var isPaymentActive = ctrl == "PaymentManagement";
+                    var isPointActive = ctrl == "Points";
                     var isPromotionActive = ctrl == "Promotions";
+                    var isStoreActive = ctrl == "Stores";
+
+
+                    bool showOperations =
+                    User.HasPermission("product_manage") ||
+                    User.HasPermission("store_manage") ||
+                    User.HasPermission("cashflow_manage") ||
+                    User.HasPermission("ticket_manage") ||
+                    User.HasPermission("sensitive_manage");
+
+                    bool showAccount =
+                    User.HasPermission("member_manage") ||
+                    User.HasPermission("store_manage") ||
+                    User.IsSuperAdmin();
                 }
 
                 @if (showOperations)
@@ -745,6 +760,16 @@
                                 <span class="menu-label">金流紀錄</span>
                             </a>
                         </li>
+                        <li class="menu-item @(isPointActive ? "active" : "")">
+                            <a href="@Url.Action("Index", "Points", new { area = "Admin" })" class="menu-link">
+                                <span class="mini-wrap">
+                                    <i class="menu-icon bx bx-coin"></i>
+                                    <span class="menu-short">點數</span>
+                                </span>
+                                <i class="menu-icon bx bx-coin"></i>
+                                <span class="menu-label">點數管理</span>
+                            </a>
+                        </li>
                     }
 
                     @if (User.HasPermission("ticket_manage") || User.HasPermission("sensitive_manage"))
@@ -761,34 +786,26 @@
                             </span>
                             <div class="menu-sub">
                                 <ul>
-                                    @if (User.HasPermission("ticket_manage"))
-                                    {
-                                        <li class="menu-item @(ctrl == "SupportTickets" ? "active" : "")">
-                                            <a href="@Url.Action("Index", "SupportTickets", new { area = "Admin" })" class="menu-link">客服中心</a>
-                                        </li>
-                                    }
-                                    @if (User.HasPermission("sensitive_manage"))
-                                    {
-                                        <li class="menu-item @(ctrl == "SensitiveWords" ? "active" : "")">
-                                            <a href="@Url.Action("Index", "SensitiveWords", new { area = "Admin" })" class="menu-link">敏感字管理</a>
-                                        </li>
-                                        <li class="menu-item @(ctrl == "SensitiveWordCategories" ? "active" : "")">
-                                            <a href="@Url.Action("Index", "SensitiveWordCategories", new { area = "Admin" })" class="menu-link">敏感字分類管理</a>
-                                        </li>
-                                    }
+                                    <li class="menu-item @(ctrl == "SupportTickets" ? "active" : "")">
+                                        <a href="@Url.Action("Index", "SupportTickets", new { area = "Admin" })" class="menu-link">客服中心</a>
+                                    </li>
+                                    <li class="menu-item @(ctrl == "OrderReviews" ? "active" : "")">
+                                        <a href="@Url.Action("Index", "OrderReviews", new { area = "Admin" })" class="menu-link">評論管理</a>
+                                    </li>
+                                    <li class="menu-item @(ctrl == "SensitiveWordCategories" ? "active" : "")">
+                                        <a href="@Url.Action("Index", "SensitiveWordCategories", new { area = "Admin" })" class="menu-link">分類管理-敏感字</a>
+                                    </li>
+                                    <li class="menu-item @(ctrl == "SensitiveWords" ? "active" : "")">
+                                        <a href="@Url.Action("Index", "SensitiveWords", new { area = "Admin" })" class="menu-link">敏感字管理</a>
+                                    </li>
                                 </ul>
                             </div>
                             <div class="menu-flyout">
                                 <div class="menu-flyout-title">內容與客服管理</div>
-                                @if (User.HasPermission("ticket_manage"))
-                                {
-                                    <a href="@Url.Action("Index", "SupportTickets", new { area = "Admin" })">客服中心</a>
-                                }
-                                @if (User.HasPermission("sensitive_manage"))
-                                {
-                                    <a href="@Url.Action("Index", "SensitiveWords", new { area = "Admin" })">敏感字管理</a>
-                                    <a href="@Url.Action("Index", "SensitiveWordCategories", new { area = "Admin" })">敏感字分類管理</a>
-                                }
+                                <a href="@Url.Action("Index", "SupportTickets", new { area = "Admin" })">客服中心</a>
+                                <a href="@Url.Action("Index", "OrderReviews", new { area = "Admin" })">評論管理</a>
+                                <a href="@Url.Action("Index", "SensitiveWordCategories", new { area = "Admin" })">分類管理-敏感字</a>
+                                <a href="@Url.Action("Index", "SensitiveWords", new { area = "Admin" })">敏感字管理</a>
                             </div>
                         </li>
                     }
@@ -850,7 +867,7 @@
                                     <i class="menu-icon bx bx-shield-quarter"></i>
                                     <span class="menu-short">權限</span>
                                 </span>
-                                <i class="menu-icon bx bx-shield-quarter"></i>
+                                <i class="menu-icon bx bxs-id-card"></i>
                                 <span class="menu-label">管理員權限</span>
                                 <i class="menu-arrow bx bx-chevron-right"></i>
                             </span>
