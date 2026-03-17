@@ -595,11 +595,11 @@ namespace ISpanShop.Services.Products
                 Description  = desc,
                 MinPrice     = source.MinPrice,
                 MaxPrice     = source.MaxPrice,
-                Status       = 1,   // 已上架（預設改為已審核通過）
-                ReviewStatus = 1,   // 已審核通過
-                ReviewedBy   = "系統預設",
+                Status       = 2,   // 待審核
+                ReviewStatus = 0,   // 待審核
+                ReviewedBy   = null,
                 RejectReason = null,
-                ReviewDate   = now,
+                ReviewDate   = null,
                 CreatedAt    = now,
                 UpdatedAt    = now,
                 IsDeleted    = false

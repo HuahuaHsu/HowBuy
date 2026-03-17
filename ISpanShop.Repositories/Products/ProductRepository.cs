@@ -190,7 +190,10 @@ namespace ISpanShop.Repositories.Products
                 var kw = criteria.Keyword.Trim().ToLower();
                 query = query.Where(p =>
                     p.Name.ToLower().Contains(kw) ||
-                    (p.Description != null && p.Description.ToLower().Contains(kw)));
+                    (p.Description != null && p.Description.ToLower().Contains(kw)) ||
+                    (p.Store != null && p.Store.StoreName.ToLower().Contains(kw)) ||
+                    (p.Brand != null && p.Brand.Name.ToLower().Contains(kw)) ||
+                    (p.Category != null && p.Category.Name.ToLower().Contains(kw)));
             }
 
             if (criteria.StoreId.HasValue)
@@ -335,6 +338,9 @@ namespace ISpanShop.Repositories.Products
         {
             var query = _context.Products
                 .AsNoTracking()
+                .Include(p => p.Store)
+                .Include(p => p.Brand)
+                .Include(p => p.Category)
                 .Where(p => p.IsDeleted != true)
                 .AsQueryable();
 
@@ -348,7 +354,10 @@ namespace ISpanShop.Repositories.Products
                 var keyword = criteria.Keyword.Trim().ToLower();
                 query = query.Where(p =>
                     p.Name.ToLower().Contains(keyword) ||
-                    (p.Description != null && p.Description.ToLower().Contains(keyword)));
+                    (p.Description != null && p.Description.ToLower().Contains(keyword)) ||
+                    (p.Store != null && p.Store.StoreName.ToLower().Contains(keyword)) ||
+                    (p.Brand != null && p.Brand.Name.ToLower().Contains(keyword)) ||
+                    (p.Category != null && p.Category.Name.ToLower().Contains(keyword)));
             }
 
             if (criteria.StoreId.HasValue)
@@ -695,7 +704,7 @@ namespace ISpanShop.Repositories.Products
                 product.ForceOffShelfReason = reason;
                 product.ForceOffShelfDate   = now;
                 product.ForceOffShelfBy     = adminBy;
-                product.ReviewStatus        = 0;
+                product.ReviewStatus        = 2; // 2 = 已退回/拒絕
                 product.UpdatedAt           = now;
             }
 

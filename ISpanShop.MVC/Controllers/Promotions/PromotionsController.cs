@@ -93,7 +93,7 @@ namespace ISpanShop.MVC.Controllers.Promotions
                 Rules = new() { new() { RuleType = 2, Threshold = 3, DiscountType = 2, DiscountValue = 10 } }
             },
             new() {
-                Id = 6, Name = "低價傾銷活動（已拒絕）", PromotionType = 1,
+                Id = 6, Name = "低價傾銷活動", PromotionType = 1,
                 StartTime = DateTime.Now.AddDays(1), EndTime = DateTime.Now.AddDays(8),
                 Status = 2, SellerId = 2, SellerName = "Samsung 官方旗艦店",  // 保留已拒絕（展示用）
                 CreatedAt = DateTime.Now.AddDays(-3), ReviewedAt = DateTime.Now.AddDays(-1),
@@ -157,7 +157,7 @@ namespace ISpanShop.MVC.Controllers.Promotions
                 Items = new() { new() { ProductId = 5, ProductName = "Sony WH-1000XM5", OriginalPrice = 10900, DiscountPrice = 9800 } }
             },
             new() {
-                Id = 14, Name = "超值周邊配件節（已拒絕）", PromotionType = 2,
+                Id = 14, Name = "超值周邊配件節", PromotionType = 2,
                 StartTime = DateTime.Now.AddDays(2), EndTime = DateTime.Now.AddDays(9),
                 Status = 2, SellerId = 4, SellerName = "家電特賣城",  // 保留已拒絕（展示用）
                 CreatedAt = DateTime.Now.AddDays(-4), ReviewedAt = DateTime.Now.AddDays(-2),
@@ -165,7 +165,7 @@ namespace ISpanShop.MVC.Controllers.Promotions
                 Rules = new() { new() { RuleType = 1, Threshold = 100, DiscountType = 1, DiscountValue = 200 } }
             },
             new() {
-                Id = 15, Name = "電競設備大促（待審）", PromotionType = 1,
+                Id = 15, Name = "電競設備大促", PromotionType = 1,
                 StartTime = DateTime.Now.AddDays(3), EndTime = DateTime.Now.AddDays(10),
                 Status = 0, SellerId = 5, SellerName = "遊戲天堂",  // 保留待審核（展示用）
                 CreatedAt = DateTime.Now.AddMinutes(-30),
@@ -195,7 +195,7 @@ namespace ISpanShop.MVC.Controllers.Promotions
 
             query = status switch
             {
-                "pending"     => query.Where(p => p.Status == 0),
+                "pending"     => query.Where(p => p.Status == 0 || p.Status == 4),
                 "resubmitted" => query.Where(p => p.Status == 4),
                 "active"      => query.Where(p => p.Status == 1 && p.StartTime <= now && p.EndTime >= now),
                 "upcoming"    => query.Where(p => p.Status == 1 && p.StartTime > now),

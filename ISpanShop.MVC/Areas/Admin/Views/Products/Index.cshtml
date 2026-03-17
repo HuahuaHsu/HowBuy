@@ -271,7 +271,14 @@
                         var statusCss   = item.Status switch { 1 => "bg-success-soft text-success", 2 => "bg-warning-soft text-warning", 3 => "bg-danger-soft text-danger", 4 => "bg-forced-soft text-forced", _ => "bg-secondary-soft text-secondary" };
                         <tr data-id="@item.Id">
                             <td class="text-center cb-cell col-cb" style="width:44px;">
-                                <input class="form-check-input row-checkbox" type="checkbox" value="@item.Id">
+                                @if (isPublished)
+                                {
+                                    <input class="form-check-input row-checkbox" type="checkbox" value="@item.Id">
+                                }
+                                else
+                                {
+                                    <input class="form-check-input row-checkbox" type="checkbox" value="@item.Id" disabled title="只有已上架商品可執行強制下架">
+                                }
                             </td>
                             <td class="col-img">
                                 <img src="@item.MainImageUrl" alt="商品圖" class="list-thumbnail" loading="lazy"
@@ -285,7 +292,7 @@
                             </td>
                             <td class="col-cat"><span class="badge-soft bg-primary-soft text-primary">@item.CategoryName</span></td>
                             <td class="col-brand"><span class="badge-soft bg-info-soft text-info">@item.BrandName</span></td>
-                            <td class="col-seller"><span class="badge-soft bg-purple-soft text-purple">@item.StoreName</span></td>
+                            <td class="col-seller" style="color:#2d3748;">@item.StoreName</td>
                             <td class="fw-bold col-price" style="color:#1e2d3d;">
                                 @if (item.MinPrice == item.MaxPrice)
                                 {
@@ -531,7 +538,7 @@
     .table-custom th {
         border: none; color: #3d5166; font-weight: 700; letter-spacing: .8px;
         font-size: .8rem; padding: .5rem 1.2rem; background: #f4f6f8; text-transform: uppercase;
-        position: sticky; top: 0; z-index: 2;
+        position: relative; z-index: 2;
     }
     .table-custom td {
         background: #fff; border: none; padding: .95rem 1.2rem;
@@ -661,8 +668,6 @@
     .table-custom tbody tr { cursor: pointer; }
     /* 面板展開時隱藏篩選卡，避免精簡模式下擠壓 */
     #productIndexLayout.panel-open .filter-card { display: none; }
-    /* 面板展開時 6:4 比例（覆蓋共用 65%）*/
-    #productIndexLayout #productIndexDetailPanel.open { flex: 0 0 40%; width: 40%; }
 </style>
 
 @section Scripts {
@@ -710,59 +715,84 @@
             var urlBatchForce      = '@Url.Action("BatchForceOffShelf", "Products")';
 
             // ── UI 同步 ─────────────────────────────────────────
-            function updateUI() {
+            window.updateSelectionUI = function() {
                 var n = selectedIds.size;
-                countBadge.textContent = n;
-                if (n > 0) { bar.classList.remove('d-none'); }
-                else        { bar.classList.add('d-none');    }
+                if (countBadge) countBadge.textContent = n;
+                if (bar) {
+                    if (n > 0) bar.classList.remove('d-none');
+                    else       bar.classList.add('d-none');
+                }
 
-                // 更新全選框狀態（僅看當前頁的勾選情況）
                 var pageBoxes = document.querySelectorAll('.row-checkbox');
-                if (pageBoxes.length === 0) { selectAllCb.checked = false; selectAllCb.indeterminate = false; return; }
-                var checkedOnPage = Array.from(pageBoxes).filter(function(cb) { return cb.checked; }).length;
-                if (checkedOnPage === 0)                    { selectAllCb.checked = false; selectAllCb.indeterminate = false; }
-                else if (checkedOnPage === pageBoxes.length){ selectAllCb.checked = true;  selectAllCb.indeterminate = false; }
-                else                                        { selectAllCb.checked = false; selectAllCb.indeterminate = true;  }
+                var selectableBoxes = document.querySelectorAll('.row-checkbox:not(:disabled)');
+                
+                if (selectableBoxes.length === 0) {
+                    if (selectAllCb) { selectAllCb.checked = false; selectAllCb.indeterminate = false; }
+                    return;
+                }
+
+                var selectableIdsInPage = Array.from(selectableBoxes).map(cb => parseInt(cb.value, 10));
+                var selectedOnPage = selectableIdsInPage.filter(id => selectedIds.has(id)).length;
+
+                // 同步當前頁面的 checkbox 狀態
+                pageBoxes.forEach(cb => {
+                    cb.checked = selectedIds.has(parseInt(cb.value, 10));
+                });
+
+                if (selectAllCb) {
+                    if (selectedOnPage === 0) {
+                        selectAllCb.checked = false;
+                        selectAllCb.indeterminate = false;
+                    } else if (selectedOnPage === selectableIdsInPage.length) {
+                        selectAllCb.checked = true;
+                        selectAllCb.indeterminate = false;
+                    } else {
+                        selectAllCb.checked = false;
+                        selectAllCb.indeterminate = true;
+                    }
+                }
             }
 
-            // ── 初始化：將 sessionStorage 的勾選狀態還原到當前頁 ──
-            document.querySelectorAll('.row-checkbox').forEach(function (cb) {
-                if (selectedIds.has(parseInt(cb.value, 10))) cb.checked = true;
-            });
-            updateUI();
-
-            // ── 單選事件 ────────────────────────────────────────
-            document.querySelectorAll('.row-checkbox').forEach(function (cb) {
-                cb.addEventListener('change', function () {
-                    var id = parseInt(this.value, 10);
-                    if (this.checked) selectedIds.add(id);
-                    else              selectedIds.delete(id);
-                    saveIds(selectedIds);
-                    updateUI();
-                });
-            });
-
-            // ── 全選 / 取消全選（當前頁）───────────────────────
-            selectAllCb.addEventListener('change', function () {
-                var checked = this.checked;
+            // ── 初始化事件綁定 ──────────────────────────────────
+            function bindCheckboxEvents() {
                 document.querySelectorAll('.row-checkbox').forEach(function (cb) {
-                    cb.checked = checked;
-                    var id = parseInt(cb.value, 10);
-                    if (checked) selectedIds.add(id);
-                    else         selectedIds.delete(id);
+                    // 先移除舊的監聽器（避免 Ajax 重複綁定）
+                    cb.removeEventListener('change', onRowCheckChange);
+                    cb.addEventListener('change', onRowCheckChange);
                 });
+            }
+
+            function onRowCheckChange() {
+                var id = parseInt(this.value, 10);
+                if (this.checked) selectedIds.add(id);
+                else              selectedIds.delete(id);
                 saveIds(selectedIds);
-                updateUI();
-            });
+                updateSelectionUI();
+            }
+
+            // ── 全選 / 取消全選（當前頁，僅限已上架商品）───────────────────────
+            if (selectAllCb) {
+                selectAllCb.addEventListener('change', function () {
+                    var isChecked = this.checked;
+                    document.querySelectorAll('.row-checkbox:not(:disabled)').forEach(function (cb) {
+                        cb.checked = isChecked;
+                        var id = parseInt(cb.value, 10);
+                        if (isChecked) selectedIds.add(id);
+                        else           selectedIds.delete(id);
+                    });
+                    saveIds(selectedIds);
+                    updateSelectionUI();
+                });
+            }
 
             // ── 清空所有選擇 ────────────────────────────────────
-            clearBtn.addEventListener('click', function () {
-                selectedIds.clear();
-                saveIds(selectedIds);
-                document.querySelectorAll('.row-checkbox').forEach(function (cb) { cb.checked = false; });
-                selectAllCb.checked = false; selectAllCb.indeterminate = false;
-                updateUI();
-            });
+            if (clearBtn) {
+                clearBtn.addEventListener('click', function () {
+                    selectedIds.clear();
+                    saveIds(selectedIds);
+                    updateSelectionUI();
+                });
+            }
 
             // ── 批次強制下架 → 打開 Modal ────────────────────────
             if (btnBatchForce) {
@@ -780,26 +810,36 @@
             }
 
             // 批次強制下架確認
-            document.getElementById('bfConfirmBtn').addEventListener('click', async function () {
-                var reason = document.getElementById('bfReasonInput').value.trim();
-                var errEl  = document.getElementById('bfReasonError');
-                if (!reason || reason.length < 10) { errEl.classList.remove('d-none'); return; }
-                errEl.classList.add('d-none');
-                var ids = Array.from(selectedIds);
-                bootstrap.Modal.getInstance(document.getElementById('batchForceModal'))?.hide();
-                Swal.fire({ title: '處理中…', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-                try {
-                    const res = await apiPost(urlBatchForce, { ids: ids, reason: reason });
-                    if (res.success) {
-                        selectedIds.clear(); saveIds(selectedIds);
-                        Swal.fire({ title: '已強制下架', text: res.message, icon: 'success',
-                                    timer: 1800, timerProgressBar: true, confirmButtonColor: '#1abb9c' })
-                            .then(() => location.reload());
-                    } else {
-                        Swal.fire({ title: '操作失敗', text: res.message, icon: 'error', confirmButtonColor: '#e53e3e' });
-                    }
-                } catch { Swal.fire({ title: '連線錯誤', text: '請稍後再試。', icon: 'error' }); }
-            });
+            var bfConfirmBtn = document.getElementById('bfConfirmBtn');
+            if (bfConfirmBtn) {
+                bfConfirmBtn.addEventListener('click', async function () {
+                    var reason = document.getElementById('bfReasonInput').value.trim();
+                    var errEl  = document.getElementById('bfReasonError');
+                    if (!reason || reason.length < 10) { errEl.classList.remove('d-none'); return; }
+                    errEl.classList.add('d-none');
+                    var ids = Array.from(selectedIds);
+                    bootstrap.Modal.getInstance(document.getElementById('batchForceModal'))?.hide();
+                    Swal.fire({ title: '處理中…', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                    try {
+                        const res = await apiPost(urlBatchForce, { ids: ids, reason: reason });
+                        if (res.success) {
+                            selectedIds.clear(); saveIds(selectedIds);
+                            Swal.fire({ title: '已強制下架', text: res.message, icon: 'success',
+                                        timer: 1800, timerProgressBar: true, confirmButtonColor: '#1abb9c' })
+                                .then(() => location.reload());
+                        } else {
+                            Swal.fire({ title: '操作失敗', text: res.message, icon: 'error', confirmButtonColor: '#e53e3e' });
+                        }
+                    } catch { Swal.fire({ title: '連線錯誤', text: '請稍後再試。', icon: 'error' }); }
+                });
+            }
+
+            // 初次載入與供外部（Ajax）呼叫
+            window.initSelection = function() {
+                bindCheckboxEvents();
+                updateSelectionUI();
+            };
+            initSelection();
         })();
 
         // Bootstrap Tooltips
@@ -1016,13 +1056,10 @@
                     newStatCards.forEach(function(nc, i) {
                         if (curStatCards[i]) curStatCards[i].classList.toggle('stat-active', nc.classList.contains('stat-active'));
                     });
-                    // 恢復 checkbox 勾選狀態
-                    try {
-                        var ids = new Set(JSON.parse(sessionStorage.getItem('selectedProductIds') || '[]'));
-                        document.querySelectorAll('#productIndexListCol .row-checkbox').forEach(function (cb) {
-                            cb.checked = ids.has(parseInt(cb.value, 10));
-                        });
-                    } catch (ex) {}
+                    // 恢復 checkbox 勾選狀態並同步全選框
+                    if (window.initSelection) {
+                        window.initSelection();
+                    }
                     // 重綁行點擊 & tooltips
                     _productBindRows();
                     // 滾回頂部
