@@ -45,7 +45,7 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Orders
                 OrderId = d.OrderId,
                 Rating = d.Rating,
                 Comment = d.Comment,
-                SellerReply = d.SellerReply,
+                StoreReply = d.StoreReply,
                 IsHidden = d.IsHidden,
                 IsAutoFlagged = d.IsAutoFlagged,
                 CreatedAt = d.CreatedAt

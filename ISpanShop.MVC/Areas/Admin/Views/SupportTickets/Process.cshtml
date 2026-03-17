@@ -89,9 +89,9 @@
                                 foreach (var log in (IEnumerable<ISpanShop.Models.EfModels.LoginHistory>)ViewBag.LoginLogs)
                                 {
                                     <tr>
-                                        <td>@log.LoginTime?.ToString("yyyy-MM-dd HH:mm")</td>
+                                        <td>@log.LoginTime.ToString("yyyy-MM-dd HH:mm")</td>
                                         <td>@log.Ipaddress</td>
-                                        <td>@(log.IsSuccessful == true ? "成功" : "失敗")</td>
+                                        <td>@(log.IsSuccess == true ? "成功" : "失敗")</td>
                                     </tr>
                                 }
                             }

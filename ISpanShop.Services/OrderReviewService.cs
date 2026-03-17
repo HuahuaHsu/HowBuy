@@ -36,7 +36,7 @@ namespace ISpanShop.Services
                     OrderId = e.OrderId,
                     Rating = e.Rating,
                     Comment = e.Comment,
-                    SellerReply = e.SellerReply,
+                    StoreReply = e.StoreReply,
                     IsHidden = e.IsHidden ?? false, 
                     IsAutoFlagged = isAutoFlagged, // 賦予系統掃描後的狀態
                     CreatedAt = e.CreatedAt ?? DateTime.MinValue
