@@ -684,7 +684,7 @@ namespace ISpanShop.Repositories.Products
             product.ForceOffShelfReason = reason;
             product.ForceOffShelfDate   = DateTime.Now;
             product.ForceOffShelfBy     = adminBy;
-            product.ReviewStatus        = 0;              // 重設審核狀態，等待賣家重新申請
+            product.ReviewStatus        = 2;              // 進入退回紀錄，賣家可從此處模擬送審
             product.UpdatedAt           = DateTime.Now;
 
             await _context.SaveChangesAsync();

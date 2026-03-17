@@ -41,6 +41,15 @@
             <button id="btnBatchSimulate" class="btn btn-warning rounded-pill px-4" disabled onclick="batchSimulateResubmit()">
                 <i class="bx bx-repost me-1"></i> 批次模擬賣家送審
             </button>
+            @* 退回紀錄批次操作 *@
+            <span id="rejected-batch-tag" class="batch-tag d-none">
+                <i class="bx bx-checkbox-checked"></i>
+                已選取 <span id="rejected-selected-count">0</span> 筆
+                <button id="btn-clear-rejected" type="button" class="batch-tag-close" aria-label="清除選取">×</button>
+            </span>
+            <button id="btnBatchRejectedSimulate" class="btn btn-warning rounded-pill px-4" disabled>
+                <i class="bx bx-store-alt me-1"></i> 批次模擬賣家送審
+            </button>
             @* 測試展示工具：收納至 Dropdown *@
             <div class="dropdown ms-2">
                 <button class="btn btn-outline-secondary rounded-pill px-3 dropdown-toggle" type="button"
@@ -215,7 +224,7 @@
                     <table class="table table-custom align-middle">
                         <thead>
                             <tr>
-                                <th style="width:40px;"><input type="checkbox" class="form-check-input selectAllReApply"></th>
+                                <th style="width:40px;"><input type="checkbox" id="selectAllReApply" class="form-check-input selectAllReApply"></th>
                                 <th style="width:60px;" class="col-img">圖片</th>
                                 <th>商品名稱</th>
                                 <th class="col-store">商店</th>
@@ -277,7 +286,7 @@
                     <table class="table table-custom align-middle">
                         <thead>
                             <tr>
-                                <th style="width:40px;"><input type="checkbox" class="form-check-input selectAllRejected"></th>
+                                <th style="width:40px;"><input type="checkbox" id="selectAllRejected" class="form-check-input selectAllRejected"></th>
                                 <th style="width:70px;" class="col-img">圖片</th>
                                 <th>商品名稱</th>
                                 <th class="col-store">商家</th>
@@ -297,12 +306,18 @@
                                     <td class="fw-semibold product-name-cell">@item.Name</td>
                                     <td class="fs-7 col-store">@item.StoreName</td>
                                     <td class="col-rej-reason reject-reason-col">@item.RejectReason</td>
-                                    <td class="text-center text-nowrap">
-                                        <span class="badge rounded-pill bg-label-danger d-inline-flex flex-row align-items-center justify-content-center px-3 py-2">
-                                            <i class="bx bx-time-five me-1"></i>
-                                            <span class="countdown-timer fw-bold" data-time="10" style="font-size: 0.9rem; min-width: 25px;">10</span>
-                                            <span class="fw-bold ms-1">s</span>
-                                        </span>
+                                    <td class="text-center">
+                                        <div class="countdown-widget" data-initial="15">
+                                            <div class="countdown-display">
+                                                <i class="bx bx-time-five countdown-icon"></i>
+                                                <span class="countdown-timer" data-time="15">15</span>
+                                                <span class="countdown-unit">s</span>
+                                            </div>
+                                            <div class="countdown-track">
+                                                <div class="countdown-fill"></div>
+                                            </div>
+                                            <div class="countdown-label">自動清除</div>
+                                        </div>
                                     </td>
                                     <td class="text-end text-nowrap">
                                         <button class="btn btn-sm btn-outline-warning rounded-pill px-3"
@@ -435,6 +450,62 @@
         opacity: 0.75;
     }
     .batch-tag-close:hover { opacity: 1; color: #374151; }
+
+    /* ── 倒數計時 Widget ── */
+    .countdown-widget {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        min-width: 68px;
+        gap: 3px;
+    }
+    .countdown-display {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: #fff7ed;
+        border: 1.5px solid #fed7aa;
+        color: #c2410c;
+        border-radius: 8px;
+        padding: 4px 10px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        line-height: 1.2;
+        transition: background 0.4s, border-color 0.4s, color 0.4s;
+        white-space: nowrap;
+    }
+    .countdown-display.urgent {
+        background: #fff1f2;
+        border-color: #fca5a5;
+        color: #b91c1c;
+        animation: pulse-countdown 0.7s ease-in-out infinite;
+    }
+    .countdown-icon { font-size: 0.85rem; }
+    .countdown-unit { font-size: 0.72rem; font-weight: 600; opacity: 0.85; }
+    .countdown-track {
+        width: 100%;
+        height: 3px;
+        background: #f3f4f6;
+        border-radius: 99px;
+        overflow: hidden;
+    }
+    .countdown-fill {
+        height: 100%;
+        width: 100%;
+        background: #f97316;
+        border-radius: 99px;
+        transition: width 1s linear, background 0.4s;
+    }
+    .countdown-fill.critical { background: #ef4444; }
+    .countdown-label {
+        font-size: 0.63rem;
+        color: #9ca3af;
+        letter-spacing: 0.03em;
+    }
+    @@keyframes pulse-countdown {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.06); }
+    }
 </style>
 
 @section Scripts {
@@ -447,7 +518,7 @@
             batchReject: '@Url.Action("BatchReject", "Products")',
             batchSimulateResubmit: '@Url.Action("BatchSimulateResubmit", "Products")',
             simulateAutoReview: '@Url.Action("SimulateAutoReview", "Products")',
-            simulateSellerResubmit: '@Url.Action("SimulateSellerResubmit", "ProductReviews", new { area = "" })',
+            simulateSellerResubmit: '@Url.Action("SimulateSellerResubmit", "Products")',
             undoReject: '@Url.Action("UndoReject", "Products")',
             approveForced: '@Url.Action("ApproveForcedProduct", "Products")',
             rejectForced: '@Url.Action("RejectForcedProduct", "Products")'
@@ -457,6 +528,64 @@
 
         // 宣告與讀取黑名單 (倒數計時結束的商品 ID)
         let expiredRejectedIds = JSON.parse(sessionStorage.getItem('expiredRejectedIds')) || [];
+
+        // ── 倒數計時狀態持久化 ──
+        const COUNTDOWN_KEY = 'rejectedCountdownStates';
+        // countdownStates: { [productId]: { time: number, savedAt: number } }
+        let countdownStates = {};
+
+        function loadCountdownStates() {
+            try {
+                let raw = sessionStorage.getItem(COUNTDOWN_KEY);
+                if (!raw) return {};
+                return JSON.parse(raw) || {};
+            } catch(e) { return {}; }
+        }
+
+        function saveCountdownStates() {
+            sessionStorage.setItem(COUNTDOWN_KEY, JSON.stringify(countdownStates));
+        }
+
+        function deleteCountdownState(productId) {
+            delete countdownStates[productId];
+            saveCountdownStates();
+        }
+
+        // 頁面載入時還原計時器狀態（補償已流逝的時間）
+        (function restoreCountdownStates() {
+            let saved = loadCountdownStates();
+            let now = Date.now();
+            let cleaned = false;
+            countdownStates = {};
+            Object.keys(saved).forEach(function(idStr) {
+                let entry = saved[idStr];
+                let elapsed = Math.floor((now - entry.savedAt) / 1000);
+                let remaining = entry.time - elapsed;
+                let id = parseInt(idStr);
+                if (remaining <= 0) {
+                    // 已過期，加入黑名單
+                    if (!expiredRejectedIds.includes(id)) {
+                        expiredRejectedIds.push(id);
+                        cleaned = true;
+                    }
+                } else {
+                    countdownStates[idStr] = { time: remaining, savedAt: now };
+                    // 更新 DOM 上對應商品列的計時器顯示值
+                    let row = document.querySelector('tr[data-id="' + id + '"]');
+                    if (row) {
+                        let timerEl = row.querySelector('.countdown-timer');
+                        let widget  = row.querySelector('.countdown-widget');
+                        if (timerEl) timerEl.dataset.time = remaining;
+                        if (timerEl) timerEl.textContent  = remaining;
+                        if (widget)  widget.dataset.initial = entry.time; // keep original total for progress bar ratio
+                    }
+                }
+            });
+            if (cleaned) {
+                sessionStorage.setItem('expiredRejectedIds', JSON.stringify(expiredRejectedIds));
+                saveCountdownStates();
+            }
+        })();
 
         window.openProductOffcanvas = function (id, name) {
             document.querySelectorAll('tr.row-active').forEach(r => r.classList.remove('row-active'));
@@ -584,6 +713,23 @@
                         selectAll.indeterminate = checkedCount > 0 && checkedCount < all.length;
                     }
                 });
+
+                // 退回紀錄批次列：計算 rejectedPanel 內的勾選數並更新 UI
+                var rejectedPanel = document.getElementById('rejectedPanel');
+                var rejectedCount = 0;
+                if (rejectedPanel) {
+                    rejectedPanel.querySelectorAll('.item-checkbox').forEach(cb => {
+                        if (selectedReviewIds.has(parseInt(cb.value, 10))) rejectedCount++;
+                    });
+                }
+                var rejectedBatchTag  = document.getElementById('rejected-batch-tag');
+                var rejectedBadge     = document.getElementById('rejected-selected-count');
+                var btnRejSim         = document.getElementById('btnBatchRejectedSimulate');
+                if (rejectedBadge) rejectedBadge.textContent = rejectedCount;
+                if (rejectedBatchTag) rejectedCount > 0
+                    ? rejectedBatchTag.classList.remove('d-none')
+                    : rejectedBatchTag.classList.add('d-none');
+                if (btnRejSim) btnRejSim.disabled = rejectedCount === 0;
             }
 
             // 3. 換頁狀態還原
@@ -706,16 +852,8 @@
                     const res = await apiPost(_urls.reject, { id: id, reason: r.value });
                     if (res.success) {
                         Swal.fire('已退回', res.message, 'success').then(() => {
-                            // 1. 實作「退回」成功後的自動跳轉：切換至「近期退回紀錄」頁籤
-                            const tabTrigger = document.getElementById('rejected-tab');
-                            if (tabTrigger) {
-                                tabTrigger.click();
-                                // 注意：因為此頁面目前依賴 location.reload()，若 reload 則跳轉無效
-                                // 如果 reload 是必須的，這裡的 reload() 應該移除或改為 AJAX 重新整理局部
-                                location.reload(); 
-                            } else {
-                                location.reload();
-                            }
+                            sessionStorage.setItem('activeTab', 'rejected-tab');
+                            location.reload();
                         });
                     }
                     else Swal.fire('錯誤', res.message, 'error');
@@ -762,9 +900,7 @@
                         selectedReviewIds.clear();
                         saveIds(selectedReviewIds);
                         Swal.fire('完成', res.message, 'success').then(() => {
-                            // 批次退回也自動跳轉
-                            const tabTrigger = document.getElementById('rejected-tab');
-                            if (tabTrigger) tabTrigger.click();
+                            sessionStorage.setItem('activeTab', 'rejected-tab');
                             location.reload();
                         });
                     }
@@ -867,14 +1003,69 @@
             window.approveForcedProduct = (id, name) => approveProduct(id, name);
             window.openRejectForcedModal = (id, name) => openRejectModal(id, name);
 
-            // 清除選取
+            // 清除選取（待審核）
             document.getElementById('btn-clear-pending').onclick = function() {
                 selectedReviewIds.clear();
                 saveIds(selectedReviewIds);
                 updateSelectionUI();
             };
 
-            // ── 近期退回紀錄：10秒倒數銷毀機制 ──
+            // 清除選取（退回紀錄）- 只清除該 panel 內的勾選
+            document.getElementById('btn-clear-rejected').onclick = function() {
+                var rejPanel = document.getElementById('rejectedPanel');
+                if (rejPanel) {
+                    rejPanel.querySelectorAll('.item-checkbox').forEach(cb => {
+                        selectedReviewIds.delete(parseInt(cb.value, 10));
+                    });
+                }
+                saveIds(selectedReviewIds);
+                updateSelectionUI();
+            };
+
+            // 批次模擬賣家送審（退回紀錄專用）
+            window.batchRejectedSimulate = function() {
+                var rejPanel = document.getElementById('rejectedPanel');
+                var ids = [];
+                if (rejPanel) {
+                    rejPanel.querySelectorAll('.item-checkbox:checked').forEach(cb => {
+                        ids.push(parseInt(cb.value, 10));
+                    });
+                }
+                if (ids.length === 0) return Swal.fire('請先選擇商品', '', 'warning');
+
+                Swal.fire({
+                    title: '批次模擬賣家送審',
+                    text: '確定要將選取的 ' + ids.length + ' 項退回商品模擬賣家重新送審嗎？',
+                    icon: 'info', showCancelButton: true, confirmButtonColor: '#F59E0B'
+                }).then(async (r) => {
+                    if (!r.isConfirmed) return;
+                    Swal.fire({ title: '處理中...', didOpen: () => Swal.showLoading() });
+                    const res = await apiPost(_urls.batchSimulateResubmit, { ids: ids });
+                    if (res.success) {
+                        sessionStorage.removeItem('expiredRejectedIds');
+                        switchTabAndReload('reapply-tab');
+                    } else {
+                        Swal.fire('錯誤', res.message, 'error');
+                    }
+                });
+            };
+
+            document.getElementById('btnBatchRejectedSimulate').onclick = batchRejectedSimulate;
+
+            // ── 近期退回紀錄：倒數銷毀機制 ──
+            // 初始化：將頁面上所有計時器的 productId 登記到 countdownStates（若尚未存在）
+            document.querySelectorAll('tr[data-id] .countdown-timer').forEach(timerEl => {
+                let row = timerEl.closest('tr[data-id]');
+                if (!row) return;
+                let idStr = row.getAttribute('data-id');
+                if (!idStr) return;
+                if (!countdownStates[idStr]) {
+                    let t = parseInt(timerEl.dataset.time) || 15;
+                    countdownStates[idStr] = { time: t, savedAt: Date.now() };
+                }
+            });
+            saveCountdownStates();
+
             setInterval(function() {
                 document.querySelectorAll('.countdown-timer').forEach(timerEl => {
                     let timeLeft = parseInt(timerEl.dataset.time);
@@ -882,7 +1073,33 @@
 
                     timeLeft--;
                     timerEl.dataset.time = timeLeft;
-                    timerEl.textContent = timeLeft;
+                    timerEl.textContent = timeLeft <= 0 ? '0' : timeLeft;
+
+                    // 同步更新 countdownStates 並持久化
+                    let row = timerEl.closest('tr[data-id]');
+                    if (row) {
+                        let idStr = row.getAttribute('data-id');
+                        if (idStr) {
+                            countdownStates[idStr] = { time: timeLeft, savedAt: Date.now() };
+                            saveCountdownStates();
+                        }
+                    }
+
+                    // 更新進度條寬度與色彩狀態
+                    let widget = timerEl.closest('.countdown-widget');
+                    if (widget) {
+                        let initial  = parseInt(widget.dataset.initial) || 10;
+                        let fill     = widget.querySelector('.countdown-fill');
+                        let display  = widget.querySelector('.countdown-display');
+                        let urgentAt = Math.ceil(initial * 0.3);
+                        if (fill) {
+                            fill.style.width = Math.max(0, (timeLeft / initial) * 100) + '%';
+                            if (timeLeft <= urgentAt) fill.classList.add('critical');
+                        }
+                        if (display && timeLeft <= urgentAt) {
+                            display.classList.add('urgent');
+                        }
+                    }
 
                     if (timeLeft <= 0) {
                         let row = timerEl.closest('tr');
@@ -916,6 +1133,8 @@
                                 expiredRejectedIds.push(id);
                                 sessionStorage.setItem('expiredRejectedIds', JSON.stringify(expiredRejectedIds));
                             }
+                            // 清除持久化計時器狀態
+                            if (id) deleteCountdownState(String(id));
 
                             row.remove();
                             // 移除後檢查 tbody 內是否還有 tr (排除可能存在的提示列，這裡檢查 tr[data-id])
@@ -968,12 +1187,23 @@
         // 3. 頁面載入時校正所有頁籤數字 (Sync Badge Count)
         $(function() {
             // 頁面載入時強制剃除殭屍：遍歷「近期退回紀錄」表格，移除已過期的商品列
+            let removedCount = 0;
             $('#rejectedPanel tbody tr[data-id]').each(function() {
                 let id = parseInt($(this).attr('data-id'));
                 if (expiredRejectedIds.includes(id)) {
                     $(this).remove();
+                    removedCount++;
                 }
             });
+
+            // 同步更新「近期退回紀錄」頁籤的數字 Badge
+            if (removedCount > 0) {
+                var $badge = $('#rejected-tab .badge');
+                if ($badge.length > 0) {
+                    var currentCount = parseInt($badge.text()) || 0;
+                    $badge.text(Math.max(0, currentCount - removedCount));
+                }
+            }
 
             // 如果移除後 tbody 變空，補上提示文字
             let $rejectedTbody = $('#rejectedPanel tbody');

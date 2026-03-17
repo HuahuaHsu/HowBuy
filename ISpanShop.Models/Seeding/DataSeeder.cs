@@ -97,6 +97,9 @@ namespace ISpanShop.Models.Seeding
 				foreach (var dummy in dummyProducts)
 				{
 					var category = ResolveCategory(dummy.Category, categories);
+					// 分類不在對照表（如 vehicle、motorcycle 汽機車）→ 跳過，不植入資料庫
+					if (category == null) continue;
+
 					var brand = ResolveBrand(dummy.Brand, brands);
 					var (productName, productDescription) = TranslateProduct(dummy);
 					int basePriceTwd = (int)(dummy.Price * USD_TO_TWD);
@@ -106,7 +109,7 @@ namespace ISpanShop.Models.Seeding
 
 					// 根據分類決定所屬賣場（找不到對應則退回預設賣場）
 					int resolvedStoreId;
-					if (category != null && CategoryToStores.TryGetValue(category.Id, out var storeOptions))
+					if (CategoryToStores.TryGetValue(category.Id, out var storeOptions))
 						resolvedStoreId = storeOptions[_random.Next(storeOptions.Length)];
 					else
 						resolvedStoreId = store.Id;
@@ -119,7 +122,7 @@ namespace ISpanShop.Models.Seeding
 
 						products.Add(CreateProductEntity(
 							storeId: resolvedStoreId,
-							categoryId: category?.Id ?? categories.First().Id,
+							categoryId: category.Id,
 							brandId: brand?.Id ?? brands.First().Id,
 							name: productName + CloneSuffixes[k],
 							description: productDescription,
@@ -169,7 +172,7 @@ namespace ISpanShop.Models.Seeding
 					.OrderBy(_ => _random.Next())   // 隨機打散
 					.ToList();
 				int unpublishCount = (int)(approvedProducts.Count * _random.Next(10, 21) / 100.0);  // 10-20%
-				
+
 				for (int i = 0; i < unpublishCount; i++)
 				{
 					approvedProducts[i].Status = 0;  // 未上架（已審核通過但未公開銷售）
@@ -178,7 +181,7 @@ namespace ISpanShop.Models.Seeding
 				// 4. 一次性批次寫入資料庫
 				context.Products.AddRange(products);
 				await context.SaveChangesAsync();
-				
+
 				int publishedCount = products.Count(p => p.Status == 1);
 				Console.WriteLine($"✅ 成功匯入 {products.Count} 筆商品 (含多規格變體) 到資料庫");
 				Console.WriteLine($"   └─ 已上架: {publishedCount} 筆 / 未上架: {unpublishCount} 筆");
@@ -228,12 +231,12 @@ namespace ISpanShop.Models.Seeding
 		// ★ 輔助方法：解析分類、品牌、翻譯
 		// ====================================================================
 
-		/// <summary>根據 API 分類名稱找到對應的子分類</summary>
+		/// <summary>根據 API 分類名稱找到對應的子分類；若分類不在對照表則回傳 null</summary>
 		private static Category ResolveCategory(string apiCategory, List<Category> categories)
 		{
-			var childCatName = SeederMappings.CategoryHierarchyMap.ContainsKey(apiCategory)
-				? SeederMappings.CategoryHierarchyMap[apiCategory].ChildName
-				: char.ToUpper(apiCategory[0]) + apiCategory.Substring(1);
+			if (!SeederMappings.CategoryHierarchyMap.ContainsKey(apiCategory))
+				return null;
+			var childCatName = SeederMappings.CategoryHierarchyMap[apiCategory].ChildName;
 			return categories.FirstOrDefault(c => c.Name == childCatName);
 		}
 

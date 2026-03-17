@@ -402,8 +402,8 @@
                     <button type="button" class="fp-chip" onclick="fpSetChip(this)">價格異常</button>
                 </div>
                 <textarea id="fpReasonInput" class="form-control rounded-3" rows="3"
-                          placeholder="請說明強制下架原因（至少 10 字，賣家將可看到此說明）..."></textarea>
-                <div id="fpReasonError" class="text-danger small mt-1 d-none">請填寫下架原因（至少 10 字）。</div>
+                          placeholder="請說明強制下架原因（賣家將可看到此說明）..."></textarea>
+                <div id="fpReasonError" class="text-danger small mt-1 d-none">請填寫下架原因。</div>
             </div>
             <div class="modal-footer border-0 pt-0">
                 <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">取消</button>
@@ -439,8 +439,8 @@
                     <button type="button" class="fp-chip" onclick="bfSetChip(this)">價格異常</button>
                 </div>
                 <textarea id="bfReasonInput" class="form-control rounded-3" rows="3"
-                          placeholder="請說明強制下架原因（至少 10 字，賣家將可看到此說明）..."></textarea>
-                <div id="bfReasonError" class="text-danger small mt-1 d-none">請填寫下架原因（至少 10 字）。</div>
+                          placeholder="請說明強制下架原因（賣家將可看到此說明）..."></textarea>
+                <div id="bfReasonError" class="text-danger small mt-1 d-none">請填寫下架原因。</div>
             </div>
             <div class="modal-footer border-0 pt-0">
                 <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">取消</button>
@@ -815,7 +815,7 @@
                 bfConfirmBtn.addEventListener('click', async function () {
                     var reason = document.getElementById('bfReasonInput').value.trim();
                     var errEl  = document.getElementById('bfReasonError');
-                    if (!reason || reason.length < 10) { errEl.classList.remove('d-none'); return; }
+                    if (!reason) { errEl.classList.remove('d-none'); return; }
                     errEl.classList.add('d-none');
                     var ids = Array.from(selectedIds);
                     bootstrap.Modal.getInstance(document.getElementById('batchForceModal'))?.hide();
@@ -905,7 +905,7 @@
         document.getElementById('fpConfirmBtn').addEventListener('click', async function () {
             var reason = document.getElementById('fpReasonInput').value.trim();
             var errEl  = document.getElementById('fpReasonError');
-            if (!reason || reason.length < 10) { errEl.classList.remove('d-none'); return; }
+            if (!reason) { errEl.classList.remove('d-none'); return; }
             errEl.classList.add('d-none');
 
             try {

@@ -376,6 +376,30 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Products
         }
 
         /// <summary>
+        /// [AJAX] 批次模擬賣家送審 - 將多筆 ReviewStatus=2（已退回）的商品移至 ReviewStatus=3（待重新審核）
+        /// </summary>
+        [HttpPost]
+        public async Task<IActionResult> BatchSimulateResubmit([FromBody] BatchReviewDto dto)
+        {
+            if (dto == null || dto.Ids == null || dto.Ids.Count == 0)
+                return Json(new { success = false, message = "未選取任何商品。" });
+            try
+            {
+                int count = 0;
+                foreach (var id in dto.Ids)
+                {
+                    await _productService.SimulateSellerResubmitAsync(id);
+                    count++;
+                }
+                return Json(new { success = true, message = $"已模擬賣家重新送審 {count} 筆商品，商品已移至「重新申請審核」列表。" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"操作失敗：{ex.Message}" });
+            }
+        }
+
+        /// <summary>
         /// [AJAX] 重新審核 - 將已退回商品重設為待審核（清空審核結果欄位）
         /// </summary>
         [HttpPost]
