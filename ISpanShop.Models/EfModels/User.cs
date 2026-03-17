@@ -49,6 +49,8 @@ public partial class User
 
     public virtual ICollection<ChatMessage> ChatMessageSenders { get; set; } = new List<ChatMessage>();
 
+    public virtual ICollection<LoginHistory> LoginHistories { get; set; } = new List<LoginHistory>();
+
     public virtual MemberProfile MemberProfile { get; set; }
 
     public virtual ICollection<OrderReview> OrderReviews { get; set; } = new List<OrderReview>();

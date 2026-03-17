@@ -61,16 +61,7 @@ namespace ISpanShop.Repositories.ContentModeration
                 .Select(w => w.Word)
                 .ToListAsync();
         }
-
-		public async Task<IEnumerable<string>> GetAllWordsAsync()
-		{
-			// 取得所有「啟用中」的敏感字字串列表
-			return await _context.SensitiveWords
-				.Where(w => w.IsActive == true)
-				.Select(w => w.Word)
-				.ToListAsync();
-		}
-	}
+	
         // 用來判斷「高風險」分類的關鍵字
         private static readonly string[] _highRiskCategoryKeywords =
             { "高風險", "危險", "違禁", "嚴重", "色情", "暴力", "毒品", "武器", "詐騙", "仿冒", "賭博" };
