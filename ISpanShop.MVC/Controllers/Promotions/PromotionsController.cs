@@ -195,12 +195,13 @@ namespace ISpanShop.MVC.Controllers.Promotions
 
             query = status switch
             {
-                "pending"  => query.Where(p => p.Status == 0),
-                "active"   => query.Where(p => p.Status == 1 && p.StartTime <= now && p.EndTime >= now),
-                "upcoming" => query.Where(p => p.Status == 1 && p.StartTime > now),
-                "rejected" => query.Where(p => p.Status == 2),
-                "ended"    => query.Where(p => p.Status == 3 || (p.Status == 1 && p.EndTime < now)),
-                _          => query
+                "pending"     => query.Where(p => p.Status == 0),
+                "resubmitted" => query.Where(p => p.Status == 4),
+                "active"      => query.Where(p => p.Status == 1 && p.StartTime <= now && p.EndTime >= now),
+                "upcoming"    => query.Where(p => p.Status == 1 && p.StartTime > now),
+                "rejected"    => query.Where(p => p.Status == 2),
+                "ended"       => query.Where(p => p.Status == 3 || (p.Status == 1 && p.EndTime < now)),
+                _             => query
             };
 
             var totalCount = query.Count();
@@ -214,10 +215,11 @@ namespace ISpanShop.MVC.Controllers.Promotions
                 PageSize     = pageSize,
                 TotalPages   = (int)Math.Ceiling(totalCount / (double)pageSize),
 
-                PendingCount  = all.Count(p => p.Status == 0),
-                ActiveCount   = all.Count(p => p.Status == 1 && p.StartTime <= now && p.EndTime >= now),
-                UpcomingCount = all.Count(p => p.Status == 1 && p.StartTime > now),
-                EndedCount    = all.Count(p => p.Status == 3 || (p.Status == 1 && p.EndTime < now)),
+                PendingCount      = all.Count(p => p.Status == 0),
+                ActiveCount       = all.Count(p => p.Status == 1 && p.StartTime <= now && p.EndTime >= now),
+                UpcomingCount     = all.Count(p => p.Status == 1 && p.StartTime > now),
+                EndedCount        = all.Count(p => p.Status == 3 || (p.Status == 1 && p.EndTime < now)),
+                ReSubmittedCount  = all.Count(p => p.Status == 4),
 
                 Items = query
                     .OrderByDescending(p => p.CreatedAt)
@@ -489,7 +491,7 @@ namespace ISpanShop.MVC.Controllers.Promotions
         {
             var promo = _store.FirstOrDefault(p => p.Id == id && !p.IsDeleted);
             if (promo == null) return Json(new { success = false, message = "找不到活動" });
-            if (promo.Status != 0) return Json(new { success = false, message = "只有待審核的活動才能核准" });
+            if (promo.Status != 0 && promo.Status != 4) return Json(new { success = false, message = "只有待審核或重新送審的活動才能核准" });
 
             promo.Status     = 1;
             promo.ReviewedAt = DateTime.Now;
@@ -505,7 +507,7 @@ namespace ISpanShop.MVC.Controllers.Promotions
         {
             var promo = _store.FirstOrDefault(p => p.Id == id && !p.IsDeleted);
             if (promo == null) return Json(new { success = false, message = "找不到活動" });
-            if (promo.Status != 0) return Json(new { success = false, message = "只有待審核的活動才能拒絕" });
+            if (promo.Status != 0 && promo.Status != 4) return Json(new { success = false, message = "只有待審核或重新送審的活動才能拒絕" });
             if (string.IsNullOrWhiteSpace(reason)) return Json(new { success = false, message = "請填寫拒絕理由" });
 
             promo.Status       = 2;
@@ -518,7 +520,7 @@ namespace ISpanShop.MVC.Controllers.Promotions
         // SimulateSellerResubmit POST (AJAX — 展示用：模擬賣家修改後重新送審)
         // ===================================================================
         /// <summary>
-        /// 將 Status=2（已拒絕）的活動重置回 Status=0（待審核），模擬賣家修改後重新送審的流程。
+        /// 將 Status=2（已拒絕）的活動設為 Status=4（重新申請審核），模擬賣家修改後重新送審的流程。
         /// </summary>
         [HttpPost("SimulateSellerResubmit/{id}")]
         [ValidateAntiForgeryToken]
@@ -528,10 +530,10 @@ namespace ISpanShop.MVC.Controllers.Promotions
             if (promo == null) return Json(new { success = false, message = "找不到活動" });
             if (promo.Status != 2) return Json(new { success = false, message = "只有已拒絕的活動才能重新送審" });
 
-            promo.Status       = 0;          // 回到待審核
+            promo.Status       = 4;          // 重新申請審核
             promo.RejectReason = null;
             promo.ReviewedAt   = null;
-            return Json(new { success = true, message = $"已模擬賣家重新送審，活動「{promo.Name}」已回到待審核列表。" });
+            return Json(new { success = true, message = $"已模擬賣家重新送審，活動「{promo.Name}」已移至「重新申請審核」列表。" });
         }
 
         // ===================================================================

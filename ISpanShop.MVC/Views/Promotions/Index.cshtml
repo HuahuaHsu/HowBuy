@@ -39,13 +39,16 @@
     /* 精簡模式 */
     #promoLayout.panel-open .col-type,
     #promoLayout.panel-open .col-time,
-    #promoLayout.panel-open .col-seller { display: none; }
+    #promoLayout.panel-open .col-seller,
+    #promoLayout.panel-open .col-act { display: none; }
     #promoLayout.panel-open .table > :not(caption) > * > * { padding: .55rem .75rem; }
     #promoLayout.panel-open .promo-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
     #promoLayout.panel-open .promo-desc { display: none; }
     .table tbody tr { cursor: pointer; }
     /* 面板展開時 6:4 比例（覆蓋共用 65%）*/
     #promoLayout #promotionDetailPanel.open { flex: 0 0 40%; width: 40%; }
+    /* 重新送審列：藍色左框 */
+    .resubmitted-row { border-left: 3px solid #0ea5e9; }
 </style>
 
 <div class="page-fluid-root container-fluid font-noto">
@@ -159,6 +162,7 @@
                         var tabs = new[] {
                             ("all","全部", ""),
                             ("pending","待審核",""),
+                            ("resubmitted","重新申請審核",""),
                             ("active","進行中",""),
                             ("upcoming","即將開始",""),
                             ("rejected","已拒絕",""),
@@ -168,9 +172,14 @@
                     @foreach (var (val, label, icon) in tabs)
                     {
                         var isActive = (Model.StatusFilter ?? "all") == val;
+                        var badge = val == "resubmitted" && Model.ReSubmittedCount > 0
+                            ? $" <span class=\"badge bg-info ms-1\">{Model.ReSubmittedCount}</span>"
+                            : val == "pending" && Model.PendingCount > 0
+                            ? $" <span class=\"badge bg-warning ms-1\">{Model.PendingCount}</span>"
+                            : "";
                         <li class="nav-item">
                             <a href="@Url.Action("Index", new { keyword = Model.Keyword, status = val == "all" ? null : val, type = Model.TypeFilter })"
-                               class="nav-link @(isActive ? "active" : "")">@label</a>
+                               class="nav-link @(isActive ? "active" : "")">@label@Html.Raw(badge)</a>
                         </li>
                     }
                 </ul>
@@ -216,7 +225,7 @@
                         int _ni = 0;
                         @foreach (var item in Model.Items)
                         {
-                            <tr class="@(item.IsPending ? "pending-row" : "")" data-id="@item.Id">
+                            <tr class="@(item.Status == 4 ? "resubmitted-row" : item.Status == 0 ? "pending-row" : "")" data-id="@item.Id">
                                 <td>
                                     <div class="promo-name">@item.Name</div>
                                     <div class="promo-desc">@item.ItemCount 個項目</div>

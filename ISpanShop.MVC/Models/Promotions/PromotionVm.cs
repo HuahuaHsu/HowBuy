@@ -21,10 +21,11 @@ namespace ISpanShop.MVC.Models.Promotions
         public int?    TypeFilter    { get; set; }
 
         // 統計卡片
-        public int PendingCount  { get; set; }
-        public int ActiveCount   { get; set; }
-        public int UpcomingCount { get; set; }
-        public int EndedCount    { get; set; }
+        public int PendingCount      { get; set; }
+        public int ActiveCount       { get; set; }
+        public int UpcomingCount     { get; set; }
+        public int EndedCount        { get; set; }
+        public int ReSubmittedCount  { get; set; }  // Status=4：重新申請審核
     }
 
     public class PromotionListItemVm
@@ -55,6 +56,7 @@ namespace ISpanShop.MVC.Models.Promotions
                 if (Status == 0) return "待審核";
                 if (Status == 2) return "已拒絕";
                 if (Status == 3) return "已結束";
+                if (Status == 4) return "重新送審";
                 var now = DateTime.Now;
                 if (now < StartTime) return "即將開始";
                 if (now > EndTime)   return "已結束";
@@ -69,6 +71,7 @@ namespace ISpanShop.MVC.Models.Promotions
                 if (Status == 0) return "bg-label-warning";
                 if (Status == 2) return "bg-label-danger";
                 if (Status == 3) return "bg-label-secondary";
+                if (Status == 4) return "bg-label-info";
                 var now = DateTime.Now;
                 if (now < StartTime) return "bg-label-primary";
                 if (now > EndTime)   return "bg-label-secondary";
@@ -76,7 +79,7 @@ namespace ISpanShop.MVC.Models.Promotions
             }
         }
 
-        public bool IsPending => Status == 0;
+        public bool IsPending => Status == 0 || Status == 4;
     }
 
     // ────────────────────────────────
@@ -159,6 +162,7 @@ namespace ISpanShop.MVC.Models.Promotions
                 if (Status == 0) return "待審核";
                 if (Status == 2) return "已拒絕";
                 if (Status == 3) return "已結束";
+                if (Status == 4) return "重新送審";
                 var now = DateTime.Now;
                 if (now < StartTime) return "即將開始";
                 if (now > EndTime)   return "已結束";
@@ -172,6 +176,7 @@ namespace ISpanShop.MVC.Models.Promotions
                 if (Status == 0) return "bg-label-warning";
                 if (Status == 2) return "bg-label-danger";
                 if (Status == 3) return "bg-label-secondary";
+                if (Status == 4) return "bg-label-info";
                 var now = DateTime.Now;
                 if (now < StartTime) return "bg-label-primary";
                 if (now > EndTime)   return "bg-label-secondary";
@@ -179,7 +184,7 @@ namespace ISpanShop.MVC.Models.Promotions
             }
         }
 
-        public bool IsPending => Status == 0;
+        public bool IsPending => Status == 0 || Status == 4;
         public bool CanEdit   => Status == 0 || (Status == 1 && DateTime.Now < StartTime);
         public bool IsActiveOnly => Status == 1 && DateTime.Now >= StartTime && DateTime.Now <= EndTime;
 

@@ -1066,7 +1066,7 @@
                     cancelCb  = onCancel;
                 }
                 document.getElementById('globalModalTitle').textContent = title;
-                document.getElementById('globalModalMessage').textContent = text;
+                document.getElementById('globalModalMessage').innerHTML = text;
                 document.getElementById('globalModalFooter').innerHTML =
                     '<button type="button" class="btn btn-outline-secondary rounded-pill px-4" id="_gCancel">取消</button>' +
                     '<button type="button" class="btn btn-primary rounded-pill px-4" id="_gConfirm">確定</button>';
