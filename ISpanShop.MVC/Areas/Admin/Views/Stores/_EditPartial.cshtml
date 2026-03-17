@@ -50,18 +50,24 @@
 
         <!-- 變更狀態操作 -->
         <div class="col-12">
-            <form method="post" asp-area="Admin" asp-controller="Stores" asp-action="UpdateStoreStatus">
+            <form id="storeStatusForm" method="post" asp-area="Admin" asp-controller="Stores" asp-action="UpdateStoreStatus">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="storeId" value="@Model.Store.StoreId" />
                 <div class="mb-3">
                     <label class="form-label fw-bold">變更營業狀態</label>
-                    <select name="status" class="form-select">
+                    <select id="storeStatusSelect" name="status" class="form-select" data-initial="@Model.Store.StoreStatus" @(Model.Store.IsVerified ? "" : "disabled")>
                         <option value="1" selected="@(Model.Store.StoreStatus == 1)">可營業</option>
                         @* <option value="2" selected="@(Model.Store.StoreStatus == 2)">休假中</option>管理員無權決定 *@
                         <option value="3" selected="@(Model.Store.StoreStatus == 3)">停權</option>
                     </select>
+                    @if (!Model.Store.IsVerified)
+                    {
+                        <div class="form-text text-danger">
+                            <i class="bx bx-info-circle me-1"></i>店家尚未通過審核，無法設定營業狀態
+                        </div>
+                    }
                 </div>
-                <button type="submit" class="btn btn-primary w-100">
+                <button type="submit" class="btn btn-primary w-100" @(Model.Store.IsVerified ? "" : "disabled")>
                     <i class="bx bx-save me-1"></i> 儲存營業狀態
                 </button>
             </form>
@@ -69,11 +75,11 @@
 
         <div class="col-12 mt-4 d-flex gap-2">
             <!-- 審核操作 -->
-            <form method="post" asp-area="Admin" asp-controller="Stores" asp-action="ToggleVerified" class="flex-fill">
+            <form id="toggleVerifiedForm" method="post" asp-area="Admin" asp-controller="Stores" asp-action="ToggleVerified" class="flex-fill">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="storeId" value="@Model.Store.StoreId" />
                 <input type="hidden" name="isVerified" value="@((!Model.Store.IsVerified).ToString().ToLower())" />
-                <button type="submit" class="btn btn-outline-@(Model.Store.IsVerified ? "danger" : "success") w-100">
+                <button type="submit" id="toggleVerifiedBtn" class="btn btn-outline-@(Model.Store.IsVerified ? "danger" : "success") w-100" data-is-verified="@Model.Store.IsVerified.ToString().ToLower()">
                     <i class="bx bx-@(Model.Store.IsVerified ? "undo" : "check") me-1"></i> 
                     @(Model.Store.IsVerified ? "撤回審核" : "通過審核")
                 </button>

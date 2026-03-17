@@ -32,8 +32,8 @@ namespace ISpanShop.Services.Stores
 
             foreach (var store in stores)
             {
-                store.StoreStatusName = StoreStatusHelper.GetDisplayName(store.StoreStatus);
-                store.StoreStatusBadge = StoreStatusHelper.GetBadgeClass(store.StoreStatus);
+                store.StoreStatusName = StoreStatusHelper.GetDisplayName(store.StoreStatus, store.IsVerified, store.IsBlacklisted);
+                store.StoreStatusBadge = StoreStatusHelper.GetBadgeClass(store.StoreStatus, store.IsVerified, store.IsBlacklisted);
             }
 
             return stores;
@@ -49,8 +49,8 @@ namespace ISpanShop.Services.Stores
             var store = _storeRepository.GetStoreById(storeId);
             if (store != null)
             {
-                store.StoreStatusName = StoreStatusHelper.GetDisplayName(store.StoreStatus);
-                store.StoreStatusBadge = StoreStatusHelper.GetBadgeClass(store.StoreStatus);
+                store.StoreStatusName = StoreStatusHelper.GetDisplayName(store.StoreStatus, store.IsVerified, store.IsBlacklisted);
+                store.StoreStatusBadge = StoreStatusHelper.GetBadgeClass(store.StoreStatus, store.IsVerified, store.IsBlacklisted);
             }
             return store;
         }
@@ -66,6 +66,12 @@ namespace ISpanShop.Services.Stores
 
         public (bool IsSuccess, string Message) UpdateStoreStatus(int storeId, int status)
         {
+            // 0. 檢查店家是否已通過審核或被封鎖
+            var store = _storeRepository.GetStoreById(storeId);
+            if (store == null) return (false, "找不到該店家");
+            if (store.IsBlacklisted) return (false, "該店主帳號已封鎖，無法變更店家狀態");
+            if (!store.IsVerified) return (false, "店家尚未通過審核，無法變更營業狀態");
+
             // 1. 確認 storeStatus 在 1~3 之間
             if (status < 1 || status > 3) return (false, "無效的狀態值");
 

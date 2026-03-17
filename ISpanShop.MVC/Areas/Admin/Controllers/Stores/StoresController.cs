@@ -72,6 +72,13 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Stores
         public IActionResult ToggleVerified(int storeId, bool isVerified)
         {
             var result = _storeService.ToggleVerified(storeId, isVerified);
+            
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            {
+                var store = _storeService.GetStoreById(storeId);
+				return Json(new { success = result.IsSuccess, message = result.Message, store = store });
+			}
+
             TempData["Message"] = result.Message;
             return RedirectToAction(nameof(Index));
         }
@@ -82,6 +89,13 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Stores
         public IActionResult ToggleBlacklist(int storeId, bool isBlacklisted)
         {
             var result = _storeService.ToggleBlacklist(storeId, isBlacklisted);
+            
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            {
+                var store = _storeService.GetStoreById(storeId); 
+                return Json(new { success = result.IsSuccess, message = result.Message, store = store });
+			}
+
             TempData["Message"] = result.Message;
             return RedirectToAction(nameof(Index));
         }
@@ -91,6 +105,13 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Stores
         public IActionResult UpdateStoreStatus(int storeId, int status)
         {
             var result = _storeService.UpdateStoreStatus(storeId, status);
+            
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            {
+                var store = _storeService.GetStoreById(storeId);
+				return Json(new { success = result.IsSuccess, message = result.Message, store = store });
+			}
+
             TempData["Message"] = result.Message;
             return RedirectToAction(nameof(Index));
         }

@@ -317,30 +317,43 @@
                         <tbody id="storeTableBody">
                             @foreach (var store in Model.Stores)
                             {
-                                <tr data-store-id="@store.StoreId" class="clickable-row" onclick="openDrawer(@store.StoreId)">
+                                var isBlocked = store.IsBlacklisted;
+                                <tr data-store-id="@store.StoreId" 
+                                    class="@(isBlocked ? "" : "clickable-row")" 
+                                    @(isBlocked ? "data-bs-toggle=tooltip title=該帳號為黑名單 style=cursor:not-allowed;opacity:0.6;" : $"onclick=openDrawer({store.StoreId})")>
                                     <td><strong>#@store.StoreId</strong></td>
                                     <td class="fw-semibold">@store.StoreName</td>
                                     <td>@@@store.OwnerAccount</td>
                                     <td><span class="badge bg-label-info">@store.ProductCount</span></td>
                                     <td>
                                         <div class="d-flex flex-column gap-1">
-                                            @if (store.IsVerified) { <span class="badge badge-soft bg-label-success" style="width:fit-content">已審核</span> }
-                                            else { <span class="badge badge-soft bg-label-warning" style="width:fit-content">待審核</span> }
+                                            @if (isBlocked) {
+                                                @* 黑名單時不顯示審核資訊 *@
+                                            } else {
+                                                @if (store.IsVerified) { <span class="badge badge-soft bg-label-success" style="width:fit-content">已審核</span> }
+                                                else { <span class="badge badge-soft bg-label-warning" style="width:fit-content">待審核</span> }
+                                            }
                                             
                                             @if (store.IsBlacklisted) { <span class="badge badge-soft bg-label-danger" style="width:fit-content">已封鎖</span> }
                                             else { <span class="badge badge-soft bg-label-secondary" style="width:fit-content">正常</span> }
                                         </div>
                                     </td>
                                     <td>
-                                        <span class="badge @store.StoreStatusBadge">
-                                            @store.StoreStatusName
-                                        </span>
+                                        @if (isBlocked) {
+                                            <span class="badge bg-label-danger">已封鎖</span>
+                                        } else {
+                                            <span class="badge @store.StoreStatusBadge">
+                                                @store.StoreStatusName
+                                            </span>
+                                        }
                                     </td>
                                     <td class="small text-muted">@store.CreatedAt?.ToString("yyyy/MM/dd HH:mm")</td>
                                     <td class="text-end">
-                                        <div class="act-group justify-content-end">
-                                            <button type="button" class="act-icon"><i class="bx bx-edit"></i></button>
-                                        </div>
+                                        @if (!isBlocked) {
+                                            <div class="act-group justify-content-end">
+                                                <button type="button" class="act-icon"><i class="bx bx-edit"></i></button>
+                                            </div>
+                                        }
                                     </td>
                                 </tr>
                             }
@@ -426,11 +439,124 @@
                 .then(html => {
                     loading.style.display = 'none';
                     content.innerHTML = html;
+                    initDrawerForm(); // 初始化表單邏輯
                 })
                 .catch(err => {
                     loading.style.display = 'none';
                     content.innerHTML = `<div class="p-4 text-danger">載入失敗: ${err}</div>`;
                 });
+        }
+
+        // ================================================================
+        // 初始化 Drawer 內的表單邏輯
+        // ================================================================
+        function initDrawerForm() {
+            const statusForm = document.getElementById('storeStatusForm');
+            const verifiedForm = document.getElementById('toggleVerifiedForm');
+
+            // 1. 營業狀態表單
+            if (statusForm) {
+                statusForm.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    const select = statusForm.querySelector('#storeStatusSelect');
+                    const initial = select.getAttribute('data-initial');
+                    const current = select.value;
+
+                    if (current !== initial) {
+                        const statusText = select.options[select.selectedIndex].text;
+                        showConfirm(`確定要將店家的營業狀態變更為「${statusText}」嗎？`, () => {
+                            executeStoreFormSubmit(statusForm);
+                        });
+                    } else {
+                        executeStoreFormSubmit(statusForm);
+                    }
+                });
+            }
+
+            // 2. 審核狀態表單
+            if (verifiedForm) {
+                verifiedForm.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    const btn = verifiedForm.querySelector('#toggleVerifiedBtn');
+                    const isVerified = btn.getAttribute('data-is-verified') === 'true';
+                    
+                    const msg = isVerified 
+                        ? '確定要「撤回」此店家的審核狀態嗎？\n撤回後店家將無法繼續在平台銷售。'
+                        : '確定要「通過」此店家的審核嗎？\n通過後店家將正式上架。';
+
+                    showConfirm(msg, () => {
+                        executeStoreFormSubmit(verifiedForm);
+                    });
+                });
+            }
+        }
+
+        async function executeStoreFormSubmit(form) {
+            const saveBtn = form.querySelector('button[type="submit"]');
+            const originalHtml = saveBtn.innerHTML;
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>處理中...';
+
+            try {
+                const formData = new FormData(form);
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    closeDrawer();
+                    updateStoreRow(result.store);
+                    showToast('success', '<i class="bx bx-check-circle me-2"></i>' + result.message);
+                } else {
+                    showToast('error', '<i class="bx bx-error-circle me-2"></i>' + (result.message || '儲存失敗'));
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = originalHtml;
+                }
+            } catch (err) {
+                showToast('error', '<i class="bx bx-error-circle me-2"></i>發生錯誤，請重試');
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = originalHtml;
+            }
+        }
+
+        function updateStoreRow(store) {
+            const row = document.querySelector(`tr[data-store-id="${store.storeId}"]`);
+            if (!row) return;
+
+            // 更新營業狀態 Badge
+            const statusCell = row.cells[5];
+            if (statusCell) {
+                statusCell.innerHTML = `<span class="badge ${store.storeStatusBadge}">${store.storeStatusName}</span>`;
+            }
+
+            // 更新審核/封鎖狀態 Badge (假設列索引 4)
+            const badgesCell = row.cells[4];
+            if (badgesCell) {
+                let html = '';
+                if (store.isVerified) html += '<span class="badge badge-soft bg-label-success" style="width:fit-content">已審核</span> ';
+                else html += '<span class="badge badge-soft bg-label-warning" style="width:fit-content">待審核</span> ';
+                
+                if (store.isBlacklisted) html += '<span class="badge badge-soft bg-label-danger" style="width:fit-content">已封鎖</span>';
+                else html += '<span class="badge badge-soft bg-label-secondary" style="width:fit-content">正常</span>';
+                
+                badgesCell.innerHTML = `<div class="d-flex flex-column gap-1">${html}</div>`;
+            }
+        }
+
+        function showToast(type, html) {
+            Swal.fire({
+                icon: type,
+                html: html,
+                timer: 2500,
+                showConfirmButton: false,
+                toast: true,
+                position: 'top-end',
+                timerProgressBar: true
+            });
         }
 
         function closeDrawer() {

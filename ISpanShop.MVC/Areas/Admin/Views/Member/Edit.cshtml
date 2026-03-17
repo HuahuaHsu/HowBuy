@@ -185,7 +185,8 @@
                                            class="form-check-input"
                                            type="checkbox"
                                            role="switch"
-                                           id="blacklistSwitch" />
+                                           id="blacklistSwitch"
+                                           data-initial="@Model.IsBlacklisted.ToString().ToLower()" />
                                     <label class="form-check-label" for="blacklistSwitch"></label>
                                 </div>
                             </div>
@@ -263,7 +264,7 @@
                             <a href="@Url.Action("Index")" class="btn btn-label-secondary px-4">
                                 <i class="bx bx-arrow-back me-1"></i>返回列表
                             </a>
-                            <button type="submit" class="btn btn-danger px-4">
+                            <button type="submit" id="saveBtn" class="btn btn-danger px-4">
                                 <i class="bx bx-save me-1"></i>儲存權限設定
                             </button>
                         </div>
@@ -277,16 +278,24 @@
 @section Scripts {
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            const form = document.querySelector('form');
             const blacklistSwitch = document.getElementById('blacklistSwitch');
-            blacklistSwitch.addEventListener('change', function(e) {
-                if (e.target.checked) {
-                    if (!confirm('確定要將此會員加入黑名單嗎？\n加入後該會員將無法登入系統與購買商品。')) {
-                        e.target.checked = false;
-                    }
-                } else {
-                    if (!confirm('確定要解除此會員的黑名單限制嗎？')) {
-                        e.target.checked = true;
-                    }
+
+            form.addEventListener('submit', function(e) {
+                const isChecked = blacklistSwitch.checked;
+                const initialChecked = blacklistSwitch.getAttribute('data-initial') === 'true';
+
+                // 只有狀態改變時才提示
+                if (isChecked !== initialChecked) {
+                    e.preventDefault(); // 攔截提交
+                    
+                    const msg = isChecked 
+                        ? '確定要將此會員加入黑名單嗎？\n加入後該會員將無法登入系統與購買商品。'
+                        : '確定要解除此會員的黑名單限制嗎？';
+
+                    showConfirm(msg, () => {
+                        form.submit(); // 使用者確認後手動提交表單
+                    });
                 }
             });
         });
@@ -296,16 +305,7 @@
         {
                 <text>
                 document.addEventListener('DOMContentLoaded', function() {
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire({
-                            icon: 'error',
-                            title: '發生錯誤',
-                            text: @Html.Raw(Json.Serialize(TempData["Error"])),
-                            confirmButtonText: '確定'
-                        });
-                    } else {
-                        alert(@Html.Raw(Json.Serialize(TempData["Error"])));
-                    }
+                    showAlert(@Html.Raw(Json.Serialize(TempData["Error"])));
                 });
                 </text>
         }

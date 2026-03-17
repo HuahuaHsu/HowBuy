@@ -707,54 +707,67 @@
             if (!form) return;
 
             const blacklistSwitch = form.querySelector('#drawerBlacklistSwitch');
-            if (blacklistSwitch) {
-                blacklistSwitch.addEventListener('change', function (e) {
-                    if (e.target.checked) {
-                        if (!confirm('確定要將此會員加入黑名單嗎？\n加入後該會員將無法登入系統與下單。')) {
-                            e.target.checked = false;
-                        }
-                    }
-                });
-            }
+            // 移除原本 change 事件中的 showConfirm，只保留樣式切換
 
-            form.addEventListener('submit', async function (e) {
+            form.addEventListener('submit', function (e) {
                 e.preventDefault();
 
-                const saveBtn = form.querySelector('#drawerSaveBtn');
-                const originalHtml = saveBtn.innerHTML;
-                saveBtn.disabled = true;
-                saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>儲存中...';
+                const isChecked = blacklistSwitch ? blacklistSwitch.checked : false;
+                const initialChecked = blacklistSwitch ? (blacklistSwitch.getAttribute('data-initial') === 'true') : false;
 
-                try {
-                    const formData = new FormData(this);
-
-                    if (blacklistSwitch && !blacklistSwitch.checked) {
-                        formData.set('IsBlacklisted', 'false');
-                    }
-
-                    const response = await fetch(this.action, {
-                        method: 'POST',
-                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                        body: formData
+                // 只有狀態改變時才提示
+                if (isChecked !== initialChecked) {
+                    const msg = isChecked 
+                        ? '確定要將此會員加入黑名單嗎？\n加入後該會員將無法登入系統與下單。'
+                        : '確定要解除此會員的黑名單限制嗎？';
+                    
+                    showConfirm(msg, () => {
+                        executeSubmit(form);
                     });
+                } else {
+                    // 狀態沒變，直接儲存
+                    executeSubmit(form);
+                }
+            });
+        }
 
-                    const result = await response.json();
+        // 獨立出 AJAX 提交邏輯
+        async function executeSubmit(form) {
+            const blacklistSwitch = form.querySelector('#drawerBlacklistSwitch');
+            const saveBtn = form.querySelector('#drawerSaveBtn');
+            const originalHtml = saveBtn.innerHTML;
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>儲存中...';
 
-                    if (result.success) {
-                        closeDrawer();
-                        updateMemberRow(result.member);
-                        showToast('success', '<i class="bx bx-check-circle me-2"></i>' + result.message);
-                    } else {
-                        showToast('error', '<i class="bx bx-error-circle me-2"></i>' + (result.message || '儲存失敗'));
-                        saveBtn.disabled = false;
-                        saveBtn.innerHTML = originalHtml;
-                    }
-                } catch (err) {
-                    showToast('error', '<i class="bx bx-error-circle me-2"></i>發生錯誤，請重試');
+            try {
+                const formData = new FormData(form);
+
+                if (blacklistSwitch && !blacklistSwitch.checked) {
+                    formData.set('IsBlacklisted', 'false');
+                }
+
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    closeDrawer();
+                    updateMemberRow(result.member);
+                    showToast('success', '<i class="bx bx-check-circle me-2"></i>' + result.message);
+                } else {
+                    showToast('error', '<i class="bx bx-error-circle me-2"></i>' + (result.message || '儲存失敗'));
                     saveBtn.disabled = false;
                     saveBtn.innerHTML = originalHtml;
                 }
-            });
+            } catch (err) {
+                showToast('error', '<i class="bx bx-error-circle me-2"></i>發生錯誤，請重試');
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = originalHtml;
+            }
         }
 
         // ================================================================
@@ -777,20 +790,15 @@
         }
 
         function showToast(type, html) {
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                    icon: type, html: html, timer: 2500,
-                    showConfirmButton: false, toast: true, position: 'top-end', timerProgressBar: true
-                });
-                return;
-            }
-
-            const container = document.getElementById('toastContainer');
-            const toast = document.createElement('div');
-            toast.className = `member-toast ${type}`;
-            toast.innerHTML = html;
-            container.appendChild(toast);
-            setTimeout(() => toast.remove(), 3000);
+            Swal.fire({
+                icon: type,
+                html: html,
+                timer: 2500,
+                showConfirmButton: false,
+                toast: true,
+                position: 'top-end',
+                timerProgressBar: true
+            });
         }
 
         @if (TempData["Success"] != null)

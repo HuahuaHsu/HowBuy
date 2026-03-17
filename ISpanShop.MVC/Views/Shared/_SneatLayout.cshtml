@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="~/sneat/assets/vendor/css/theme-default.css" />
     <link rel="stylesheet" href="~/sneat/assets/css/demo.css" />
     <link rel="stylesheet" href="~/sneat/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     @await RenderSectionAsync("Styles", required: false)
 
     <script>
@@ -920,24 +921,10 @@
         </div>
     </div>
 
-    @* ── 全域確認/提示 Modal ── *@
-    <div class="modal fade" id="globalModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered" style="max-width:440px;">
-            <div class="modal-content border-0 shadow rounded-4">
-                <div class="modal-header border-0 pb-0 px-4 pt-4">
-                    <h5 class="modal-title fw-bold" id="globalModalTitle"></h5>
-                </div>
-                <div class="modal-body px-4 py-3">
-                    <p id="globalModalMessage" class="text-secondary mb-0" style="line-height:1.7;font-size:.93rem;"></p>
-                </div>
-                <div class="modal-footer border-0 pt-0 px-4 pb-4 gap-2" id="globalModalFooter"></div>
-            </div>
-        </div>
-    </div>
-
     <script src="~/sneat/assets/vendor/libs/jquery/jquery.js"></script>
     <script src="~/sneat/assets/vendor/libs/popper/popper.js"></script>
     <script src="~/sneat/assets/vendor/js/bootstrap.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="~/js/api-helpers.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 
@@ -961,38 +948,45 @@
     </script>
 
     <script>
-        // ── 全域 Alert / Confirm ──
+        // ── 全域 Alert / Confirm (SweetAlert2 版) ──
         (function () {
-            function getModal() {
-                return bootstrap.Modal.getOrCreateInstance(document.getElementById('globalModal'));
-            }
-
             window.showAlert = function (msg, callback) {
-                document.getElementById('globalModalTitle').textContent = '提示';
-                document.getElementById('globalModalMessage').textContent = msg;
-                document.getElementById('globalModalFooter').innerHTML =
-                    '<button type="button" class="btn btn-primary rounded-pill px-5" id="_gOk">確定</button>';
-                document.getElementById('_gOk').onclick = function () {
-                    getModal().hide();
+                Swal.fire({
+                    title: '提示',
+                    text: msg,
+                    icon: 'info',
+                    confirmButtonText: '確定',
+                    customClass: {
+                        confirmButton: 'btn btn-primary rounded-pill px-5'
+                    },
+                    buttonsStyling: false
+                }).then((result) => {
                     if (callback) callback();
-                };
-                getModal().show();
+                });
             };
 
             window.showConfirm = function (msg, onConfirm, onCancel) {
-                document.getElementById('globalModalTitle').textContent = '確認';
-                document.getElementById('globalModalMessage').textContent = msg;
-                document.getElementById('globalModalFooter').innerHTML =
-                    '<button type="button" class="btn btn-outline-secondary rounded-pill px-4" id="_gCancel">取消</button>' +
-                    '<button type="button" class="btn btn-primary rounded-pill px-4" id="_gConfirm">確定</button>';
-                document.getElementById('_gConfirm').onclick = function () {
-                    getModal().hide();
-                    if (onConfirm) onConfirm();
-                };
-                document.getElementById('_gCancel').onclick = function () {
-                    if (onCancel) onCancel();
-                };
-                getModal().show();
+                Swal.fire({
+                    title: '確認',
+                    text: msg,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: '確定',
+                    cancelButtonText: '取消',
+                    customClass: {
+                        confirmButton: 'btn btn-primary rounded-pill px-4 me-2',
+                        cancelButton: 'btn btn-outline-secondary rounded-pill px-4'
+                    },
+                    buttonsStyling: false,
+                    allowOutsideClick: () => !Swal.isLoading()
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        if (onConfirm) onConfirm();
+                    } else {
+                        // 包含點擊取消、點擊外部、按下 ESC 等所有情況
+                        if (onCancel) onCancel();
+                    }
+                });
             };
         })();
     </script>

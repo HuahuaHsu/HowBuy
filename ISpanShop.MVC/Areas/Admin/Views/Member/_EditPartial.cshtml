@@ -228,6 +228,7 @@
                                class="form-check-input"
                                role="switch"
                                value="true"
+                               data-initial="@Model.IsBlacklisted.ToString().ToLower()"
                                onchange="document.getElementById('blacklistBox').classList.toggle('active', this.checked)"
                                @(Model.IsBlacklisted ? "checked" : "") />
                     </div>
