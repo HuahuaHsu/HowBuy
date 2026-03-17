@@ -181,7 +181,7 @@
         <i class="bx bx-key me-2" style="color:#ffa726;"></i>重設密碼
     </h6>
     <p class="text-muted small mb-3">重設為臨時密碼後，管理員下次登入將被強制要求修改密碼。</p>
-    <form action="/Admin/Admin/ResetPassword" method="post" onsubmit="return confirm('確認要重設密碼嗎？');">
+    <form action="/Admin/Admin/ResetPassword" method="post">
         @Html.AntiForgeryToken()
         <input type="hidden" name="UserId" value="@Model.UserId" />
         <div class="mb-3">

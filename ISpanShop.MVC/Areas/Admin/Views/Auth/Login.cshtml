@@ -220,7 +220,7 @@
             align-items: center;
             justify-content: center;
             gap: clamp(3px,.4vw,7px);
-            transition: box-shadow .15s ease;
+            transition: box-shadow .5s ease;
         }
 
             .orbit-card.flicker {
@@ -966,7 +966,7 @@
                             <input asp-for="RememberMe" type="checkbox" />
                             <span>記住我</span>
                         </label>
-                        <a href="#" class="forgot-link">忘記密碼？</a>
+                        <a href="javascript:void(0);" class="forgot-link" id="forgotPwdLink">忘記密碼？</a>
                     </div>
 
                     <!-- 登入按鈕 -->
@@ -1194,12 +1194,57 @@
         })();
 
         // 快速填入測試帳號
-        (function () {
+        document.addEventListener('DOMContentLoaded', function () {
             var btn = document.getElementById('quickFillBtn');
-            if (!btn) return;
+            var accountInput = document.querySelector('input[name="Account"]');
+            var passwordInput = document.getElementById('passwordInput');
+
+            if (!btn || !accountInput || !passwordInput) return;
+
             btn.addEventListener('click', function () {
-                document.querySelector('input[name="Account"]').value = 'admin';
-                document.getElementById('passwordInput').value = 'Admin@1234';
+                accountInput.value = 'admin';
+                passwordInput.value = 'Admin@1234';
+
+                // 手動觸發 input 事件以確保瀏覽器或自訂腳本感應到變更
+                accountInput.dispatchEvent(new Event('input', { bubbles: true }));
+                passwordInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+                // 視覺反饋：短暫改變按鈕樣式
+                var originalText = btn.innerHTML;
+                btn.innerHTML = '<i class="bx bx-check"></i> 已填入';
+                btn.style.color = '#00B074';
+                btn.style.borderColor = '#00B074';
+                setTimeout(function() {
+                    btn.innerHTML = originalText;
+                    btn.style.color = '';
+                    btn.style.borderColor = '';
+                }, 1000);
+            });
+        });
+
+        (function () {
+            var forgotLink = document.getElementById('forgotPwdLink');
+            var form = document.getElementById('loginForm');
+            if (!forgotLink || !form) return;
+
+            forgotLink.addEventListener('click', function (e) {
+                e.preventDefault();
+                
+                // 清除既有的錯誤訊息
+                var existingErr = document.querySelector('.login-error-box.js-err');
+                if (existingErr) existingErr.remove();
+
+                // 建立新的提示框 (與錯誤訊息同樣式)
+                var infoBox = document.createElement('div');
+                infoBox.className = 'login-error-box js-err';
+                infoBox.style.background = '#f0fdf4'; // 改為淡綠色背景表示提示
+                infoBox.style.borderColor = '#bbf7d0';
+                infoBox.style.color = '#166534';
+                infoBox.innerHTML =
+                    '<i class="bx bx-info-circle"></i>' +
+                    '<div>請聯繫超級管理員以進行密碼重設。</div>';
+                
+                form.insertBefore(infoBox, form.firstChild);
             });
         })();
 
