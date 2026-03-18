@@ -750,7 +750,10 @@
 
         // 1. 全域狀態管理 (抄寫 Products/Index.cshtml 的 sessionStorage 邏輯)
         (function() {
-            var STORE_KEY = 'selectedReviewIds';
+            // pending + reApply 共用一個 Store
+            var STORE_KEY  = 'selectedReviewIds';
+            // rejected 獨立 Store（以便正確計算跨頁總筆數）
+            var RSTORE_KEY = 'selectedRejectedIds';
 
             function loadIds() {
                 try { return new Set(JSON.parse(sessionStorage.getItem(STORE_KEY) || '[]')); }
@@ -759,13 +762,21 @@
             function saveIds(set) {
                 sessionStorage.setItem(STORE_KEY, JSON.stringify(Array.from(set)));
             }
+            function loadRejectedIds() {
+                try { return new Set(JSON.parse(sessionStorage.getItem(RSTORE_KEY) || '[]')); }
+                catch { return new Set(); }
+            }
+            function saveRejectedIds(set) {
+                sessionStorage.setItem(RSTORE_KEY, JSON.stringify(Array.from(set)));
+            }
 
-            let selectedReviewIds = loadIds();
+            let selectedReviewIds  = loadIds();
+            let selectedRejectedIds = loadRejectedIds();
 
-            // 輔助函式：清空選取狀態
+            // 輔助函式：清空選取狀態（兩個 Store 一起清）
             function clearSelection() {
-                selectedReviewIds.clear();
-                saveIds(selectedReviewIds);
+                selectedReviewIds.clear();   saveIds(selectedReviewIds);
+                selectedRejectedIds.clear(); saveRejectedIds(selectedRejectedIds);
                 updateSelectionUI();
             }
 
@@ -779,14 +790,8 @@
 
             // 4. 動態更新 UI
             function updateSelectionUI() {
-                // 分別計算待審核/重新申請 panel 的勾選數，避免退回紀錄的勾選觸發 pending-batch-tag
-                var pendingCount = 0;
-                ['pendingPanel', 'reApplyPanel'].forEach(function(panelId) {
-                    var panel = document.getElementById(panelId);
-                    if (panel) panel.querySelectorAll('.item-checkbox').forEach(function(cb) {
-                        if (selectedReviewIds.has(parseInt(cb.value, 10))) pendingCount++;
-                    });
-                });
+                // ── pending + reApply：以 selectedReviewIds.size 反映跨頁總筆數 ──
+                var pendingCount = selectedReviewIds.size;
 
                 var tag   = document.getElementById('pending-batch-tag');
                 var badge = document.getElementById('pending-selected-count');
@@ -800,35 +805,45 @@
                 if (btnReject)  btnReject.disabled  = pendingCount === 0;
                 if (btnSimulate) btnSimulate.disabled = pendingCount === 0;
 
-                // 同步當前頁面的 checkbox 狀態
-                document.querySelectorAll('.item-checkbox').forEach(cb => {
-                    cb.checked = selectedReviewIds.has(parseInt(cb.value, 10));
+                // 同步當前頁的 pending/reApply checkbox 狀態（僅 visible 列）
+                ['pendingPanel', 'reApplyPanel'].forEach(function(panelId) {
+                    var panel = document.getElementById(panelId);
+                    if (!panel) return;
+                    panel.querySelectorAll('.item-checkbox').forEach(cb => {
+                        cb.checked = selectedReviewIds.has(parseInt(cb.value, 10));
+                    });
                 });
 
-                // 同步全選框狀態
-                ['pendingPanel', 'reApplyPanel', 'rejectedPanel'].forEach(panelId => {
-                    let panel = document.getElementById(panelId);
+                // 同步當前頁的 rejected checkbox 狀態
+                var rejPanel = document.getElementById('rejectedPanel');
+                if (rejPanel) {
+                    rejPanel.querySelectorAll('.item-checkbox').forEach(cb => {
+                        cb.checked = selectedRejectedIds.has(parseInt(cb.value, 10));
+                    });
+                }
+
+                // 同步各 panel 的全選框（indeterminate / checked / unchecked）
+                [
+                    { panelId: 'pendingPanel',  store: selectedReviewIds  },
+                    { panelId: 'reApplyPanel',  store: selectedReviewIds  },
+                    { panelId: 'rejectedPanel', store: selectedRejectedIds }
+                ].forEach(function(info) {
+                    var panel = document.getElementById(info.panelId);
                     if (!panel) return;
-                    let all = panel.querySelectorAll('.item-checkbox');
-                    let checkedCount = Array.from(all).filter(cb => cb.checked).length;
-                    let selectAll = panel.querySelector('#selectAll, .selectAllReApply, .selectAllRejected');
+                    var all = panel.querySelectorAll('.item-checkbox');
+                    var checkedCount = Array.from(all).filter(cb => info.store.has(parseInt(cb.value, 10))).length;
+                    var selectAll = panel.querySelector('#selectAll, .selectAllReApply, .selectAllRejected');
                     if (selectAll && all.length > 0) {
                         selectAll.checked = all.length === checkedCount;
                         selectAll.indeterminate = checkedCount > 0 && checkedCount < all.length;
                     }
                 });
 
-                // 退回紀錄批次列：計算 rejectedPanel 內的勾選數並更新 UI
-                var rejectedPanel = document.getElementById('rejectedPanel');
-                var rejectedCount = 0;
-                if (rejectedPanel) {
-                    rejectedPanel.querySelectorAll('.item-checkbox').forEach(cb => {
-                        if (selectedReviewIds.has(parseInt(cb.value, 10))) rejectedCount++;
-                    });
-                }
-                var rejectedBatchTag  = document.getElementById('rejected-batch-tag');
-                var rejectedBadge     = document.getElementById('rejected-selected-count');
-                var btnRejSim         = document.getElementById('btnBatchRejectedSimulate');
+                // ── rejected：以 selectedRejectedIds.size 反映跨頁總筆數 ──
+                var rejectedCount    = selectedRejectedIds.size;
+                var rejectedBatchTag = document.getElementById('rejected-batch-tag');
+                var rejectedBadge    = document.getElementById('rejected-selected-count');
+                var btnRejSim        = document.getElementById('btnBatchRejectedSimulate');
                 if (rejectedBadge) rejectedBadge.textContent = rejectedCount;
                 if (rejectedBatchTag) rejectedCount > 0
                     ? rejectedBatchTag.classList.remove('d-none')
@@ -899,8 +914,8 @@
                 });
             });
 
-            // 2. 勾選/取消勾選邏輯
-            function bindCheckboxEvents(containerId, selectAllId) {
+            // 2. 勾選/取消勾選邏輯（idStore = 要操作的 Set, saveFn = 對應的持久化函式）
+            function bindCheckboxEvents(containerId, selectAllId, idStore, saveFn) {
                 var container = document.getElementById(containerId);
                 var selectAll = document.getElementById(selectAllId);
                 if (!container || !selectAll) return;
@@ -909,10 +924,10 @@
                     container.querySelectorAll('.item-checkbox').forEach(cb => {
                         cb.checked = this.checked;
                         var id = parseInt(cb.value);
-                        if (this.checked) selectedReviewIds.add(id);
-                        else              selectedReviewIds.delete(id);
+                        if (this.checked) idStore.add(id);
+                        else              idStore.delete(id);
                     });
-                    saveIds(selectedReviewIds);
+                    saveFn(idStore);
                     updateSelectionUI();
                 };
 
@@ -920,10 +935,9 @@
                     cb.onclick = function(e) {
                         e.stopPropagation();
                         var id = parseInt(this.value);
-                        if (this.checked) selectedReviewIds.add(id);
-                        else              selectedReviewIds.delete(id);
-                        
-                        saveIds(selectedReviewIds);
+                        if (this.checked) idStore.add(id);
+                        else              idStore.delete(id);
+                        saveFn(idStore);
                         updateSelectionUI();
                     };
                 });
@@ -931,9 +945,9 @@
 
             // 初始化與還原
             window.initReviewSelection = function() {
-                bindCheckboxEvents('pendingPanel', 'selectAll');
-                bindCheckboxEvents('reApplyPanel', 'selectAllReApply');
-                bindCheckboxEvents('rejectedPanel', 'selectAllRejected');
+                bindCheckboxEvents('pendingPanel',  'selectAll',           selectedReviewIds,  saveIds);
+                bindCheckboxEvents('reApplyPanel',  'selectAllReApply',    selectedReviewIds,  saveIds);
+                bindCheckboxEvents('rejectedPanel', 'selectAllRejected',   selectedRejectedIds, saveRejectedIds);
                 restoreSelection();
             };
 
@@ -1089,8 +1103,8 @@
                 if (cb) cb.onclick = function(e) {
                     e.stopPropagation();
                     var pid = parseInt(this.value);
-                    if (this.checked) selectedReviewIds.add(pid); else selectedReviewIds.delete(pid);
-                    saveIds(selectedReviewIds); updateSelectionUI();
+                    if (this.checked) selectedRejectedIds.add(pid); else selectedRejectedIds.delete(pid);
+                    saveRejectedIds(selectedRejectedIds); updateSelectionUI();
                 };
                 return tr;
             }
@@ -1265,25 +1279,12 @@
                     Swal.fire({ title: '處理中...', didOpen: () => Swal.showLoading() });
                     const res = await apiPost(_urls.batchApprove, { ids: ids });
                     if (res.success) {
-                        var pendingDelta = 0, reApplyDelta = 0;
-                        ids.forEach(function(id) {
-                            var srcRow = document.querySelector('#pendingPanel tr[data-id="' + id + '"], #reApplyPanel tr[data-id="' + id + '"]');
-                            if (srcRow) {
-                                var d = getRowData(srcRow);
-                                if (srcRow.closest('#pendingPanel')) pendingDelta++; else reApplyDelta++;
-                                insertApprovedRow(d);
-                                srcRow.remove();
-                            }
-                        });
-                        if (pendingDelta) {
-                            updateTabBadge('pending-count-badge', -pendingDelta);
-                            var pcEl = document.getElementById('pendingCount');
-                            if (pcEl) pcEl.textContent = Math.max(0, (parseInt(pcEl.textContent)||0) - pendingDelta);
-                            syncPanelEmpty('pendingPanel');
-                        }
-                        if (reApplyDelta) { updateTabBadge('reapply-count-badge', -reApplyDelta); syncPanelEmpty('reApplyPanel'); }
-                        selectedReviewIds.clear(); saveIds(selectedReviewIds); updateSelectionUI();
-                        Swal.fire({ icon: 'success', title: '完成', text: res.message, timer: 1500, showConfirmButton: false });
+                        // 清除選取（含跨頁），跳回第一頁讓 DB 資料確實反映
+                        selectedReviewIds.clear(); saveIds(selectedReviewIds);
+                        sessionStorage.setItem('activeTab', 'approved-tab');
+                        sessionStorage.setItem('isReviewDetailOpen', 'false');
+                        Swal.fire({ icon: 'success', title: '完成', text: res.message, timer: 1000, showConfirmButton: false })
+                            .then(() => { location.href = '@Url.Action("PendingReview", "Products")'; });
                     } else Swal.fire('錯誤', res.message, 'error');
                 });
             };
@@ -1308,26 +1309,12 @@
                 Swal.fire({ title: '處理中...', didOpen: () => Swal.showLoading() });
                 const res = await apiPost(_urls.batchReject, { ids: ids, reason: reason });
                 if (res.success) {
-                    var pendingDelta = 0, reApplyDelta = 0;
-                    ids.forEach(function(id) {
-                        var srcRow = document.querySelector('#pendingPanel tr[data-id="' + id + '"], #reApplyPanel tr[data-id="' + id + '"]');
-                        if (srcRow) {
-                            var d = getRowData(srcRow);
-                            if (srcRow.closest('#pendingPanel')) pendingDelta++; else reApplyDelta++;
-                            insertRejectedRow(d, reason);
-                            srcRow.remove();
-                        }
-                    });
-                    if (pendingDelta) {
-                        updateTabBadge('pending-count-badge', -pendingDelta);
-                        var pcEl = document.getElementById('pendingCount');
-                        if (pcEl) pcEl.textContent = Math.max(0, (parseInt(pcEl.textContent)||0) - pendingDelta);
-                        syncPanelEmpty('pendingPanel');
-                    }
-                    if (reApplyDelta) { updateTabBadge('reapply-count-badge', -reApplyDelta); syncPanelEmpty('reApplyPanel'); }
-                    selectedReviewIds.clear(); saveIds(selectedReviewIds); updateSelectionUI();
-                    switchTab('rejected-tab');
-                    Swal.fire({ icon: 'success', title: '完成', text: res.message, timer: 1500, showConfirmButton: false });
+                    // 清除選取（含跨頁），跳回第一頁讓 DB 資料確實反映
+                    selectedReviewIds.clear(); saveIds(selectedReviewIds);
+                    sessionStorage.setItem('activeTab', 'rejected-tab');
+                    sessionStorage.setItem('isReviewDetailOpen', 'false');
+                    Swal.fire({ icon: 'success', title: '完成', text: res.message, timer: 1000, showConfirmButton: false })
+                        .then(() => { location.href = '@Url.Action("PendingReview", "Products")'; });
                 } else {
                     Swal.fire('錯誤', res.message, 'error');
                 }
@@ -1457,8 +1444,8 @@
                         var srcRow = document.querySelector('#rejectedPanel tr[data-id="' + id + '"]');
                         if (srcRow) {
                             var d = getRowData(srcRow);
-                            selectedReviewIds.delete(parseInt(id));
-                            saveIds(selectedReviewIds);
+                            selectedRejectedIds.delete(parseInt(id));
+                            saveRejectedIds(selectedRejectedIds);
                             deleteCountdownState(String(id));
                             fadeRemoveRow(srcRow, function() {
                                 updateTabBadge('rejected-count-badge', -1);
@@ -1484,27 +1471,16 @@
                 updateSelectionUI();
             };
 
-            // 清除選取（退回紀錄）- 只清除該 panel 內的勾選
+            // 清除選取（退回紀錄）- 清除所有頁的退回紀錄勾選（含跨頁）
             document.getElementById('btn-clear-rejected').onclick = function() {
-                var rejPanel = document.getElementById('rejectedPanel');
-                if (rejPanel) {
-                    rejPanel.querySelectorAll('.item-checkbox').forEach(cb => {
-                        selectedReviewIds.delete(parseInt(cb.value, 10));
-                    });
-                }
-                saveIds(selectedReviewIds);
+                selectedRejectedIds.clear();
+                saveRejectedIds(selectedRejectedIds);
                 updateSelectionUI();
             };
 
-            // 批次模擬賣家送審（退回紀錄專用）
+            // 批次模擬賣家送審（退回紀錄專用）- 以 selectedRejectedIds 涵蓋跨頁選取
             window.batchRejectedSimulate = function() {
-                var rejPanel = document.getElementById('rejectedPanel');
-                var ids = [];
-                if (rejPanel) {
-                    rejPanel.querySelectorAll('.item-checkbox:checked').forEach(cb => {
-                        ids.push(parseInt(cb.value, 10));
-                    });
-                }
+                var ids = Array.from(selectedRejectedIds);
                 if (ids.length === 0) return Swal.fire('請先選擇商品', '', 'warning');
 
                 Swal.fire({
@@ -1517,21 +1493,11 @@
                     const res = await apiPost(_urls.batchSimulateResubmit, { ids: ids });
                     if (res.success) {
                         sessionStorage.removeItem('expiredRejectedIds');
-                        ids.forEach(function(id) {
-                            var srcRow = document.querySelector('#rejectedPanel tr[data-id="' + id + '"]');
-                            if (srcRow) {
-                                var d = getRowData(srcRow);
-                                deleteCountdownState(String(id));
-                                insertReApplyRow(d);
-                                srcRow.remove();
-                            }
-                            selectedReviewIds.delete(id);
-                        });
-                        updateTabBadge('rejected-count-badge', -ids.length);
-                        syncPanelEmpty('rejectedPanel');
-                        saveIds(selectedReviewIds); updateSelectionUI();
-                        switchTab('reapply-tab');
-                        Swal.fire({ icon: 'success', title: '完成', text: res.message, timer: 1500, showConfirmButton: false });
+                        selectedRejectedIds.clear(); saveRejectedIds(selectedRejectedIds);
+                        sessionStorage.setItem('activeTab', 'reapply-tab');
+                        sessionStorage.setItem('isReviewDetailOpen', 'false');
+                        Swal.fire({ icon: 'success', title: '完成', text: res.message, timer: 1000, showConfirmButton: false })
+                            .then(() => { location.href = '@Url.Action("PendingReview", "Products")'; });
                     } else {
                         Swal.fire('錯誤', res.message, 'error');
                     }
@@ -1626,10 +1592,10 @@
                             syncPanelEmpty('rejectedPanel');
                         }, 500);
                         
-                        // 額外清理選取狀態 (若有選取)
-                        if (id && selectedReviewIds.has(id)) {
-                            selectedReviewIds.delete(id);
-                            saveIds(selectedReviewIds);
+                        // 額外清理退回紀錄的選取狀態 (若有選取)
+                        if (id && selectedRejectedIds.has(id)) {
+                            selectedRejectedIds.delete(id);
+                            saveRejectedIds(selectedRejectedIds);
                             updateSelectionUI();
                         }
                     }
