@@ -97,8 +97,9 @@ namespace ISpanShop.Models.Seeding
 				foreach (var dummy in dummyProducts)
 				{
 					var category = ResolveCategory(dummy.Category, categories);
-					if (dummy.Category == "vehicle" || dummy.Category == "motorcycle") continue;
-					if (dummy.Price > 1600) continue;
+					// 分類不在對照表（如 vehicle、motorcycle 汽機車）→ 跳過，不植入資料庫
+					if (category == null) continue;
+
 					var brand = ResolveBrand(dummy.Brand, brands);
 					var (productName, productDescription) = TranslateProduct(dummy);
 					int basePriceTwd = (int)(dummy.Price * USD_TO_TWD);
@@ -471,7 +472,7 @@ namespace ISpanShop.Models.Seeding
 				{
 					RoleId = adminRole.Id,
 					Account = "admin",
-					Password = BCrypt.Net.BCrypt.HashPassword("Admin@1234"),  // ✅ 改這行
+					Password = "Test123456",
 					Email = "admin@ispanshop.com",
 					IsConfirmed = true,
 					IsBlacklisted = false,
@@ -481,17 +482,6 @@ namespace ISpanShop.Models.Seeding
 				context.Users.Add(adminUser);
 				await context.SaveChangesAsync();
 				Console.WriteLine("✅ 已建立預設管理員帳號：admin / Admin@1234");
-			}
-			else
-			{
-				// ✅ 帳號已存在，但密碼可能是明碼，自動補上 BCrypt hash
-				bool isAlreadyHashed = adminUser.Password != null && adminUser.Password.StartsWith("$2");
-				if (!isAlreadyHashed)
-				{
-					adminUser.Password = BCrypt.Net.BCrypt.HashPassword("Admin@1234");
-					await context.SaveChangesAsync();
-					Console.WriteLine("✅ 已將 admin 密碼更新為 BCrypt hash");
-				}
 			}
 		}
 
