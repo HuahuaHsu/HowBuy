@@ -34,7 +34,11 @@ namespace ISpanShop.Repositories.Orders
 				.Include(o => o.Store)
 				.Include(o => o.OrderDetails)
 					.ThenInclude(od => od.Product)
+						.ThenInclude(p => p.ProductImages)
+				.Include(o => o.OrderDetails)
+					.ThenInclude(od => od.Product)
 						.ThenInclude(p => p.ProductVariants)
+							.ThenInclude(pv => pv.ProductImages)
 				.Include(o => o.ReturnRequests)
 					.ThenInclude(rr => rr.ReturnRequestImages)
 				.FirstOrDefaultAsync(o => o.Id == id);
