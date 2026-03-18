@@ -52,7 +52,11 @@ namespace ISpanShop.Repositories.Orders
 					
 					// 如果有退貨申請，標記為已拒絕 (2: Rejected)
 					var rr = order.ReturnRequests.OrderByDescending(x => x.CreatedAt).FirstOrDefault();
-					if (rr != null && rr.Status == 0) rr.Status = 2;
+					if (rr != null && rr.Status == 0)
+					{
+						rr.Status = 2;
+						rr.UpdatedAt = DateTime.Now;
+					}
 				}
 				else if (status == 5) // 退貨/款中 (Refund/Return in Progress = 5)
 				{
@@ -217,7 +221,7 @@ namespace ISpanShop.Repositories.Orders
 					RecipientPhone = o.RecipientPhone,
 					StoreName = o.Store != null ? o.Store.StoreName : "平台",
 					ReturnRequestCreatedAt = o.ReturnRequests?.OrderByDescending(r => r.CreatedAt).FirstOrDefault()?.CreatedAt,
-					RefundDate = o.ReturnRequests?.Where(r => r.Status == 1).OrderByDescending(r => r.UpdatedAt).FirstOrDefault()?.UpdatedAt
+					RefundDate = o.ReturnRequests?.OrderByDescending(r => r.UpdatedAt).FirstOrDefault()?.UpdatedAt
 				};
 
 				if (isShipmentWorkstation && o.OrderDetails != null)

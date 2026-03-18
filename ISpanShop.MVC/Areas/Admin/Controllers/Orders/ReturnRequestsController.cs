@@ -37,7 +37,7 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Orders
                     new SelectListItem { Value = "2", Text = "付款日期" },
                     new SelectListItem { Value = "3", Text = "完成日期" },
                     new SelectListItem { Value = "4", Text = "申請退款日期" },
-                    new SelectListItem { Value = "5", Text = "完成退款日期" }
+                    new SelectListItem { Value = "5", Text = "結案日期" }
                 }
             };
             return View(vm);
