@@ -97,6 +97,8 @@ namespace ISpanShop.Models.Seeding
 				foreach (var dummy in dummyProducts)
 				{
 					var category = ResolveCategory(dummy.Category, categories);
+					if (dummy.Category == "vehicle" || dummy.Category == "motorcycle") continue;
+					if (dummy.Price > 1600) continue;
 					var brand = ResolveBrand(dummy.Brand, brands);
 					var (productName, productDescription) = TranslateProduct(dummy);
 					int basePriceTwd = (int)(dummy.Price * USD_TO_TWD);
