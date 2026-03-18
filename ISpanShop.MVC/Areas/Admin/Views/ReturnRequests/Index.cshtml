@@ -344,10 +344,14 @@
             info.text(`顯示第 ${startIdx} 到 ${endIdx} 筆，共 ${data.totalCount} 筆`);
 
             list.append(`<li class="page-item ${data.pageNumber === 1 ? 'disabled' : ''}"><a class="page-link" href="javascript:loadReturnData(${data.pageNumber - 1})"><i class="bx bx-chevron-left"></i></a></li>`);
-            for (let i = 1; i <= data.totalPages; i++) {
-                if (i == 1 || i == data.totalPages || (i >= data.pageNumber - 2 && i <= data.pageNumber + 2)) {
-                    list.append(`<li class="page-item ${i === data.pageNumber ? 'active' : ''}"><a class="page-link" href="javascript:loadReturnData(${i})">${i}</a></li>`);
-                }
+            let startPage = Math.max(1, data.pageNumber - 2);
+            let endPage = Math.min(data.totalPages, startPage + 4);
+            if (endPage - startPage < 4) startPage = Math.max(1, endPage - 4);
+
+            for (let i = startPage; i <= endPage; i++) {
+                list.append(`<li class="page-item ${i === data.pageNumber ? 'active' : ''}">
+                    <a class="page-link" href="javascript:loadReturnData(${i})">${i}</a>
+                </li>`);
             }
             list.append(`<li class="page-item ${data.pageNumber === data.totalPages ? 'disabled' : ''}"><a class="page-link" href="javascript:loadReturnData(${data.pageNumber + 1})"><i class="bx bx-chevron-right"></i></a></li>`);
         }
