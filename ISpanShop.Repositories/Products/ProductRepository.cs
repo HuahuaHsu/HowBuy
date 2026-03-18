@@ -531,7 +531,8 @@ namespace ISpanShop.Repositories.Products
                     ReviewStatus = p.ReviewStatus,
                     ReviewedBy   = p.ReviewedBy,
                     ReviewDate   = p.ReviewDate,
-                    RejectReason = p.RejectReason,
+                    RejectReason        = p.RejectReason,
+                    ForceOffShelfReason = p.ForceOffShelfReason,
                     CreatedAt    = p.CreatedAt,
                     UpdatedAt    = p.UpdatedAt,
                     MainImageUrl = p.ProductImages
@@ -564,7 +565,8 @@ namespace ISpanShop.Repositories.Products
                     ReviewStatus = p.ReviewStatus,
                     ReviewedBy   = p.ReviewedBy,
                     ReviewDate   = p.ReviewDate,
-                    RejectReason = p.RejectReason,
+                    RejectReason        = p.RejectReason,
+                    ForceOffShelfReason = p.ForceOffShelfReason,
                     CreatedAt    = p.CreatedAt,
                     UpdatedAt    = p.UpdatedAt,
                     MainImageUrl = p.ProductImages
@@ -904,6 +906,30 @@ namespace ISpanShop.Repositories.Products
                 .ToListAsync();
 
             return (items, total);
+        }
+
+        /// <inheritdoc/>
+        public async Task<IEnumerable<ProductReviewDto>> GetProductsByIdsForReviewAsync(IEnumerable<int> ids)
+        {
+            var idList = ids.ToList();
+            return await _context.Products
+                .AsNoTracking()
+                .Where(p => idList.Contains(p.Id))
+                .Select(p => new ProductReviewDto
+                {
+                    Id           = p.Id,
+                    StoreId      = p.StoreId,
+                    StoreName    = p.Store != null ? p.Store.StoreName : "未知商店",
+                    CategoryName = p.Category != null ? p.Category.Name : "未分類",
+                    BrandName    = p.Brand != null ? p.Brand.Name : "未設定",
+                    Name         = p.Name,
+                    ReviewStatus = p.ReviewStatus,
+                    CreatedAt    = p.CreatedAt,
+                    MainImageUrl = p.ProductImages
+                        .Where(img => img.IsMain == true)
+                        .Select(img => img.ImageUrl).FirstOrDefault()
+                })
+                .ToListAsync();
         }
 
         /// <inheritdoc/>

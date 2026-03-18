@@ -186,7 +186,8 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Products
                     ReviewStatus = dto.ReviewStatus,
                     ReviewedBy   = dto.ReviewedBy,
                     ReviewDate   = dto.ReviewDate,
-                    RejectReason = dto.RejectReason,
+                    RejectReason        = dto.RejectReason,
+                    ForceOffShelfReason = dto.ForceOffShelfReason,
                     UpdatedAt    = dto.UpdatedAt,
                     MainImageUrl = dto.MainImageUrl
                 }).ToList(),
@@ -746,12 +747,22 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Products
                 var result = await _productService.GenerateTestProductsAsync();
                 return Json(new
                 {
-                    success   = true,
-                    count     = result.TotalCount,
-                    clean     = result.CleanCount,
-                    highRisk  = result.HighRiskCount,
+                    success    = true,
+                    count      = result.TotalCount,
+                    clean      = result.CleanCount,
+                    highRisk   = result.HighRiskCount,
                     borderline = result.BorderlineCount,
-                    message   = $"已生成 {result.TotalCount} 筆測試商品（乾淨 {result.CleanCount} 筆 ／ 高風險 {result.HighRiskCount} 筆 ／ 邊緣 {result.BorderlineCount} 筆），全部設為待審核。"
+                    message    = $"已生成 {result.TotalCount} 筆測試商品（乾淨 {result.CleanCount} 筆 ／ 高風險 {result.HighRiskCount} 筆 ／ 邊緣 {result.BorderlineCount} 筆），全部設為待審核。",
+                    products   = result.CreatedProducts.Select(p => new
+                    {
+                        id       = p.Id,
+                        name     = p.Name,
+                        store    = p.StoreName,
+                        img      = p.MainImageUrl ?? "",
+                        category = p.CategoryName,
+                        brand    = p.BrandName,
+                        created  = p.CreatedAt?.ToString("yyyy/MM/dd") ?? "-"
+                    })
                 });
             }
             catch (Exception ex)

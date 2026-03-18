@@ -38,7 +38,7 @@
             <button id="btnBatchReject" class="btn btn-danger rounded-pill px-4" disabled>
                 <i class="bx bx-x-circle me-1"></i> 批次審核退回
             </button>
-            <button id="btnBatchSimulate" class="btn btn-warning rounded-pill px-4" disabled onclick="batchSimulateResubmit()">
+            <button id="btnBatchSimulate" class="btn btn-warning rounded-pill px-4 d-none" disabled onclick="batchSimulateResubmit()">
                 <i class="bx bx-repost me-1"></i> 批次模擬賣家送審
             </button>
             @* 退回紀錄批次操作 *@
@@ -47,7 +47,7 @@
                 已選取 <span id="rejected-selected-count">0</span> 筆
                 <button id="btn-clear-rejected" type="button" class="batch-tag-close" aria-label="清除選取">×</button>
             </span>
-            <button id="btnBatchRejectedSimulate" class="btn btn-warning rounded-pill px-4" disabled>
+            <button id="btnBatchRejectedSimulate" class="btn btn-warning rounded-pill px-4 d-none" disabled>
                 <i class="bx bx-store-alt me-1"></i> 批次模擬賣家送審
             </button>
             @* 測試展示工具：收納至 Dropdown *@
@@ -84,7 +84,7 @@
                     type="button" role="tab">
                 <i class="bx bx-hourglass me-1 text-warning"></i>
                 待審核
-                <span class="badge rounded-pill ms-1"
+                <span class="badge rounded-pill ms-1" id="pending-count-badge"
                       style="background:#fef3c7;color:#92400e;font-size:0.78rem;">@(Model?.TotalCount ?? 0)</span>
             </button>
         </li>
@@ -94,7 +94,7 @@
                     type="button" role="tab">
                 <i class="bx bx-revision me-1" style="color:#dc2626;"></i>
                 重新申請審核
-                <span class="badge rounded-pill ms-1"
+                <span class="badge rounded-pill ms-1" id="reapply-count-badge"
                       style="background:#fde8e8;color:#dc2626;font-size:0.78rem;">@(reApplyPaged?.TotalCount ?? 0)</span>
             </button>
         </li>
@@ -135,25 +135,27 @@
     <div class="tab-content" id="reviewTabsContent">
         <div class="tab-pane fade show active" id="pendingPanel" role="tabpanel">
             <div class="filter-card rounded-top-0" style="border-top-left-radius:0!important;border-top-right-radius:0!important;">
-                @if (Model != null && Model.Data != null && Model.Data.Any())
-                {
-                    <table class="table table-custom align-middle">
-                        <thead>
-                            <tr>
-                                <th style="width:40px;"><input type="checkbox" id="selectAll" class="form-check-input"></th>
-                                <th style="width:60px;" class="col-img">圖片</th>
-                                <th style="max-width:280px;">商品名稱</th>
-                                <th>審核狀態</th>
-                                <th class="col-store">商店</th>
-                                <th class="col-catbrand">分類 / 品牌</th>
-                                <th class="col-date">建檔日期</th>
-                                <th class="text-end col-rowact text-nowrap" style="min-width:200px;">審核操作</th>
-                            </tr>
-                        </thead>
-                        <tbody>
+                <table id="pendingTable" class="table table-custom align-middle @(!(Model?.Data?.Any() == true) ? "d-none" : "")">
+                    <thead>
+                        <tr>
+                            <th style="width:40px;"><input type="checkbox" id="selectAll" class="form-check-input"></th>
+                            <th style="width:60px;" class="col-img">圖片</th>
+                            <th style="max-width:280px;">商品名稱</th>
+                            <th>審核狀態</th>
+                            <th class="col-store">商店</th>
+                            <th class="col-catbrand">分類 / 品牌</th>
+                            <th class="col-date">建檔日期</th>
+                            <th class="text-end col-rowact text-nowrap" style="min-width:200px;">審核操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model?.Data != null)
+                        {
                             @foreach (var product in Model.Data)
                             {
-                                <tr data-id="@product.Id" data-name="@product.Name.Replace("'","\\'")">
+                                <tr data-id="@product.Id" data-name="@product.Name.Replace("'","\\'")"
+                                    data-store="@(product.StoreName ?? "N/A")"
+                                    data-img="@(product.MainImageUrl ?? "")">
                                     <td><input type="checkbox" class="form-check-input item-checkbox" value="@product.Id"></td>
                                     <td class="col-img">
                                         @if (!string.IsNullOrEmpty(product.MainImageUrl))
@@ -194,16 +196,14 @@
                                     </td>
                                 </tr>
                             }
-                        </tbody>
-                    </table>
-                }
-                else
-                {
-                    <div class="text-center py-5">
-                        <div class="mb-3" style="color:#1abb9c;font-size:2.5rem;"><i class="bx bx-check-circle"></i></div>
-                        <h5 class="fw-bold mb-1" style="color:#1e2d3d;">目前沒有待審核的商品</h5>
-                    </div>
-                }
+                        }
+                    </tbody>
+                </table>
+                <div class="empty-state-box @(Model?.Data?.Any() == true ? "d-none" : "")" id="pendingEmpty">
+                    <div class="empty-state-icon"><i class="bx bx-check-circle" style="color:#1abb9c;"></i></div>
+                    <div class="empty-state-title">目前沒有待審核的商品</div>
+                    <div class="empty-state-sub">所有商品均已完成審核</div>
+                </div>
                 @if (Model != null)
                 {
                     @await Html.PartialAsync("_Pagination", new ISpanShop.MVC.Areas.Admin.Models.Common.PaginationVm
@@ -219,53 +219,54 @@
         @* ── 重新申請審核 Tab Panel ── *@
         <div class="tab-pane fade" id="reApplyPanel" role="tabpanel">
             <div class="filter-card rounded-top-0" style="border-top-left-radius:0!important;border-top-right-radius:0!important;">
-                @if (reApplyList.Any())
-                {
-                    <table class="table table-custom align-middle">
-                        <thead>
-                            <tr>
-                                <th style="width:40px;"><input type="checkbox" id="selectAllReApply" class="form-check-input selectAllReApply"></th>
-                                <th style="width:60px;" class="col-img">圖片</th>
-                                <th>商品名稱</th>
-                                <th class="col-store">商店</th>
-                                <th class="col-reapply-reason">原始下架原因</th>
-                                <th class="text-end">審核操作</th>
+                <table id="reApplyTable" class="table table-custom align-middle @(!reApplyList.Any() ? "d-none" : "")">
+                    <thead>
+                        <tr>
+                            <th style="width:40px;"><input type="checkbox" id="selectAllReApply" class="form-check-input selectAllReApply"></th>
+                            <th style="width:60px;" class="col-img">圖片</th>
+                            <th>商品名稱</th>
+                            <th class="col-store">商店</th>
+                            <th class="col-reapply-reason">原始下架原因</th>
+                            <th class="text-end">審核操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in reApplyList)
+                        {
+                            <tr data-id="@item.Id" data-name="@item.Name.Replace("'","\\'")"
+                                data-store="@(item.StoreName ?? "")"
+                                data-img="@(item.MainImageUrl ?? "")"
+                                data-reason="@(item.ForceOffShelfReason ?? item.RejectReason ?? "")">
+                                <td><input type="checkbox" class="form-check-input item-checkbox" value="@item.Id"></td>
+                                <td class="col-img">
+                                    <img src="@(item.MainImageUrl ?? "/img/default.jpg")" style="width:50px;height:50px;object-fit:cover;border-radius:10px;" />
+                                </td>
+                                <td class="product-name-cell">
+                                    <div class="product-name-text text-truncate" style="max-width:200px;">@item.Name</div>
+                                </td>
+                                <td class="text-xs col-store text-muted">@item.StoreName</td>
+                                <td class="col-reapply-reason"><span class="badge bg-label-danger text-xs">@(item.ForceOffShelfReason ?? item.RejectReason)</span></td>
+                                <td class="text-end text-nowrap">
+                                    <div class="d-flex gap-2 justify-content-end">
+                                        <button class="btn btn-sm btn-success rounded-pill px-3"
+                                                onclick="approveForcedProduct(@item.Id, '@item.Name.Replace("'", "\\'")')">
+                                            核准上架
+                                        </button>
+                                        <button class="btn btn-sm btn-danger rounded-pill px-3"
+                                                onclick="openRejectForcedModal(@item.Id, '@item.Name.Replace("'", "\\'")')">
+                                            駁回
+                                        </button>
+                                    </div>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var item in reApplyList)
-                            {
-                                <tr data-id="@item.Id" data-name="@item.Name.Replace("'","\\'")">
-                                    <td><input type="checkbox" class="form-check-input item-checkbox" value="@item.Id"></td>
-                                    <td class="col-img">
-                                        <img src="@(item.MainImageUrl ?? "/img/default.jpg")" style="width:50px;height:50px;object-fit:cover;border-radius:10px;" />
-                                    </td>
-                                    <td class="product-name-cell">
-                                        <div class="product-name-text text-truncate" style="max-width:200px;">@item.Name</div>
-                                    </td>
-                                    <td class="text-xs col-store text-muted">@item.StoreName</td>
-                                    <td class="col-reapply-reason"><span class="badge bg-label-danger text-xs">@item.ForceOffShelfReason</span></td>
-                                    <td class="text-end text-nowrap">
-                                        <div class="d-flex gap-2 justify-content-end">
-                                            <button class="btn btn-sm btn-success rounded-pill px-3"
-                                                    onclick="approveForcedProduct(@item.Id, '@item.Name.Replace("'", "\\'")')">
-                                                核准上架
-                                            </button>
-                                            <button class="btn btn-sm btn-danger rounded-pill px-3"
-                                                    onclick="openRejectForcedModal(@item.Id, '@item.Name.Replace("'", "\\'")')">
-                                                駁回
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                }
-                else
-                {
-                    <div class="text-center py-5"><p class="text-muted">目前沒有待重新審核的商品</p></div>
-                }
+                        }
+                    </tbody>
+                </table>
+                <div class="empty-state-box @(reApplyList.Any() ? "d-none" : "")" id="reApplyEmpty">
+                    <div class="empty-state-icon"><i class="bx bx-revision" style="color:#dc2626;"></i></div>
+                    <div class="empty-state-title">目前沒有待重新審核的商品</div>
+                    <div class="empty-state-sub">無商品重新申請審核</div>
+                </div>
                 @if (reApplyPaged != null)
                 {
                     @await Html.PartialAsync("_Pagination", new ISpanShop.MVC.Areas.Admin.Models.Common.PaginationVm
@@ -281,31 +282,34 @@
         @* ── 近期退回紀錄 ── *@
         <div class="tab-pane fade" id="rejectedPanel" role="tabpanel">
             <div class="filter-card rounded-top-0">
-                @if (rejectedList != null && rejectedList.Any())
-                {
-                    <table class="table table-custom align-middle">
-                        <thead>
-                            <tr>
-                                <th style="width:40px;"><input type="checkbox" id="selectAllRejected" class="form-check-input selectAllRejected"></th>
-                                <th style="width:70px;" class="col-img">圖片</th>
-                                <th>商品名稱</th>
-                                <th class="col-store">商家</th>
-                                <th class="col-rej-reason reject-reason-col">退回原因</th>
-                                <th class="text-center">銷毀倒數</th>
-                                <th class="text-end">操作</th>
-                            </tr>
-                        </thead>
-                        <tbody>
+                <table id="rejectedTable" class="table table-custom align-middle @(!(rejectedList != null && rejectedList.Any()) ? "d-none" : "")">
+                    <thead>
+                        <tr>
+                            <th style="width:40px;"><input type="checkbox" id="selectAllRejected" class="form-check-input selectAllRejected"></th>
+                            <th style="width:70px;" class="col-img">圖片</th>
+                            <th>商品名稱</th>
+                            <th class="col-store">商家</th>
+                            <th class="col-rej-reason reject-reason-col">退回原因</th>
+                            <th class="text-center">銷毀倒數</th>
+                            <th class="text-end">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (rejectedList != null)
+                        {
                             @foreach (var item in rejectedList)
                             {
-                                <tr data-id="@item.Id" data-name="@item.Name.Replace("'","\\'")" class="rejected-row">
+                                <tr data-id="@item.Id" data-name="@item.Name.Replace("'","\\'")" class="rejected-row"
+                                    data-store="@(item.StoreName ?? "")"
+                                    data-img="@(item.MainImageUrl ?? "")"
+                                    data-reason="@(item.RejectReason ?? item.ForceOffShelfReason ?? "")">
                                     <td><input type="checkbox" class="form-check-input item-checkbox" value="@item.Id"></td>
                                     <td class="col-img">
                                         <img src="@(item.MainImageUrl ?? "/img/default.jpg")" style="width:50px;height:50px;object-fit:cover;border-radius:10px;" />
                                     </td>
                                     <td class="fw-semibold product-name-cell">@item.Name</td>
                                     <td class="fs-7 col-store">@item.StoreName</td>
-                                    <td class="col-rej-reason reject-reason-col">@item.RejectReason</td>
+                                    <td class="col-rej-reason reject-reason-col">@(item.RejectReason ?? item.ForceOffShelfReason)</td>
                                     <td class="text-center">
                                         <div class="countdown-widget" data-initial="15">
                                             <div class="countdown-display">
@@ -327,13 +331,14 @@
                                     </td>
                                 </tr>
                             }
-                        </tbody>
-                    </table>
-                }
-                else
-                {
-                    <div class="text-center py-5"><p class="text-muted">近期無退回紀錄</p></div>
-                }
+                        }
+                    </tbody>
+                </table>
+                <div class="empty-state-box @(rejectedList != null && rejectedList.Any() ? "d-none" : "")" id="rejectedEmpty">
+                    <div class="empty-state-icon"><i class="bx bx-x-circle" style="color:#ef4444;"></i></div>
+                    <div class="empty-state-title">目前無近期退回紀錄</div>
+                    <div class="empty-state-sub">退回商品將在此顯示並自動倒數清除</div>
+                </div>
                 @if (rejectedPaged != null)
                 {
                     @await Html.PartialAsync("_Pagination", new ISpanShop.MVC.Areas.Admin.Models.Common.PaginationVm
@@ -349,36 +354,36 @@
         @* ── 近期審核通過 ── *@
         <div class="tab-pane fade" id="approvedPanel" role="tabpanel">
             <div class="filter-card rounded-top-0">
-                @if (approvedList.Any())
-                {
-                    <table class="table table-custom align-middle">
-                        <thead>
-                            <tr>
-                                <th style="width:60px;" class="col-img">圖片</th>
-                                <th>商品名稱</th>
-                                <th class="col-store">商店</th>
-                                <th>通過時間</th>
+                <table id="approvedTable" class="table table-custom align-middle @(!approvedList.Any() ? "d-none" : "")">
+                    <thead>
+                        <tr>
+                            <th style="width:60px;" class="col-img">圖片</th>
+                            <th>商品名稱</th>
+                            <th class="col-store">商店</th>
+                            <th>通過時間</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in approvedList)
+                        {
+                            <tr data-id="@item.Id" data-name="@item.Name.Replace("'","\\'")"
+                                data-store="@(item.StoreName ?? "")"
+                                data-img="@(item.MainImageUrl ?? "")">
+                                <td class="col-img">
+                                    <img src="@(item.MainImageUrl ?? "/img/default.jpg")" style="width:54px;height:54px;object-fit:cover;border-radius:10px;" />
+                                </td>
+                                <td class="fw-semibold product-name-cell">@item.Name</td>
+                                <td class="fs-7 col-store">@item.StoreName</td>
+                                <td class="fs-7">@item.ReviewDate?.ToString("yyyy-MM-dd HH:mm")</td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var item in approvedList)
-                            {
-                                <tr data-id="@item.Id" data-name="@item.Name.Replace("'","\\'")">
-                                    <td class="col-img">
-                                        <img src="@(item.MainImageUrl ?? "/img/default.jpg")" style="width:54px;height:54px;object-fit:cover;border-radius:10px;" />
-                                    </td>
-                                    <td class="fw-semibold product-name-cell">@item.Name</td>
-                                    <td class="fs-7 col-store">@item.StoreName</td>
-                                    <td class="fs-7">@item.ReviewDate?.ToString("yyyy-MM-dd HH:mm")</td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                }
-                else
-                {
-                    <div class="text-center py-5"><p class="text-muted">過去 24 小時內無審核通過記錄</p></div>
-                }
+                        }
+                    </tbody>
+                </table>
+                <div class="empty-state-box @(approvedList.Any() ? "d-none" : "")" id="approvedEmpty">
+                    <div class="empty-state-icon"><i class="bx bx-check-circle" style="color:#10b981;"></i></div>
+                    <div class="empty-state-title">過去 24 小時內無審核通過記錄</div>
+                    <div class="empty-state-sub">核准的商品將在此顯示</div>
+                </div>
                 @if (approvedPaged != null)
                 {
                     @await Html.PartialAsync("_Pagination", new ISpanShop.MVC.Areas.Admin.Models.Common.PaginationVm
@@ -506,7 +511,98 @@
         0%, 100% { transform: scale(1); }
         50% { transform: scale(1.06); }
     }
+    /* 退回原因快捷標籤 */
+    .rj-chip {
+        display: inline-flex; align-items: center;
+        border: 1px solid #fca5a5; color: #dc2626;
+        background: #fff; border-radius: 20px;
+        padding: 3px 12px; font-size: .82rem; cursor: pointer;
+        transition: background .15s, color .15s;
+    }
+    .rj-chip:hover { background: #fef2f2; border-color: #dc2626; }
+    /* 統一空白提示樣式 */
+    .empty-state-box {
+        display: flex; flex-direction: column; align-items: center;
+        justify-content: center; padding: 3.5rem 1rem; text-align: center;
+    }
+    .empty-state-icon { font-size: 2.8rem; margin-bottom: 0.75rem; color: #9ca3af; }
+    .empty-state-title { font-weight: 700; font-size: 1rem; color: #1e2d3d; margin-bottom: 0.25rem; }
+    .empty-state-sub { font-size: 0.82rem; color: #9ca3af; }
 </style>
+
+@* ── 單筆退回原因 Modal ── *@
+<div class="modal fade" id="rejectModal" tabindex="-1" aria-labelledby="rejectModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:480px;">
+        <div class="modal-content border-0 shadow rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-danger" id="rejectModalLabel">
+                    <i class="bx bx-x-circle me-2"></i>退回審核
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body px-4">
+                <div class="p-3 mb-3 rounded-3" style="background:#fef2f2;border:1px solid #fca5a5;">
+                    <i class="bx bx-error-circle me-1" style="color:#dc2626;"></i>
+                    確定要退回商品「<strong id="rjProductName"></strong>」？
+                </div>
+                <label class="form-label fw-bold mb-2">退回原因 <span class="text-danger">*</span></label>
+                <div class="d-flex flex-wrap gap-2 mb-2">
+                    <button type="button" class="rj-chip" onclick="rjSetChip(this)">商品描述不實</button>
+                    <button type="button" class="rj-chip" onclick="rjSetChip(this)">圖片侵權/盜圖</button>
+                    <button type="button" class="rj-chip" onclick="rjSetChip(this)">違反平台規範</button>
+                    <button type="button" class="rj-chip" onclick="rjSetChip(this)">標題含禁止詞彙</button>
+                    <button type="button" class="rj-chip" onclick="rjSetChip(this)">商品分類錯誤</button>
+                </div>
+                <textarea id="rjReasonInput" class="form-control rounded-3" rows="3"
+                          placeholder="請說明退回原因（賣家將可看到此說明）..."></textarea>
+                <div id="rjReasonError" class="text-danger small mt-1 d-none">請填寫退回原因。</div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger rounded-pill px-5 fw-bold" id="rjConfirmBtn">
+                    <i class="bx bx-x-circle me-1"></i>確認退回
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ── 批次退回原因 Modal ── *@
+<div class="modal fade" id="batchRejectModal" tabindex="-1" aria-labelledby="batchRejectModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:480px;">
+        <div class="modal-content border-0 shadow rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-danger" id="batchRejectModalLabel">
+                    <i class="bx bx-x-circle me-2"></i>批次退回審核
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body px-4">
+                <div class="p-3 mb-3 rounded-3" style="background:#fef2f2;border:1px solid #fca5a5;">
+                    <i class="bx bx-error-circle me-1" style="color:#dc2626;"></i>
+                    即將退回已選取的 <strong id="brjProductCount">0</strong> 筆商品，請填寫統一退回原因：
+                </div>
+                <label class="form-label fw-bold mb-2">退回原因 <span class="text-danger">*</span></label>
+                <div class="d-flex flex-wrap gap-2 mb-2">
+                    <button type="button" class="rj-chip" onclick="brjSetChip(this)">商品描述不實</button>
+                    <button type="button" class="rj-chip" onclick="brjSetChip(this)">圖片侵權/盜圖</button>
+                    <button type="button" class="rj-chip" onclick="brjSetChip(this)">違反平台規範</button>
+                    <button type="button" class="rj-chip" onclick="brjSetChip(this)">標題含禁止詞彙</button>
+                    <button type="button" class="rj-chip" onclick="brjSetChip(this)">商品分類錯誤</button>
+                </div>
+                <textarea id="brjReasonInput" class="form-control rounded-3" rows="3"
+                          placeholder="請說明退回原因（賣家將可看到此說明）..."></textarea>
+                <div id="brjReasonError" class="text-danger small mt-1 d-none">請填寫退回原因。</div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger rounded-pill px-5 fw-bold" id="brjConfirmBtn">
+                    <i class="bx bx-x-circle me-1"></i>確認批次退回
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -683,18 +779,26 @@
 
             // 4. 動態更新 UI
             function updateSelectionUI() {
-                var count = selectedReviewIds.size;
+                // 分別計算待審核/重新申請 panel 的勾選數，避免退回紀錄的勾選觸發 pending-batch-tag
+                var pendingCount = 0;
+                ['pendingPanel', 'reApplyPanel'].forEach(function(panelId) {
+                    var panel = document.getElementById(panelId);
+                    if (panel) panel.querySelectorAll('.item-checkbox').forEach(function(cb) {
+                        if (selectedReviewIds.has(parseInt(cb.value, 10))) pendingCount++;
+                    });
+                });
+
                 var tag   = document.getElementById('pending-batch-tag');
                 var badge = document.getElementById('pending-selected-count');
                 var btnApprove = document.getElementById('btnBatchApprove');
                 var btnReject  = document.getElementById('btnBatchReject');
                 var btnSimulate = document.getElementById('btnBatchSimulate');
 
-                if (badge) badge.textContent = count;
-                if (tag)   count > 0 ? tag.classList.remove('d-none') : tag.classList.add('d-none');
-                if (btnApprove) btnApprove.disabled = count === 0;
-                if (btnReject)  btnReject.disabled  = count === 0;
-                if (btnSimulate) btnSimulate.disabled = count === 0;
+                if (badge) badge.textContent = pendingCount;
+                if (tag)   pendingCount > 0 ? tag.classList.remove('d-none') : tag.classList.add('d-none');
+                if (btnApprove) btnApprove.disabled = pendingCount === 0;
+                if (btnReject)  btnReject.disabled  = pendingCount === 0;
+                if (btnSimulate) btnSimulate.disabled = pendingCount === 0;
 
                 // 同步當前頁面的 checkbox 狀態
                 document.querySelectorAll('.item-checkbox').forEach(cb => {
@@ -750,10 +854,29 @@
                 }
             };
 
+            // 依頁籤切換顯示/隱藏對應的批次操作按鈕
+            // pending/reapply: 審核通過 + 審核退回；rejected: 模擬送審；approved/其他: 全隱藏
+            function updateBatchButtonsVisibility(activeTabId) {
+                var showApproveReject = (activeTabId === 'pending-tab' || activeTabId === 'reapply-tab');
+                var showRejectedSim   = (activeTabId === 'rejected-tab');
+
+                ['btnBatchApprove', 'btnBatchReject'].forEach(function(id) {
+                    var el = document.getElementById(id);
+                    if (el) el.classList.toggle('d-none', !showApproveReject);
+                });
+                // btnBatchSimulate 永遠隱藏（已由 btnBatchRejectedSimulate 取代）
+                var simEl = document.getElementById('btnBatchSimulate');
+                if (simEl) simEl.classList.add('d-none');
+
+                var rejEl = document.getElementById('btnBatchRejectedSimulate');
+                if (rejEl) rejEl.classList.toggle('d-none', !showRejectedSim);
+            }
+
             // 監聽頁籤切換事件，記憶當前頁籤
             document.querySelectorAll('button[data-bs-toggle="tab"]').forEach(tabEl => {
                 tabEl.addEventListener('shown.bs.tab', function (e) {
                     sessionStorage.setItem('activeTab', e.target.id);
+                    updateBatchButtonsVisibility(e.target.id);
 
                     // 如果右側面板是開啟的，切換頁籤後自動抓取並載入新頁籤的第一筆資料
                     let isOpen = sessionStorage.getItem('isReviewDetailOpen') === 'true';
@@ -823,48 +946,316 @@
                 }).then(r => r.json());
             }
 
+            // ── DOM 輔助函式 ──
+            function escHtml(str) {
+                return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+            }
+            function escAttr(str) { return escHtml(str); }
+
+            function updateTabBadge(badgeId, delta) {
+                var el = document.getElementById(badgeId);
+                if (!el) return;
+                el.textContent = Math.max(0, (parseInt(el.textContent) || 0) + delta);
+            }
+
+            function syncPanelEmpty(panelId) {
+                var suffix   = panelId.replace('Panel', '');
+                var table    = document.getElementById(suffix + 'Table');
+                var emptyBox = document.getElementById(suffix + 'Empty');
+                if (!table || !emptyBox) return;
+                var tbody   = table.querySelector('tbody');
+                var hasData = tbody && tbody.querySelectorAll('tr[data-id]').length > 0;
+                table.classList.toggle('d-none', !hasData);
+                emptyBox.classList.toggle('d-none', hasData);
+            }
+
+            function getRowData(tr) {
+                return {
+                    id:     tr.getAttribute('data-id')     || '',
+                    name:   tr.getAttribute('data-name')   || '',
+                    store:  tr.getAttribute('data-store')  || '',
+                    img:    tr.getAttribute('data-img')    || '',
+                    reason: tr.getAttribute('data-reason') || ''
+                };
+            }
+
+            function switchTab(tabId) {
+                var el = document.getElementById(tabId);
+                if (el) bootstrap.Tab.getOrCreateInstance(el).show();
+            }
+
+            function fadeRemoveRow(tr, callback) {
+                tr.style.transition = 'opacity 0.3s, transform 0.3s';
+                tr.style.opacity = '0';
+                tr.style.transform = 'translateX(20px)';
+                setTimeout(function() { tr.remove(); if (callback) callback(); }, 300);
+            }
+
+            function fadeInsertRow(tr, tbody, prepend) {
+                tr.style.opacity = '0';
+                tr.style.transition = 'opacity 0.4s';
+                if (prepend) tbody.prepend(tr); else tbody.appendChild(tr);
+                requestAnimationFrame(function() { requestAnimationFrame(function() { tr.style.opacity = '1'; }); });
+            }
+
+            function buildPendingRow(d) {
+                var imgHtml = d.img
+                    ? '<img src="' + escAttr(d.img) + '" alt="" loading="lazy" style="width:50px;height:50px;object-fit:cover;border-radius:6px;box-shadow:0 2px 4px rgba(0,0,0,0.05);" />'
+                    : '<div style="width:50px;height:50px;border-radius:6px;background:#f8fafc;display:flex;align-items:center;justify-content:center;font-size:1rem;">🖼️</div>';
+                var safeId   = parseInt(d.id);
+                var safeName = escAttr(d.name || '');
+                var tr = document.createElement('tr');
+                tr.setAttribute('data-id', d.id);
+                tr.setAttribute('data-name', d.name || '');
+                tr.setAttribute('data-store', d.store || '');
+                tr.setAttribute('data-img', d.img || '');
+                tr.innerHTML =
+                    '<td><input type="checkbox" class="form-check-input item-checkbox" value="' + safeId + '"></td>'
+                    + '<td class="col-img">' + imgHtml + '</td>'
+                    + '<td><div class="product-name-text text-truncate" style="max-width:240px;" title="' + safeName + '">' + escHtml(d.name) + '</div>'
+                    +     '<div class="text-xs text-muted text-truncate" style="max-width:240px;">ID: ' + safeId + '</div></td>'
+                    + '<td><span class="badge bg-label-warning">待審核</span></td>'
+                    + '<td class="col-store text-muted text-xs">' + escHtml(d.store || 'N/A') + '</td>'
+                    + '<td class="col-catbrand text-xs"><span class="text-primary">' + escHtml(d.category || '') + '</span> / <span class="text-info">' + escHtml(d.brand || '') + '</span></td>'
+                    + '<td class="col-date text-muted text-xs">' + escHtml(d.created || '-') + '</td>'
+                    + '<td class="text-end col-rowact text-nowrap"><div class="d-flex gap-2 justify-content-end">'
+                    +     '<button class="btn-approve-soft fw-bold" onclick="approveProduct(' + safeId + ',\'' + safeName + '\')">核准上架</button>'
+                    +     '<button class="btn-reject-soft fw-bold" onclick="openRejectModal(' + safeId + ',\'' + safeName + '\')">退回</button>'
+                    + '</div></td>';
+                tr.addEventListener('click', function(e) {
+                    if (e.target.closest('a, button, input')) return;
+                    openProductOffcanvas(d.id, d.name);
+                });
+                // bind checkbox
+                var cb = tr.querySelector('.item-checkbox');
+                if (cb) {
+                    cb.addEventListener('change', function() {
+                        if (this.checked) selectedReviewIds.add(parseInt(this.value));
+                        else selectedReviewIds.delete(parseInt(this.value));
+                        saveIds(selectedReviewIds); updateSelectionUI();
+                    });
+                }
+                return tr;
+            }
+
+            function buildApprovedRow(d) {
+                var now = new Date();
+                var pad = function(n) { return String(n).padStart(2,'0'); };
+                var dateStr = now.getFullYear() + '-' + pad(now.getMonth()+1) + '-' + pad(now.getDate()) + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes());
+                var imgHtml = d.img
+                    ? '<img src="' + escAttr(d.img) + '" style="width:54px;height:54px;object-fit:cover;border-radius:10px;" />'
+                    : '<div style="width:54px;height:54px;border-radius:10px;background:#f8fafc;display:flex;align-items:center;justify-content:center;">🖼️</div>';
+                var tr = document.createElement('tr');
+                tr.setAttribute('data-id', d.id);
+                tr.setAttribute('data-name', d.name);
+                tr.setAttribute('data-store', d.store);
+                tr.setAttribute('data-img', d.img);
+                tr.innerHTML = '<td class="col-img">' + imgHtml + '</td>'
+                    + '<td class="fw-semibold product-name-cell">' + escHtml(d.name) + '</td>'
+                    + '<td class="fs-7 col-store">' + escHtml(d.store) + '</td>'
+                    + '<td class="fs-7">' + dateStr + '</td>';
+                tr.addEventListener('click', function(e) {
+                    if (e.target.closest('a, button, input')) return;
+                    openProductOffcanvas(d.id, d.name);
+                });
+                return tr;
+            }
+
+            function buildRejectedRow(d, reason) {
+                var imgHtml = d.img
+                    ? '<img src="' + escAttr(d.img) + '" style="width:50px;height:50px;object-fit:cover;border-radius:10px;" />'
+                    : '<div style="width:50px;height:50px;border-radius:10px;background:#f8fafc;display:flex;align-items:center;justify-content:center;">🖼️</div>';
+                var safeId   = escAttr(d.id);
+                var safeName = String(d.name).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+                var tr = document.createElement('tr');
+                tr.setAttribute('data-id', d.id);
+                tr.setAttribute('data-name', d.name);
+                tr.setAttribute('data-store', d.store);
+                tr.setAttribute('data-img', d.img);
+                tr.setAttribute('data-reason', reason || '');
+                tr.classList.add('rejected-row');
+                tr.innerHTML = '<td><input type="checkbox" class="form-check-input item-checkbox" value="' + safeId + '"></td>'
+                    + '<td class="col-img">' + imgHtml + '</td>'
+                    + '<td class="fw-semibold product-name-cell">' + escHtml(d.name) + '</td>'
+                    + '<td class="fs-7 col-store">' + escHtml(d.store) + '</td>'
+                    + '<td class="col-rej-reason reject-reason-col">' + escHtml(reason || '') + '</td>'
+                    + '<td class="text-center"><div class="countdown-widget" data-initial="15"><div class="countdown-display"><i class="bx bx-time-five countdown-icon"></i><span class="countdown-timer" data-time="15">15</span><span class="countdown-unit">s</span></div><div class="countdown-track"><div class="countdown-fill"></div></div><div class="countdown-label">自動清除</div></div></td>'
+                    + '<td class="text-end text-nowrap"><button class="btn btn-sm btn-outline-warning rounded-pill px-3" onclick="simulateResubmit(' + safeId + ",\'" + safeName + "\')\"><i class=\"bx bx-store-alt me-1\"></i>模擬賣家送審</button></td>";
+                tr.addEventListener('click', function(e) {
+                    if (e.target.closest('a, button, input')) return;
+                    openProductOffcanvas(d.id, d.name);
+                });
+                var cb = tr.querySelector('.item-checkbox');
+                if (cb) cb.onclick = function(e) {
+                    e.stopPropagation();
+                    var pid = parseInt(this.value);
+                    if (this.checked) selectedReviewIds.add(pid); else selectedReviewIds.delete(pid);
+                    saveIds(selectedReviewIds); updateSelectionUI();
+                };
+                return tr;
+            }
+
+            function buildReApplyRow(d) {
+                var imgHtml = d.img
+                    ? '<img src="' + escAttr(d.img) + '" style="width:50px;height:50px;object-fit:cover;border-radius:10px;" />'
+                    : '<div style="width:50px;height:50px;border-radius:10px;background:#f8fafc;display:flex;align-items:center;justify-content:center;">🖼️</div>';
+                var safeId   = escAttr(d.id);
+                var safeName = String(d.name).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+                var tr = document.createElement('tr');
+                tr.setAttribute('data-id', d.id);
+                tr.setAttribute('data-name', d.name);
+                tr.setAttribute('data-store', d.store);
+                tr.setAttribute('data-img', d.img);
+                tr.setAttribute('data-reason', d.reason);
+                tr.innerHTML = '<td><input type="checkbox" class="form-check-input item-checkbox" value="' + safeId + '"></td>'
+                    + '<td class="col-img">' + imgHtml + '</td>'
+                    + '<td class="product-name-cell"><div class="product-name-text text-truncate" style="max-width:200px;">' + escHtml(d.name) + '</div></td>'
+                    + '<td class="text-xs col-store text-muted">' + escHtml(d.store) + '</td>'
+                    + '<td class="col-reapply-reason"><span class="badge bg-label-danger text-xs">' + escHtml(d.reason) + '</span></td>'
+                    + '<td class="text-end text-nowrap"><div class="d-flex gap-2 justify-content-end">'
+                    + '<button class="btn btn-sm btn-success rounded-pill px-3" onclick="approveForcedProduct(' + safeId + ',\'' + safeName + '\')">核准上架</button>'
+                    + '<button class="btn btn-sm btn-danger rounded-pill px-3" onclick="openRejectForcedModal(' + safeId + ',\'' + safeName + '\')">駁回</button>'
+                    + '</div></td>';
+                tr.addEventListener('click', function(e) {
+                    if (e.target.closest('a, button, input')) return;
+                    openProductOffcanvas(d.id, d.name);
+                });
+                var cb = tr.querySelector('.item-checkbox');
+                if (cb) cb.onclick = function(e) {
+                    e.stopPropagation();
+                    var pid = parseInt(this.value);
+                    if (this.checked) selectedReviewIds.add(pid); else selectedReviewIds.delete(pid);
+                    saveIds(selectedReviewIds); updateSelectionUI();
+                };
+                return tr;
+            }
+
+            function insertPendingRow(d) {
+                var tbody = document.querySelector('#pendingTable tbody');
+                if (!tbody) return;
+                fadeInsertRow(buildPendingRow(d), tbody, true);
+                updateTabBadge('pending-count-badge', 1);
+                var pcEl = document.getElementById('pendingCount');
+                if (pcEl) pcEl.textContent = (parseInt(pcEl.textContent) || 0) + 1;
+                syncPanelEmpty('pendingPanel');
+            }
+
+            function insertApprovedRow(d) {
+                var tbody = document.querySelector('#approvedTable tbody');
+                if (!tbody) return;
+                fadeInsertRow(buildApprovedRow(d), tbody, true);
+                updateTabBadge('approved-count-badge', 1);
+                syncPanelEmpty('approvedPanel');
+            }
+
+            function insertRejectedRow(d, reason) {
+                var tbody = document.querySelector('#rejectedTable tbody');
+                if (!tbody) return;
+                fadeInsertRow(buildRejectedRow(d, reason), tbody, true);
+                updateTabBadge('rejected-count-badge', 1);
+                syncPanelEmpty('rejectedPanel');
+                countdownStates[String(d.id)] = { time: 15, savedAt: Date.now() };
+                saveCountdownStates();
+            }
+
+            function insertReApplyRow(d) {
+                var tbody = document.querySelector('#reApplyTable tbody');
+                if (!tbody) return;
+                fadeInsertRow(buildReApplyRow(d), tbody, true);
+                updateTabBadge('reapply-count-badge', 1);
+                syncPanelEmpty('reApplyPanel');
+            }
+
             // ── 單筆：核准上架 ──
             window.approveProduct = function(id, name) {
                 Swal.fire({
                     title: '確認核准上架',
-                    html: '確定要核准商品 「<strong>' + name + '</strong>」 上架嗎？',
+                    html: '確定要核准商品 「<strong>' + escHtml(name) + '</strong>」 上架嗎？',
                     icon: 'question', showCancelButton: true, confirmButtonColor: '#1abb9c'
                 }).then(async (r) => {
                     if (!r.isConfirmed) return;
-                    Swal.showLoading();
+                    Swal.fire({ title: '處理中...', didOpen: () => Swal.showLoading() });
                     const res = await apiPost(_urls.approve, { id: id });
-                    if (res.success) Swal.fire('成功', res.message, 'success').then(() => location.reload());
-                    else Swal.fire('錯誤', res.message, 'error');
+                    if (res.success) {
+                        var srcRow = document.querySelector('#pendingPanel tr[data-id="' + id + '"], #reApplyPanel tr[data-id="' + id + '"]');
+                        if (srcRow) {
+                            var d = getRowData(srcRow);
+                            var isPending = !!srcRow.closest('#pendingPanel');
+                            var srcBadge  = isPending ? 'pending-count-badge' : 'reapply-count-badge';
+                            var srcPanel  = isPending ? 'pendingPanel' : 'reApplyPanel';
+                            selectedReviewIds.delete(parseInt(id));
+                            saveIds(selectedReviewIds);
+                            fadeRemoveRow(srcRow, function() {
+                                updateTabBadge(srcBadge, -1);
+                                if (isPending) {
+                                    var pcEl = document.getElementById('pendingCount');
+                                    if (pcEl) pcEl.textContent = Math.max(0, (parseInt(pcEl.textContent)||0) - 1);
+                                }
+                                syncPanelEmpty(srcPanel);
+                                insertApprovedRow(d);
+                                updateSelectionUI();
+                            });
+                        }
+                        Swal.fire({ icon: 'success', title: '成功', text: res.message, timer: 1500, showConfirmButton: false });
+                    } else {
+                        Swal.fire('錯誤', res.message, 'error');
+                    }
                 });
             };
 
             // ── 單筆：退回審核 ──
+            var _rjProductId = null;
+            // 需掛在 window 供 modal HTML 的 onclick 屬性呼叫
+            window.rjSetChip  = function(btn) { document.getElementById('rjReasonInput').value  = btn.textContent.trim(); };
+            window.brjSetChip = function(btn) { document.getElementById('brjReasonInput').value = btn.textContent.trim(); };
+
             window.openRejectModal = function(id, name) {
-                Swal.fire({
-                    title: '退回審核',
-                    html: '請輸入商品「<strong>' + name + '</strong>」的退回原因：',
-                    input: 'textarea', inputPlaceholder: '例如：商品名稱包含禁止詞彙...',
-                    icon: 'warning', showCancelButton: true, confirmButtonColor: '#e53e3e',
-                    inputValidator: (v) => { if (!v) return '原因必填！'; }
-                }).then(async (r) => {
-                    if (!r.isConfirmed) return;
-                    Swal.showLoading();
-                    const res = await apiPost(_urls.reject, { id: id, reason: r.value });
-                    if (res.success) {
-                        Swal.fire('已退回', res.message, 'success').then(() => {
-                            sessionStorage.setItem('activeTab', 'rejected-tab');
-                            location.reload();
+                _rjProductId = id;
+                document.getElementById('rjProductName').textContent = name;
+                document.getElementById('rjReasonInput').value = '';
+                document.getElementById('rjReasonError').classList.add('d-none');
+                new bootstrap.Modal(document.getElementById('rejectModal')).show();
+            };
+
+            document.getElementById('rjConfirmBtn').addEventListener('click', async function() {
+                var reason = document.getElementById('rjReasonInput').value.trim();
+                var errEl  = document.getElementById('rjReasonError');
+                if (!reason) { errEl.classList.remove('d-none'); return; }
+                errEl.classList.add('d-none');
+                bootstrap.Modal.getInstance(document.getElementById('rejectModal'))?.hide();
+                Swal.fire({ title: '處理中...', didOpen: () => Swal.showLoading() });
+                const res = await apiPost(_urls.reject, { id: _rjProductId, reason: reason });
+                if (res.success) {
+                    var srcRow = document.querySelector('#pendingPanel tr[data-id="' + _rjProductId + '"], #reApplyPanel tr[data-id="' + _rjProductId + '"]');
+                    if (srcRow) {
+                        var d = getRowData(srcRow);
+                        var isPending = !!srcRow.closest('#pendingPanel');
+                        var srcBadge  = isPending ? 'pending-count-badge' : 'reapply-count-badge';
+                        var srcPanel  = isPending ? 'pendingPanel' : 'reApplyPanel';
+                        selectedReviewIds.delete(parseInt(_rjProductId));
+                        saveIds(selectedReviewIds);
+                        fadeRemoveRow(srcRow, function() {
+                            updateTabBadge(srcBadge, -1);
+                            if (isPending) {
+                                var pcEl = document.getElementById('pendingCount');
+                                if (pcEl) pcEl.textContent = Math.max(0, (parseInt(pcEl.textContent)||0) - 1);
+                            }
+                            syncPanelEmpty(srcPanel);
+                            insertRejectedRow(d, reason);
+                            updateSelectionUI();
+                            switchTab('rejected-tab');
                         });
                     }
-                    else Swal.fire('錯誤', res.message, 'error');
-                });
-            };
+                    Swal.fire({ icon: 'success', title: '已退回', text: res.message, timer: 1500, showConfirmButton: false });
+                } else {
+                    Swal.fire('錯誤', res.message, 'error');
+                }
+            });
 
             // ── 批次：核准 ──
             document.getElementById('btnBatchApprove').onclick = function() {
                 var ids = Array.from(selectedReviewIds);
                 if (ids.length === 0) return Swal.fire('請先選擇商品', '', 'warning');
-                
                 Swal.fire({
                     title: '批次核准上架',
                     text: '確定要核准這 ' + ids.length + ' 項商品嗎？',
@@ -874,11 +1265,26 @@
                     Swal.fire({ title: '處理中...', didOpen: () => Swal.showLoading() });
                     const res = await apiPost(_urls.batchApprove, { ids: ids });
                     if (res.success) {
-                        selectedReviewIds.clear();
-                        saveIds(selectedReviewIds);
-                        Swal.fire('完成', res.message, 'success').then(() => location.reload());
-                    }
-                    else Swal.fire('錯誤', res.message, 'error');
+                        var pendingDelta = 0, reApplyDelta = 0;
+                        ids.forEach(function(id) {
+                            var srcRow = document.querySelector('#pendingPanel tr[data-id="' + id + '"], #reApplyPanel tr[data-id="' + id + '"]');
+                            if (srcRow) {
+                                var d = getRowData(srcRow);
+                                if (srcRow.closest('#pendingPanel')) pendingDelta++; else reApplyDelta++;
+                                insertApprovedRow(d);
+                                srcRow.remove();
+                            }
+                        });
+                        if (pendingDelta) {
+                            updateTabBadge('pending-count-badge', -pendingDelta);
+                            var pcEl = document.getElementById('pendingCount');
+                            if (pcEl) pcEl.textContent = Math.max(0, (parseInt(pcEl.textContent)||0) - pendingDelta);
+                            syncPanelEmpty('pendingPanel');
+                        }
+                        if (reApplyDelta) { updateTabBadge('reapply-count-badge', -reApplyDelta); syncPanelEmpty('reApplyPanel'); }
+                        selectedReviewIds.clear(); saveIds(selectedReviewIds); updateSelectionUI();
+                        Swal.fire({ icon: 'success', title: '完成', text: res.message, timer: 1500, showConfirmButton: false });
+                    } else Swal.fire('錯誤', res.message, 'error');
                 });
             };
 
@@ -886,27 +1292,46 @@
             document.getElementById('btnBatchReject').onclick = function() {
                 var ids = Array.from(selectedReviewIds);
                 if (ids.length === 0) return Swal.fire('請先選擇商品', '', 'warning');
-
-                Swal.fire({
-                    title: '批次退回審核',
-                    text: '即將退回 ' + ids.length + ' 項商品，請輸入統一退回原因：',
-                    input: 'textarea', showCancelButton: true, confirmButtonColor: '#e53e3e',
-                    inputValidator: (v) => { if (!v) return '原因必填！'; }
-                }).then(async (r) => {
-                    if (!r.isConfirmed) return;
-                    Swal.fire({ title: '處理中...', didOpen: () => Swal.showLoading() });
-                    const res = await apiPost(_urls.batchReject, { ids: ids, reason: r.value });
-                    if (res.success) {
-                        selectedReviewIds.clear();
-                        saveIds(selectedReviewIds);
-                        Swal.fire('完成', res.message, 'success').then(() => {
-                            sessionStorage.setItem('activeTab', 'rejected-tab');
-                            location.reload();
-                        });
-                    }
-                    else Swal.fire('錯誤', res.message, 'error');
-                });
+                document.getElementById('brjProductCount').textContent = ids.length;
+                document.getElementById('brjReasonInput').value = '';
+                document.getElementById('brjReasonError').classList.add('d-none');
+                new bootstrap.Modal(document.getElementById('batchRejectModal')).show();
             };
+
+            document.getElementById('brjConfirmBtn').addEventListener('click', async function() {
+                var ids = Array.from(selectedReviewIds);
+                var reason = document.getElementById('brjReasonInput').value.trim();
+                var errEl  = document.getElementById('brjReasonError');
+                if (!reason) { errEl.classList.remove('d-none'); return; }
+                errEl.classList.add('d-none');
+                bootstrap.Modal.getInstance(document.getElementById('batchRejectModal'))?.hide();
+                Swal.fire({ title: '處理中...', didOpen: () => Swal.showLoading() });
+                const res = await apiPost(_urls.batchReject, { ids: ids, reason: reason });
+                if (res.success) {
+                    var pendingDelta = 0, reApplyDelta = 0;
+                    ids.forEach(function(id) {
+                        var srcRow = document.querySelector('#pendingPanel tr[data-id="' + id + '"], #reApplyPanel tr[data-id="' + id + '"]');
+                        if (srcRow) {
+                            var d = getRowData(srcRow);
+                            if (srcRow.closest('#pendingPanel')) pendingDelta++; else reApplyDelta++;
+                            insertRejectedRow(d, reason);
+                            srcRow.remove();
+                        }
+                    });
+                    if (pendingDelta) {
+                        updateTabBadge('pending-count-badge', -pendingDelta);
+                        var pcEl = document.getElementById('pendingCount');
+                        if (pcEl) pcEl.textContent = Math.max(0, (parseInt(pcEl.textContent)||0) - pendingDelta);
+                        syncPanelEmpty('pendingPanel');
+                    }
+                    if (reApplyDelta) { updateTabBadge('reapply-count-badge', -reApplyDelta); syncPanelEmpty('reApplyPanel'); }
+                    selectedReviewIds.clear(); saveIds(selectedReviewIds); updateSelectionUI();
+                    switchTab('rejected-tab');
+                    Swal.fire({ icon: 'success', title: '完成', text: res.message, timer: 1500, showConfirmButton: false });
+                } else {
+                    Swal.fire('錯誤', res.message, 'error');
+                }
+            });
 
             // ── 批次：模擬賣家送審 ──
             window.batchSimulateResubmit = function() {
@@ -941,7 +1366,21 @@
                     icon: 'info', showCancelButton: true
                 }).then(async (r) => {
                     if (!r.isConfirmed) return;
-                    fetch('@Url.Action("GenerateTestProducts", "Products")', { method: 'POST' }).then(() => location.reload());
+                    Swal.fire({ title: '生成中...', didOpen: () => Swal.showLoading() });
+                    const res = await apiPost('@Url.Action("GenerateTestProducts", "Products")', {});
+                    if (res.success) {
+                        // 僅將新生成商品插入待審核面板，不觸發任何頁面重載
+                        if (res.products && res.products.length) {
+                            res.products.forEach(function(p) { insertPendingRow(p); });
+                        }
+                        Swal.fire({
+                            icon: 'success', title: '生成完成',
+                            html: res.message + '<br><small class="text-muted">已插入待審核列表</small>',
+                            timer: 2500, showConfirmButton: false
+                        });
+                    } else {
+                        Swal.fire('錯誤', res.message || '生成失敗', 'error');
+                    }
                 });
             };
 
@@ -953,9 +1392,34 @@
                     icon: 'warning', showCancelButton: true
                 }).then(async (r) => {
                     if (!r.isConfirmed) return;
-                    Swal.showLoading();
+                    Swal.fire({ title: '審核中...', didOpen: () => Swal.showLoading() });
                     const res = await apiPost(_urls.simulateAutoReview, {});
-                    Swal.fire('完成', res.message, 'success').then(() => location.reload());
+                    if (res.success && res.items) {
+                        res.items.forEach(function(item) {
+                            if (item.outcome === 'Uncertain') return; // 待人工複審，不移動 DOM
+                            var srcRow = document.querySelector('#pendingPanel tr[data-id="' + item.productId + '"]');
+                            if (!srcRow) return;
+                            var d = getRowData(srcRow);
+                            srcRow.remove();
+                            updateTabBadge('pending-count-badge', -1);
+                            var pcEl = document.getElementById('pendingCount');
+                            if (pcEl) pcEl.textContent = Math.max(0, (parseInt(pcEl.textContent) || 0) - 1);
+                            selectedReviewIds.delete(parseInt(item.productId));
+                            if (item.outcome === 'Approved') {
+                                insertApprovedRow(d);
+                            } else if (item.outcome === 'Rejected') {
+                                var reason = '系統自動攔截：內容含違規詞彙【' + (item.matchedWords || []).join('、') + '】';
+                                insertRejectedRow(d, reason);
+                            }
+                        });
+                        saveIds(selectedReviewIds);
+                        syncPanelEmpty('pendingPanel');
+                        updateSelectionUI();
+                        var msg = '已通過 ' + (res.approved || 0) + ' 筆，退回 ' + (res.rejected || 0) + ' 筆，待人工複審 ' + (res.manualReview || 0) + ' 筆';
+                        Swal.fire({ icon: 'success', title: '自動審核完成', text: msg, timer: 2500, showConfirmButton: false });
+                    } else {
+                        Swal.fire('錯誤', res.message || '模擬失敗', 'error');
+                    }
                 });
             };
 
@@ -982,19 +1446,29 @@
             window.simulateResubmit = function(id, name) {
                 Swal.fire({
                     title: '模擬賣家送審',
-                    html: '確定要模擬賣家重新送審商品 「<strong>' + name + '</strong>」 嗎？',
+                    html: '確定要模擬賣家重新送審商品 「<strong>' + escHtml(name) + '</strong>」 嗎？',
                     icon: 'info', showCancelButton: true, confirmButtonColor: '#F59E0B'
                 }).then(async (r) => {
                     if (!r.isConfirmed) return;
-                    Swal.showLoading();
+                    Swal.fire({ title: '處理中...', didOpen: () => Swal.showLoading() });
                     const res = await apiPost(_urls.simulateSellerResubmit, { id: id });
                     if (res.success) {
-                        // 1. 清空前端黑名單暫存
                         sessionStorage.removeItem('expiredRejectedIds');
-                        Swal.fire('成功', res.message, 'success').then(() => {
-                            // 2. 切換至「重新申請審核」頁籤並重整
-                            switchTabAndReload('reapply-tab');
-                        });
+                        var srcRow = document.querySelector('#rejectedPanel tr[data-id="' + id + '"]');
+                        if (srcRow) {
+                            var d = getRowData(srcRow);
+                            selectedReviewIds.delete(parseInt(id));
+                            saveIds(selectedReviewIds);
+                            deleteCountdownState(String(id));
+                            fadeRemoveRow(srcRow, function() {
+                                updateTabBadge('rejected-count-badge', -1);
+                                syncPanelEmpty('rejectedPanel');
+                                insertReApplyRow(d);
+                                updateSelectionUI();
+                                switchTab('reapply-tab');
+                            });
+                        }
+                        Swal.fire({ icon: 'success', title: '成功', text: res.message, timer: 1500, showConfirmButton: false });
                     } else {
                         Swal.fire('錯誤', res.message, 'error');
                     }
@@ -1043,7 +1517,21 @@
                     const res = await apiPost(_urls.batchSimulateResubmit, { ids: ids });
                     if (res.success) {
                         sessionStorage.removeItem('expiredRejectedIds');
-                        switchTabAndReload('reapply-tab');
+                        ids.forEach(function(id) {
+                            var srcRow = document.querySelector('#rejectedPanel tr[data-id="' + id + '"]');
+                            if (srcRow) {
+                                var d = getRowData(srcRow);
+                                deleteCountdownState(String(id));
+                                insertReApplyRow(d);
+                                srcRow.remove();
+                            }
+                            selectedReviewIds.delete(id);
+                        });
+                        updateTabBadge('rejected-count-badge', -ids.length);
+                        syncPanelEmpty('rejectedPanel');
+                        saveIds(selectedReviewIds); updateSelectionUI();
+                        switchTab('reapply-tab');
+                        Swal.fire({ icon: 'success', title: '完成', text: res.message, timer: 1500, showConfirmButton: false });
                     } else {
                         Swal.fire('錯誤', res.message, 'error');
                     }
@@ -1111,20 +1599,13 @@
 
                         let tbody = row.closest('tbody');
                         
-                        // 1. 精準扣除頁籤數字：使用 jQuery 抓取「近期退回紀錄」頁籤按鈕內的數字 Badge
-                        var $badge = $('#rejected-tab .badge');
-                        if ($badge.length > 0) {
-                            var currentCount = parseInt($badge.text()) || 0;
-                            if (currentCount > 0) $badge.text(currentCount - 1);
-                        }
-
-                        // 2. 強制關閉右側幽靈面板：如果刪除的正是目前展開的商品，立刻呼叫關閉函式
+                        // 1. 強制關閉右側幽靈面板：如果刪除的正是目前展開的商品，立刻呼叫關閉函式
                         // _activeProductRowId 可能為 string 或 number，使用 == 進行比較
                         if (_activeProductRowId == id) {
                             closeProductDetailPanel();
                         }
 
-                        // 3. 移除資料並檢查隱藏無用的分頁列
+                        // 2. 移除資料並檢查隱藏無用的分頁列
                         row.style.transition = 'opacity 0.5s';
                         row.style.opacity = '0';
                         setTimeout(() => {
@@ -1137,18 +1618,12 @@
                             if (id) deleteCountdownState(String(id));
 
                             row.remove();
-                            // 移除後檢查 tbody 內是否還有 tr (排除可能存在的提示列，這裡檢查 tr[data-id])
-                            if (tbody && tbody.querySelectorAll('tr[data-id]').length === 0) {
-                                // 找到同一個 tab-pane 內的分頁列並隱藏
-                                let pane = tbody.closest('.tab-pane');
-                                if (pane) {
-                                    let pagination = pane.querySelector('.pagination-container, nav');
-                                    if (pagination) pagination.style.display = 'none';
 
-                                    // 動態插入一列提示文字，避免只剩下表頭
-                                    tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-4">目前無近期退回紀錄</td></tr>';
-                                }
-                            }
+                            // 3. 以實際剩餘列數同步更新 Badge 並切換空白提示
+                            var remainingRows = tbody ? tbody.querySelectorAll('tr[data-id]').length : 0;
+                            var rejBadgeEl = document.getElementById('rejected-count-badge');
+                            if (rejBadgeEl) rejBadgeEl.textContent = Math.max(0, remainingRows);
+                            syncPanelEmpty('rejectedPanel');
                         }, 500);
                         
                         // 額外清理選取狀態 (若有選取)
@@ -1163,6 +1638,13 @@
 
             // 初始執行
             initReviewSelection();
+
+            // 頁面載入時依當前活動頁籤初始化按鈕可見性
+            (function() {
+                var savedTab = sessionStorage.getItem('activeTab');
+                var initTabId = savedTab ? savedTab.replace('#', '') : 'pending-tab';
+                updateBatchButtonsVisibility(initTabId);
+            })();
         })();
 
         // 2. 換頁後自動還原與載入第一筆
@@ -1196,21 +1678,13 @@
                 }
             });
 
-            // 同步更新「近期退回紀錄」頁籤的數字 Badge
-            if (removedCount > 0) {
-                var $badge = $('#rejected-tab .badge');
-                if ($badge.length > 0) {
-                    var currentCount = parseInt($badge.text()) || 0;
-                    $badge.text(Math.max(0, currentCount - removedCount));
-                }
-            }
+            // 同步更新「近期退回紀錄」頁籤的數字 Badge（以實際剩餘列數為準）
+            var actualRemainingCount = $('#rejectedPanel tbody tr[data-id]').length;
+            var rejBadge = document.getElementById('rejected-count-badge');
+            if (rejBadge) rejBadge.textContent = actualRemainingCount;
 
-            // 如果移除後 tbody 變空，補上提示文字
-            let $rejectedTbody = $('#rejectedPanel tbody');
-            if ($rejectedTbody.length > 0 && $rejectedTbody.find('tr[data-id]').length === 0) {
-                $('#rejectedPanel .pagination-container, #rejectedPanel nav').hide();
-                $rejectedTbody.html('<tr><td colspan="10" class="text-center text-muted py-4">目前無近期退回紀錄</td></tr>');
-            }
+            // 同步空白提示
+            syncPanelEmpty('rejectedPanel');
         });
 
         // ── 模擬 AJAX 換頁成功後的處理 ──
