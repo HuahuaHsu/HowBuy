@@ -25,11 +25,30 @@
             <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#bulkUpdateModal">
                 <i class="bx bx-group me-1"></i> 全站發放
             </button>
-            <form asp-action="GenerateMockData" method="post">
-                <button type="submit" class="btn btn-outline-secondary" onclick="return confirm('確定要產生 50 筆假資料嗎？');">
-                    <i class="bx bx-plus-circle me-1"></i> 產生假資料
-                </button>
-            </form>
+            <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#confirmMockDataModal">
+                <i class="bx bx-plus-circle me-1"></i> 產生假資料
+            </button>
+        </div>
+    </div>
+
+    <!-- 產生假資料確認 Modal -->
+    <div class="modal fade" id="confirmMockDataModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bx bx-error-circle text-warning me-2"></i>確認產生假資料</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-0">確定要產生 <strong>50 筆</strong>點數假資料嗎？此操作僅供開發測試使用。</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-label-secondary" data-bs-dismiss="modal">取消</button>
+                    <form asp-action="GenerateMockData" method="post" class="d-inline">
+                        <button type="submit" class="btn btn-warning">確認產生</button>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -188,7 +207,6 @@
             <table class="table table-hover">
                 <thead>
                     <tr>
-                        <th>ID</th>
                         <th>會員資訊</th>
                         <th>類型 / 單號</th>
                         <th>變動點數</th>
@@ -212,7 +230,6 @@
                             }
 
                             <tr>
-                                <td>@item.Id</td>
                                 <td>
                                     <div class="d-flex flex-column">
                                         <span class="fw-semibold">@item.FullName</span>
@@ -275,7 +292,7 @@
                     else
                     {
                         <tr>
-                            <td colspan="7" class="text-center py-5">
+                            <td colspan="6" class="text-center py-5">
                                 <i class="bx bx-info-circle fs-2 mb-2"></i>
                                 <p class="mb-0">查無相關點數紀錄</p>
                             </td>

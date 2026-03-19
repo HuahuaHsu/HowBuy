@@ -57,7 +57,7 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Payments
 
 			// 4. 分頁與排序
 			var items = await query
-				.OrderByDescending(pl => pl.CreatedAt)
+				.OrderByDescending(pl => pl.Id)
 				.Skip((searchParams.PageNumber - 1) * searchParams.PageSize)
 				.Take(searchParams.PageSize)
 				.Select(pl => new {

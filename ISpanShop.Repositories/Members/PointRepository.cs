@@ -18,9 +18,9 @@ namespace ISpanShop.Repositories.Members.Implementations
         public async Task<(IEnumerable<PointHistory> Items, int TotalCount)> GetPagedPointHistoryAsync(string keyword, int? userId, int page, int pageSize)
         {
             var query = _context.PointHistories
-                .Include(ph => ph.User) //Eager Loading¡]¹w¥ý¸ü¤J¡^
+                .Include(ph => ph.User) //Eager Loadingï¿½]ï¿½wï¿½ï¿½ï¿½ï¿½ï¿½Jï¿½^
 				.ThenInclude(u => u.MemberProfile)
-                .AsNoTracking(); //®Ä¯àÀu¤Æ
+                .AsNoTracking(); //ï¿½Ä¯ï¿½ï¿½uï¿½ï¿½
 
 			if (userId.HasValue)
             {
@@ -37,7 +37,7 @@ namespace ISpanShop.Repositories.Members.Implementations
 
             int totalCount = await query.CountAsync();
             var items = await query
-                .OrderByDescending(ph => ph.CreatedAt)
+                .OrderByDescending(ph => ph.Id)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
