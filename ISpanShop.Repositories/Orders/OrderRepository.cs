@@ -300,7 +300,11 @@ namespace ISpanShop.Repositories.Orders
 				PrevTotalItemsSold = prevItemsSold,
 				PendingShipmentCount = await query.CountAsync(o => o.Status == 1),
 				PendingRefundCount = await _context.ReturnRequests.CountAsync(rr => rr.Status == 0),
-				LowStockProductCount = await _context.ProductVariants.AsNoTracking().CountAsync(p => p.Stock < 10),
+				LowStockProductCount = await _context.ProductVariants.AsNoTracking().CountAsync(v => 
+					v.IsDeleted != true && 
+					v.Product != null && 
+					v.Product.IsDeleted != true && 
+					(v.Stock ?? 0) <= (v.SafetyStock ?? 0)),
 
 				NewMemberCount = currentNewMembers,
 				PrevNewMemberCount = prevNewMembers,
