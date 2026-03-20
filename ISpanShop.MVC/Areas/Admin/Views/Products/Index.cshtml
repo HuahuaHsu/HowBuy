@@ -831,7 +831,7 @@
                     try {
                         const res = await apiPost(urlBatchForce, { ids: ids, reason: reason });
                         if (res.success) {
-                            selectedIds.clear(); saveIds(selectedIds);
+                            selectedIds.clear(); saveIds(selectedIds); updateSelectionUI();
                             // 寫入倒數計時狀態
                             (function() {
                                 var states = {};
