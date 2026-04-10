@@ -42,6 +42,18 @@ namespace ISpanShop.MVC
 			// Add services to the container.
 			builder.Services.AddControllersWithViews();
 
+			//註冊CORS服務
+			builder.Services.AddCors(options =>
+			{
+				options.AddPolicy("AllowVite", policy =>
+				{
+					policy.WithOrigins("http://localhost:5173") // 這邊對應你剛剛綁死的 Vite 網址
+						  .AllowAnyHeader()
+						  .AllowAnyMethod()
+						  .AllowCredentials();
+				});
+			});
+
 			//連線註冊
 			builder.Services.AddDbContext<ISpanShopDBContext>
 				(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
@@ -149,6 +161,9 @@ namespace ISpanShop.MVC
 			app.UseStaticFiles();
 
 			app.UseRouting();
+
+			// 2. 啟用 CORS (🔥 務必夾在 Routing 和 Authorization 中間)
+			app.UseCors("AllowVite");
 
 			//app.UseAuthorization();
 			// ── 全域例外處理（放在 Routing 之後，授權之前）──
