@@ -18,14 +18,22 @@ const router = createRouter({
       component: () => import('../views/AboutView.vue'),
     },
     {
-    path: '/cart',
-    name: 'Cart',
-    component: () => import('@/views/cart/CartView.vue'),
-    meta: {
-      layout: 'DefaultLayout', // 確保使用前台版型 [cite: 124, 185]
-      title: '購物車'
-    }
-  },
+      path: '/cart',
+      name: 'Cart',
+      component: () => import('@/views/cart/CartView.vue'),
+      meta: {
+        layout: 'DefaultLayout', // 確保使用前台版型 [cite: 124, 185]
+        title: '購物車'
+      }
+    },
+    {
+      path: '/member/order/:id',
+      name: 'OrderDetail',
+      component: () => import('@/views/member/OrderDetailView.vue'),
+      meta: {
+        title: '訂單詳情'
+      }
+    },
   ],
 })
 

@@ -44,9 +44,11 @@ export const useCartStore = defineStore('cart', () => {
 
     if (existingIndex > -1) {
       const existingItem = items.value[existingIndex];
-      const targetQty = existingItem.quantity + newItem.quantity;
-      // 確保不超過庫存
-      existingItem.quantity = Math.min(targetQty, existingItem.stock);
+      if (existingItem) {
+        const targetQty = existingItem.quantity + newItem.quantity;
+        // 確保不超過庫存
+        existingItem.quantity = Math.min(targetQty, existingItem.stock);
+      }
     } else {
       // 確保初始選中狀態與基本屬性
       items.value.push({
