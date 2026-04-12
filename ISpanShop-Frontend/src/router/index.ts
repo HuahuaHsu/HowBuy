@@ -17,6 +17,15 @@ const router = createRouter({
       // which is lazy-loaded when the route is visited.
       component: () => import('../views/AboutView.vue'),
     },
+    {
+    path: '/cart',
+    name: 'Cart',
+    component: () => import('@/views/cart/CartView.vue'),
+    meta: {
+      layout: 'DefaultLayout', // 確保使用前台版型 [cite: 124, 185]
+      title: '購物車'
+    }
+  },
   ],
 })
 
