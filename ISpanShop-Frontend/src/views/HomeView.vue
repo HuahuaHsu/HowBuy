@@ -1,30 +1,80 @@
 <template>
   <div class="home">
-    <!-- 輪播 + 右側兩個 banner -->
+    <!-- 輪播 + 右側兩個 banner：有活動資料用真實資料，否則顯示預設靜態內容 -->
     <section class="banner-section">
-      <div class="main-carousel">
-        <el-carousel height="320px" arrow="always">
-          <el-carousel-item v-for="(banner, i) in banners" :key="i">
-            <div class="carousel-slide" :style="{ background: banner.bg }">
-              <div class="slide-content">
-                <div class="slide-tag">{{ banner.tag }}</div>
-                <h2>{{ banner.title }}</h2>
-                <p>{{ banner.subtitle }}</p>
-                <el-button type="primary" round size="large">立即搶購</el-button>
+      <!-- 真實活動資料（API 有回傳時） -->
+      <template v-if="promotions.length > 0">
+        <div class="main-carousel">
+          <el-carousel height="320px" arrow="always">
+            <el-carousel-item v-for="promo in promotions" :key="promo.id">
+              <div
+                class="carousel-slide promo-slide"
+                :style="promo.bannerImageUrl
+                  ? { backgroundImage: `url(${promo.bannerImageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+                  : { background: 'linear-gradient(135deg, #1e293b 0%, #1e1b4b 100%)' }"
+                @click="promo.linkUrl ? $router.push(promo.linkUrl) : undefined"
+              >
+                <div class="slide-content">
+                  <div class="slide-tag">{{ promo.typeLabel }}</div>
+                  <h2>{{ promo.title }}</h2>
+                  <p v-if="promo.subtitle">{{ promo.subtitle }}</p>
+                  <el-button type="primary" round size="large">立即搶購</el-button>
+                </div>
+                <div v-if="!promo.bannerImageUrl" class="slide-emoji">🎉</div>
               </div>
-              <div class="slide-emoji">{{ banner.emoji }}</div>
-            </div>
-          </el-carousel-item>
-        </el-carousel>
-      </div>
-      <div class="side-banners">
-        <div class="side-banner" v-for="sb in sideBanners" :key="sb.title" :style="{ background: sb.bg }">
-          <div class="sb-tag">{{ sb.tag }}</div>
-          <h3>{{ sb.title }}</h3>
-          <p>{{ sb.desc }}</p>
-          <span class="sb-emoji">{{ sb.emoji }}</span>
+            </el-carousel-item>
+          </el-carousel>
         </div>
-      </div>
+        <div class="side-banners">
+          <div
+            v-for="promo in promotions.slice(1, 3)"
+            :key="promo.id"
+            class="side-banner"
+            :style="promo.bannerImageUrl
+              ? { backgroundImage: `url(${promo.bannerImageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+              : { background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)' }"
+            @click="promo.linkUrl ? $router.push(promo.linkUrl) : undefined"
+          >
+            <div class="sb-tag">{{ promo.typeLabel }}</div>
+            <h3>{{ promo.title }}</h3>
+            <p v-if="promo.subtitle">{{ promo.subtitle }}</p>
+            <span v-if="!promo.bannerImageUrl" class="sb-emoji">🎁</span>
+          </div>
+          <!-- 若真實資料少於 2 筆側邊卡，補空白佔位 -->
+          <div
+            v-for="n in Math.max(0, 2 - (promotions.length - 1))"
+            :key="`placeholder-${n}`"
+            class="side-banner side-banner-empty"
+          />
+        </div>
+      </template>
+
+      <!-- 靜態預設內容（API 空時顯示） -->
+      <template v-else>
+        <div class="main-carousel">
+          <el-carousel height="320px" arrow="always">
+            <el-carousel-item v-for="(banner, i) in staticBanners" :key="i">
+              <div class="carousel-slide" :style="{ background: banner.bg }">
+                <div class="slide-content">
+                  <div class="slide-tag">{{ banner.tag }}</div>
+                  <h2>{{ banner.title }}</h2>
+                  <p>{{ banner.subtitle }}</p>
+                  <el-button type="primary" round size="large">立即搶購</el-button>
+                </div>
+                <div class="slide-emoji">{{ banner.emoji }}</div>
+              </div>
+            </el-carousel-item>
+          </el-carousel>
+        </div>
+        <div class="side-banners">
+          <div class="side-banner" v-for="sb in staticSideBanners" :key="sb.title" :style="{ background: sb.bg }">
+            <div class="sb-tag">{{ sb.tag }}</div>
+            <h3>{{ sb.title }}</h3>
+            <p>{{ sb.desc }}</p>
+            <span class="sb-emoji">{{ sb.emoji }}</span>
+          </div>
+        </div>
+      </template>
     </section>
 
     <!-- 圓形快捷服務 -->
@@ -38,18 +88,55 @@
     <!-- 商品分類網格 -->
     <section class="category-section">
       <div class="section-title">分類</div>
-      <div class="category-grid">
-        <div v-for="cat in categories" :key="cat.name" class="category-item">
-          <div class="cat-image">{{ cat.icon }}</div>
+
+      <!-- 載入中骨架屏 -->
+      <div v-if="categoriesLoading" class="category-grid">
+        <el-skeleton v-for="n in 7" :key="n" animated class="cat-skeleton">
+          <template #template>
+            <el-skeleton-item variant="circle" style="width: 70px; height: 70px; margin: 0 auto 10px;" />
+            <el-skeleton-item variant="p" style="width: 70%; margin: 0 auto 4px;" />
+            <el-skeleton-item variant="p" style="width: 50%; margin: 0 auto;" />
+          </template>
+        </el-skeleton>
+      </div>
+
+      <!-- 分類網格 -->
+      <div v-else-if="apiCategories.length > 0" class="category-grid">
+        <div
+          v-for="cat in apiCategories"
+          :key="cat.id"
+          class="category-item"
+          :class="{ 'category-item--active': selectedCategoryId === cat.id }"
+          @click="onCategoryClick(cat.id)"
+        >
+          <div class="cat-image">
+            <el-image
+              v-if="cat.iconUrl"
+              :src="cat.iconUrl"
+              fit="cover"
+              style="width: 100%; height: 100%; border-radius: 50%;"
+            />
+            <span v-else class="cat-emoji">{{ getCategoryIcon(cat.name) }}</span>
+          </div>
           <div class="cat-name">{{ cat.name }}</div>
         </div>
       </div>
+
+      <!-- 空狀態 -->
+      <el-empty v-else description="目前沒有分類" :image-size="80" />
     </section>
 
     <!-- 每日新發現 -->
     <section ref="sectionRef" class="products-section">
       <div class="discovery-header">
         <h2 class="discovery-title">每日新發現</h2>
+        <el-button
+          v-if="selectedCategoryId !== null"
+          size="small"
+          plain
+          style="margin-left: 12px; vertical-align: middle;"
+          @click="onClearCategory"
+        >顯示全部</el-button>
       </div>
 
       <!-- 骨架屏：載入中 -->
@@ -104,7 +191,12 @@ import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import ProductCard from '@/components/product/ProductCard.vue'
 import { fetchProductList } from '@/api/product'
+import { fetchMainCategories } from '@/api/category'
+import { fetchActivePromotions } from '@/api/promotion'
+import { getCategoryIcon } from '@/constants/categoryIcon'
 import type { ProductListItem } from '@/types/product'
+import type { Category } from '@/types/category'
+import type { Promotion } from '@/types/promotion'
 
 // ── 每日新發現狀態 ────────────────────────────────────────────────
 const products = ref<ProductListItem[]>([])
@@ -113,15 +205,20 @@ const currentPage = ref<number>(1)
 const pageSize = ref<number>(30)
 const total = ref<number>(0)
 const sectionRef = ref<HTMLElement | null>(null)
+const selectedCategoryId = ref<number | null>(null)
 
 async function loadProducts(): Promise<void> {
   loading.value = true
   try {
-    const res = await fetchProductList({
+    const params: { page: number; pageSize: number; sortBy: 'latest'; categoryId?: number } = {
       page: currentPage.value,
       pageSize: pageSize.value,
       sortBy: 'latest',
-    })
+    }
+    if (selectedCategoryId.value !== null) {
+      params.categoryId = selectedCategoryId.value
+    }
+    const res = await fetchProductList(params)
     if (res.success) {
       products.value = res.data.items
       total.value = res.data.total
@@ -142,18 +239,66 @@ function onPageChange(page: number): void {
   })
 }
 
+function onCategoryClick(categoryId: number): void {
+  selectedCategoryId.value = selectedCategoryId.value === categoryId ? null : categoryId
+  currentPage.value = 1
+  void loadProducts()
+}
+
+function onClearCategory(): void {
+  selectedCategoryId.value = null
+  currentPage.value = 1
+  void loadProducts()
+}
+
+// ── 分類狀態 ────────────────────────────────────────────────────
+const apiCategories = ref<Category[]>([])
+const categoriesLoading = ref<boolean>(false)
+
+async function loadCategories(): Promise<void> {
+  categoriesLoading.value = true
+  try {
+    const res = await fetchMainCategories()
+    if (res.success) {
+      apiCategories.value = res.data
+    } else {
+      ElMessage.error(res.message || '分類載入失敗')
+    }
+  } catch {
+    ElMessage.error('分類載入失敗，請稍後再試')
+  } finally {
+    categoriesLoading.value = false
+  }
+}
+
+// ── 活動/輪播狀態 ────────────────────────────────────────────────
+const promotions = ref<Promotion[]>([])
+
+async function loadPromotions(): Promise<void> {
+  try {
+    const res = await fetchActivePromotions()
+    if (res.success) {
+      promotions.value = res.data
+    }
+  } catch {
+    // 靜默失敗，fallback 到靜態內容
+  }
+}
+
 onMounted(() => {
   void loadProducts()
+  void loadCategories()
+  void loadPromotions()
 })
 
-// ── 輪播資料 ──────────────────────────────────────────────────────
-const banners = [
+// ── 靜態預設輪播資料（API 空時顯示） ────────────────────────────
+const staticBanners = [
   { tag: '🎉 會員專屬', title: '購物節送 8 折券', subtitle: '全站 $49 起免運', bg: 'linear-gradient(135deg, #1e293b 0%, #1e1b4b 100%)', emoji: '🚚' },
   { tag: '🔥 限時搶購', title: '3C 家電季', subtitle: '滿萬折千 再送好禮', bg: 'linear-gradient(135deg, #064e3b 0%, #022c22 100%)', emoji: '📱' },
   { tag: '💚 新品上架', title: '春夏新品', subtitle: '時尚穿搭一次擁有', bg: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)', emoji: '👗' },
 ]
 
-const sideBanners = [
+const staticSideBanners = [
   { tag: '商城', title: '新品喇叭上市', desc: '領券現折 $100', bg: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', emoji: '🔊' },
   { tag: '商城', title: '幫你換新機', desc: 'AI 筆電專區', bg: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)', emoji: '💻' },
 ]
@@ -169,19 +314,6 @@ const quickItems = [
   { icon: '💻', label: 'HowBuy 3C' },
   { icon: '🔥', label: '天天超划算' },
   { icon: '🎁', label: '活動合集' },
-]
-
-const categories = [
-  { name: '女生衣著', icon: '👗' }, { name: '男生衣著', icon: '👔' },
-  { name: '運動/健身', icon: '🏀' }, { name: '男女鞋', icon: '👟' },
-  { name: '女生配件/黃金', icon: '👜' }, { name: '美妝保養', icon: '💄' },
-  { name: '娛樂、收藏', icon: '🎮' }, { name: '寵物', icon: '🐶' },
-  { name: '手機平板與周邊', icon: '📱' }, { name: '3C 與筆電', icon: '💻' },
-  { name: '書籍及雜誌期刊', icon: '📚' }, { name: '居家生活', icon: '🛋️' },
-  { name: '美食、伴手禮', icon: '🍰' }, { name: '汽機車零件', icon: '🚗' },
-  { name: '電玩遊戲', icon: '🎮' }, { name: '保健、護理', icon: '💊' },
-  { name: '嬰幼童與母親', icon: '🍼' }, { name: '女生包包/精品', icon: '👛' },
-  { name: '男生包包與配件', icon: '🎒' }, { name: '戶外/旅行', icon: '🚴' },
 ]
 </script>
 
@@ -213,6 +345,7 @@ const categories = [
   color: white;
   position: relative;
 }
+.promo-slide { cursor: pointer; }
 .slide-content { z-index: 1; }
 .slide-tag {
   display: inline-block;
@@ -256,6 +389,8 @@ const categories = [
   transition: transform 0.3s;
 }
 .side-banner:hover { transform: translateY(-3px); }
+.side-banner-empty { background: #1e293b; opacity: 0.3; cursor: default; }
+.side-banner-empty:hover { transform: none; }
 .sb-tag {
   display: inline-block;
   background: #EE4D2D;
@@ -324,8 +459,14 @@ const categories = [
 }
 .category-grid {
   display: grid;
-  grid-template-columns: repeat(10, 1fr);
+  grid-template-columns: repeat(7, 1fr);
   gap: 12px;
+}
+@media (max-width: 768px) {
+  .category-grid { grid-template-columns: repeat(4, 1fr); }
+}
+@media (max-width: 480px) {
+  .category-grid { grid-template-columns: repeat(3, 1fr); }
 }
 .category-item {
   text-align: center;
@@ -333,10 +474,15 @@ const categories = [
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
+  border: 2px solid transparent;
 }
 .category-item:hover {
   background: #FFF5F3;
   transform: translateY(-3px);
+}
+.category-item--active {
+  background: #FFF5F3;
+  border-color: #EE4D2D;
 }
 .cat-image {
   width: 70px;
@@ -346,10 +492,13 @@ const categories = [
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 36px;
   margin: 0 auto 10px;
+  overflow: hidden;
 }
-.cat-name { font-size: 13px; color: #334155; }
+.cat-emoji { font-size: 32px; line-height: 1; }
+.cat-name { font-size: 13px; color: #334155; font-weight: 500; }
+.cat-count { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+.cat-skeleton { text-align: center; padding: 16px 8px; }
 
 /* 每日新發現 */
 .products-section {
@@ -361,7 +510,9 @@ const categories = [
 
 /* 標題：橘紅底線樣式 */
 .discovery-header {
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-bottom: 24px;
   position: relative;
 }

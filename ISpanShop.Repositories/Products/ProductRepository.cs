@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using ISpanShop.Models.DTOs.Products;
 using ISpanShop.Models.DTOs.Common;
 using ISpanShop.Models.EfModels;
@@ -16,14 +17,15 @@ namespace ISpanShop.Repositories.Products
     public class ProductRepository : IProductRepository
     {
         private readonly ISpanShopDBContext _context;
+        private readonly ILogger<ProductRepository> _logger;
 
         /// <summary>
-        /// 建構子 - 注入 DbContext
+        /// 建構子 - 注入 DbContext 和 Logger
         /// </summary>
-        /// <param name="context">ISpanShop 資料庫上下文</param>
-        public ProductRepository(ISpanShopDBContext context)
+        public ProductRepository(ISpanShopDBContext context, ILogger<ProductRepository> logger)
         {
             _context = context;
+            _logger  = logger;
         }
 
         /// <summary>
@@ -978,8 +980,36 @@ namespace ISpanShop.Repositories.Products
                 .Where(p => p.IsDeleted != true && p.Status == 1)
                 .AsQueryable();
 
+            // ── 分類篩選（主分類自動展開子分類）────────────────────
             if (categoryId.HasValue)
-                query = query.Where(p => p.CategoryId == categoryId.Value);
+            {
+                _logger.LogInformation(
+                    "[FrontProducts] 收到 categoryId={CategoryId}", categoryId.Value);
+
+                // SQL-1：一次撈出「該分類本身 + 它的所有直接子分類」
+                // 用 Id==target 取得本身（確認 ParentId），用 ParentId==target 取得子分類清單
+                var categoryRows = await _context.Categories
+                    .AsNoTracking()
+                    .Where(c => c.Id == categoryId.Value || c.ParentId == categoryId.Value)
+                    .Select(c => new { c.Id, c.ParentId })
+                    .ToListAsync();
+
+                bool isMainCategory = categoryRows.Any(c => c.Id == categoryId.Value && c.ParentId == null);
+                var  subIds         = categoryRows.Where(c => c.ParentId == categoryId.Value)
+                                                  .Select(c => c.Id)
+                                                  .ToList();
+
+                _logger.LogInformation(
+                    "[FrontProducts] categoryId={CategoryId} → {Type}，subIds=[{SubIds}]",
+                    categoryId.Value,
+                    isMainCategory ? "主分類" : "子分類",
+                    string.Join(", ", subIds));
+
+                if (isMainCategory && subIds.Count > 0)
+                    query = query.Where(p => subIds.Contains(p.CategoryId));
+                else
+                    query = query.Where(p => p.CategoryId == categoryId.Value);
+            }
 
             if (!string.IsNullOrWhiteSpace(keyword))
             {
@@ -992,11 +1022,17 @@ namespace ISpanShop.Repositories.Products
                 "priceAsc"  => query.OrderBy(p => p.MinPrice),
                 "priceDesc" => query.OrderByDescending(p => p.MinPrice),
                 "soldCount" => query.OrderByDescending(p => p.TotalSales ?? 0),
-                _           => query.OrderByDescending(p => p.CreatedAt) // latest（預設）
+                _           => query.OrderByDescending(p => p.CreatedAt)
             };
 
+            // SQL-2：COUNT
             int totalCount = await query.CountAsync();
 
+            _logger.LogInformation(
+                "[FrontProducts] categoryId={CategoryId} 最終 total={Total}",
+                categoryId, totalCount);
+
+            // SQL-3：分頁取資料
             var items = await query
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)

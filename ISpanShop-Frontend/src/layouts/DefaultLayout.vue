@@ -65,20 +65,6 @@
       </div>
     </header>
 
-    <!-- 分類導覽列 -->
-    <nav class="category-nav">
-      <div class="category-nav-inner">
-        <div class="all-categories">
-          <el-icon><Menu /></el-icon> 全部分類
-        </div>
-        <div class="category-list">
-          <a v-for="cat in categories" :key="cat.name" href="#">
-            <span class="cat-icon">{{ cat.icon }}</span>{{ cat.name }}
-          </a>
-        </div>
-      </div>
-    </nav>
-
     <!-- 主要內容區 -->
     <main class="main-content">
       <router-view />
@@ -160,23 +146,12 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import {
-  Search, ShoppingCart, Star, Menu, Cellphone, Promotion,
+  Search, ShoppingCart, Star, Cellphone, Promotion,
   Van, Lock, RefreshRight, Service, ChatDotRound, Share
 } from '@element-plus/icons-vue'
 
 const searchText = ref('')
 const cartCount = ref(3)
-const categories = [
-  { name: '女裝', icon: '👗' },
-  { name: '男裝', icon: '👔' },
-  { name: '鞋類', icon: '👟' },
-  { name: '3C電子', icon: '📱' },
-  { name: '美妝保養', icon: '💄' },
-  { name: '居家生活', icon: '🏠' },
-  { name: '食品飲料', icon: '🍱' },
-  { name: '運動戶外', icon: '⚽' },
-  { name: '書籍文具', icon: '📚' },
-]
 </script>
 
 <style scoped>
@@ -316,66 +291,6 @@ const categories = [
 }
 .action-icon:hover { transform: translateY(-3px); color: #EE4D2D; }
 .action-label { font-size: 12px; margin-top: 4px; }
-
-/* 分類導覽 — 蝦皮風格,緊貼 Header */
-.category-nav {
-  background: #1e293b;
-  border-top: 1px solid rgba(255,255,255,0.05);
-  border-bottom: 1px solid rgba(255,255,255,0.05);
-}
-.category-nav-inner {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 30px;
-  display: flex;
-  align-items: stretch;
-  gap: 0;
-}
-.all-categories {
-  background: #EE4D2D;
-  color: white;
-  padding: 14px 28px;
-  font-weight: 600;
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  border-radius: 0;
-  transition: background 0.2s;
-  line-height: 1;
-
-}
-.all-categories:hover {
-  background: #BE3E24;
-}
-.category-list {
-  display: flex;
-  gap: 0;
-  overflow-x: auto;
-  flex: 1;
-  align-items: center;
-}
-.category-list a {
-  color: #cbd5e1;
-  text-decoration: none;
-  font-size: 14px;
-  font-weight: 500;
-  white-space: nowrap;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 14px 18px;
-  border-bottom: none;
-  height: 100%;
-  line-height: 1;
-}
-.category-list a:hover {
-  color: #EE4D2D;
-  background: rgba(238,77,45,0.1);
-}
-.cat-icon { font-size: 16px; }
 
 /* 主內容 */
 .main-content {
