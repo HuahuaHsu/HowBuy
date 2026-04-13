@@ -17,6 +17,39 @@ const router = createRouter({
       // which is lazy-loaded when the route is visited.
       component: () => import('../views/AboutView.vue'),
     },
+    {
+      path: '/cart',
+      name: 'Cart',
+      component: () => import('@/views/cart/CartView.vue'),
+      meta: {
+        layout: 'DefaultLayout', // 確保使用前台版型 [cite: 124, 185]
+        title: '購物車'
+      }
+    },
+    {
+      path: '/member/order/:id',
+      name: 'OrderDetail',
+      component: () => import('@/views/member/OrderDetailView.vue'),
+      meta: {
+        title: '訂單詳情'
+      }
+    },
+    {
+      path: '/member/orders',
+      name: 'OrderList',
+      component: () => import('@/views/member/OrderListView.vue'),
+      meta: {
+        title: '我的訂單'
+      }
+    },
+    {
+      path: '/member/store-dashboard',
+      name: 'StoreDashboard',
+      component: () => import('@/views/member/StoreDashboardView.vue'),
+      meta: {
+        title: '賣場數據概覽'
+      }
+    },
   ],
 })
 
