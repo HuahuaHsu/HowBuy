@@ -30,5 +30,9 @@ namespace ISpanShop.Services.Categories
         /// <summary>[Async] 前台用：取得啟用中的主分類，含上架商品數</summary>
         public Task<IEnumerable<CategoryManageDto>> GetMainCategoriesAsync()
             => _repo.GetMainCategoriesAsync();
+
+        /// <summary>[Async] 前台用：取得指定主分類底下的子分類，含各子分類的上架商品數</summary>
+        public Task<IEnumerable<CategoryManageDto>> GetChildCategoriesAsync(int parentId)
+            => _repo.GetChildCategoriesAsync(parentId);
     }
 }

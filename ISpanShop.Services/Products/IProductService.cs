@@ -165,8 +165,10 @@ namespace ISpanShop.Services.Products
         //  前台商品列表
         // ═══════════════════════════════════════════════════════════
 
-        /// <summary>[Async] 前台商品總覽：只查上架中商品，支援分類/關鍵字/排序/分頁。pageSize 上限 50。</summary>
+        /// <summary>[Async] 前台商品總覽：只查上架中商品，支援分類/關鍵字/品牌/價格/排序/分頁。pageSize 上限 50。</summary>
         Task<PagedResult<ProductListDto>> GetFrontActiveProductsAsync(
-            int? categoryId, string? keyword, string sortBy, int page, int pageSize);
+            int? categoryId, string? keyword, string sortBy, int page, int pageSize,
+            int? subCategoryId = null, int[]? brandIds = null,
+            decimal? minPrice = null, decimal? maxPrice = null);
     }
 }

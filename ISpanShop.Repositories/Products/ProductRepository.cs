@@ -973,21 +973,29 @@ namespace ISpanShop.Repositories.Products
 
         /// <inheritdoc/>
         public async Task<(IEnumerable<ProductListDto> Items, int TotalCount)> GetFrontActiveProductsAsync(
-            int? categoryId, string? keyword, string sortBy, int page, int pageSize)
+            int? categoryId, string? keyword, string sortBy, int page, int pageSize,
+            int? subCategoryId = null, int[]? brandIds = null,
+            decimal? minPrice = null, decimal? maxPrice = null)
         {
             var query = _context.Products
                 .AsNoTracking()
                 .Where(p => p.IsDeleted != true && p.Status == 1)
                 .AsQueryable();
 
-            // ── 分類篩選（主分類自動展開子分類）────────────────────
-            if (categoryId.HasValue)
+            // ── 分類篩選 ───────────────────────────────────────────
+            // subCategoryId 優先（直接篩，不做展開）
+            if (subCategoryId.HasValue)
+            {
+                _logger.LogInformation(
+                    "[FrontProducts] 收到 subCategoryId={SubCategoryId}（直接篩）", subCategoryId.Value);
+                query = query.Where(p => p.CategoryId == subCategoryId.Value);
+            }
+            else if (categoryId.HasValue)
             {
                 _logger.LogInformation(
                     "[FrontProducts] 收到 categoryId={CategoryId}", categoryId.Value);
 
                 // SQL-1：一次撈出「該分類本身 + 它的所有直接子分類」
-                // 用 Id==target 取得本身（確認 ParentId），用 ParentId==target 取得子分類清單
                 var categoryRows = await _context.Categories
                     .AsNoTracking()
                     .Where(c => c.Id == categoryId.Value || c.ParentId == categoryId.Value)
@@ -1010,6 +1018,16 @@ namespace ISpanShop.Repositories.Products
                 else
                     query = query.Where(p => p.CategoryId == categoryId.Value);
             }
+
+            // ── 品牌篩選 ───────────────────────────────────────────
+            if (brandIds != null && brandIds.Length > 0)
+                query = query.Where(p => p.BrandId != null && brandIds.Contains(p.BrandId!.Value));
+
+            // ── 價格區間（以 MinPrice 比較）────────────────────────
+            if (minPrice.HasValue)
+                query = query.Where(p => p.MinPrice >= minPrice.Value);
+            if (maxPrice.HasValue)
+                query = query.Where(p => p.MinPrice <= maxPrice.Value);
 
             if (!string.IsNullOrWhiteSpace(keyword))
             {

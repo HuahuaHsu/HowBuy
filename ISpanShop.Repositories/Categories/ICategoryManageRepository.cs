@@ -17,5 +17,8 @@ namespace ISpanShop.Repositories.Categories
 
         /// <summary>[Async] 取得啟用中的主分類（ParentId == null, IsVisible == true），含每個主分類底下的上架商品數</summary>
         Task<IEnumerable<CategoryManageDto>> GetMainCategoriesAsync();
+
+        /// <summary>[Async] 取得指定主分類底下所有啟用中的子分類，含各子分類的上架商品數</summary>
+        Task<IEnumerable<CategoryManageDto>> GetChildCategoriesAsync(int parentId);
     }
 }

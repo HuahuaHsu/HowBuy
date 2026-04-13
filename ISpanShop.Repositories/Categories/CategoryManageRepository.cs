@@ -201,5 +201,39 @@ namespace ISpanShop.Repositories.Categories
                 Children     = new System.Collections.Generic.List<CategoryManageDto>()
             });
         }
+
+        /// <inheritdoc/>
+        public async Task<IEnumerable<CategoryManageDto>> GetChildCategoriesAsync(int parentId)
+        {
+            // 1. 取啟用中的子分類
+            var children = await _db.Categories
+                .AsNoTracking()
+                .Where(c => c.ParentId == parentId && (c.IsVisible ?? true))
+                .OrderBy(c => c.Sort ?? 0)
+                .ThenBy(c => c.Id)
+                .ToListAsync();
+
+            // 2. 統計各子分類底下的上架商品數
+            var childIds = children.Select(c => c.Id).ToList();
+            var productCounts = await _db.Products
+                .AsNoTracking()
+                .Where(p => !p.IsDeleted && p.Status == 1 && childIds.Contains(p.CategoryId))
+                .GroupBy(p => p.CategoryId)
+                .Select(g => new { CategoryId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.CategoryId, x => x.Count);
+
+            return children.Select(c => new CategoryManageDto
+            {
+                Id           = c.Id,
+                Name         = c.Name,
+                NameEn       = c.NameEn,
+                ParentId     = c.ParentId,
+                SortOrder    = c.Sort ?? 0,
+                IsActive     = c.IsVisible ?? true,
+                ImageUrl     = c.IconUrl,
+                ProductCount = productCounts.TryGetValue(c.Id, out var cnt) ? cnt : 0,
+                Children     = new System.Collections.Generic.List<CategoryManageDto>()
+            });
+        }
     }
 }

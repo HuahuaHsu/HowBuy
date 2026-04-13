@@ -642,11 +642,14 @@ namespace ISpanShop.Services.Products
 
         /// <inheritdoc/>
         public async Task<PagedResult<ProductListDto>> GetFrontActiveProductsAsync(
-            int? categoryId, string? keyword, string sortBy, int page, int pageSize)
+            int? categoryId, string? keyword, string sortBy, int page, int pageSize,
+            int? subCategoryId = null, int[]? brandIds = null,
+            decimal? minPrice = null, decimal? maxPrice = null)
         {
             pageSize = Math.Clamp(pageSize, 1, 50);
             var (items, total) = await _productRepository.GetFrontActiveProductsAsync(
-                categoryId, keyword, sortBy, page, pageSize);
+                categoryId, keyword, sortBy, page, pageSize,
+                subCategoryId, brandIds, minPrice, maxPrice);
             return PagedResult<ProductListDto>.Create(items.ToList(), total, page, pageSize);
         }
     }

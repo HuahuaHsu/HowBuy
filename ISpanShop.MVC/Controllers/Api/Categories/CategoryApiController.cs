@@ -37,6 +37,41 @@ namespace ISpanShop.MVC.Controllers.Api.Categories
             {
                 Id           = c.Id,
                 Name         = c.Name,
+                ParentId     = null,    // 主分類
+                IconUrl      = string.IsNullOrEmpty(c.ImageUrl) ? null : c.ImageUrl,
+                SortOrder    = c.SortOrder,
+                ProductCount = c.ProductCount
+            }).ToList();
+
+            return Ok(new
+            {
+                success = true,
+                data    = items,
+                message = ""
+            });
+        }
+
+        // ──────────────────────────────────────────────────────────
+        // GET /api/categories/{id}/children
+        // 回傳指定主分類底下的子分類清單
+        // ──────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// 取得指定主分類底下的子分類列表，含各子分類的上架商品數
+        /// </summary>
+        /// <param name="id">主分類 Id</param>
+        [HttpGet("{id:int}/children")]
+        [AllowAnonymous]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetChildren(int id)
+        {
+            var children = await _categorySvc.GetChildCategoriesAsync(id);
+
+            var items = children.Select(c => new CategoryListItemDto
+            {
+                Id           = c.Id,
+                Name         = c.Name,
+                ParentId     = c.ParentId,
                 IconUrl      = string.IsNullOrEmpty(c.ImageUrl) ? null : c.ImageUrl,
                 SortOrder    = c.SortOrder,
                 ProductCount = c.ProductCount

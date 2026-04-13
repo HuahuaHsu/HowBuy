@@ -13,6 +13,7 @@ using ISpanShop.Repositories.ContentModeration;
 using ISpanShop.Repositories.Support;
 using ISpanShop.Repositories.Stores;
 using ISpanShop.Repositories.Promotions;
+using ISpanShop.Repositories.Brands;
 
 // Service namespaces
 using ISpanShop.Services.Admins;
@@ -26,6 +27,7 @@ using ISpanShop.Services.Support;
 using ISpanShop.Services.Payments;
 using ISpanShop.Services.Stores;
 using ISpanShop.Services.Promotions;
+using ISpanShop.Services.Brands;
 
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
@@ -154,6 +156,10 @@ namespace ISpanShop.MVC
 			// 前台活動 API
 			builder.Services.AddScoped<IPromotionRepository, PromotionRepository>();
 			builder.Services.AddScoped<PromotionService>();
+
+			// 前台品牌 API
+			builder.Services.AddScoped<IBrandRepository, BrandRepository>();
+			builder.Services.AddScoped<BrandService>();
 			var app = builder.Build();
 
 			// Configure the HTTP request pipeline.

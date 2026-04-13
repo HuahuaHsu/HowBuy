@@ -176,8 +176,11 @@ namespace ISpanShop.Repositories.Products
         //  前台商品列表（AllowAnonymous，只查 Status==1 上架中）
         // ═══════════════════════════════════════════════════════════
 
-        /// <summary>[Async] 前台商品總覽：只查上架中商品，支援分類/關鍵字/排序/分頁</summary>
+        /// <summary>[Async] 前台商品總覽：只查上架中商品，支援分類/關鍵字/品牌/價格區間/排序/分頁。
+        /// subCategoryId 優先於 categoryId（直接過濾，不展開）；brandIds 為空陣列時不篩選；price 以 MinPrice 比較。</summary>
         Task<(IEnumerable<ProductListDto> Items, int TotalCount)> GetFrontActiveProductsAsync(
-            int? categoryId, string? keyword, string sortBy, int page, int pageSize);
+            int? categoryId, string? keyword, string sortBy, int page, int pageSize,
+            int? subCategoryId = null, int[]? brandIds = null,
+            decimal? minPrice = null, decimal? maxPrice = null);
     }
 }
