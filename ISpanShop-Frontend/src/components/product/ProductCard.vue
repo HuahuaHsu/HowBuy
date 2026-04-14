@@ -1,27 +1,29 @@
 <template>
-  <div class="product-card">
-    <div class="card-image-wrap">
-      <el-image
-        :src="product.imageUrl || fallbackImage"
-        :alt="product.name"
-        lazy
-        fit="cover"
-        class="card-image"
-      >
-        <template #error>
-          <div class="image-error">
-            <el-icon :size="40"><Picture /></el-icon>
-          </div>
-        </template>
-      </el-image>
-    </div>
+  <router-link :to="`/product/${product.id}`" class="product-card-link">
+    <div class="product-card">
+      <div class="card-image-wrap">
+        <el-image
+          :src="product.imageUrl || fallbackImage"
+          :alt="product.name"
+          lazy
+          fit="cover"
+          class="card-image"
+        >
+          <template #error>
+            <div class="image-error">
+              <el-icon :size="40"><Picture /></el-icon>
+            </div>
+          </template>
+        </el-image>
+      </div>
 
-    <div class="card-body">
-      <p class="card-name">{{ product.name }}</p>
-      <p class="card-price">${{ formatPrice(product.price) }}</p>
-      <p class="card-sold">已售 {{ product.soldCount.toLocaleString() }} 件</p>
+      <div class="card-body">
+        <p class="card-name">{{ product.name }}</p>
+        <p class="card-price">${{ formatPrice(product.price) }}</p>
+        <p class="card-sold">已售 {{ product.soldCount.toLocaleString() }} 件</p>
+      </div>
     </div>
-  </div>
+  </router-link>
 </template>
 
 <script setup lang="ts">
@@ -44,6 +46,12 @@ void props
 </script>
 
 <style scoped>
+.product-card-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
 .product-card {
   border-radius: 4px;
   overflow: hidden;

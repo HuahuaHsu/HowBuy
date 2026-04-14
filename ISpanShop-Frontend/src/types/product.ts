@@ -1,3 +1,78 @@
+// ─── 商品詳情相關型別 ───────────────────────────────────────────
+
+export interface CategoryPathItem {
+  id: number
+  name: string
+}
+
+export interface BrandInfo {
+  id: number
+  name: string
+  logoUrl: string | null
+}
+
+export interface StoreInfo {
+  id: number
+  name: string
+  logoUrl: string | null
+  rating: number | null
+  productCount: number
+  followerCount: number | null
+  location: string | null
+  responseRate: number | null
+  joinedYearsAgo: number
+}
+
+export interface ProductImage {
+  id: number
+  url: string
+  isMain: boolean
+  sortOrder: number
+}
+
+export interface PriceRange {
+  min: number
+  max: number
+}
+
+export interface ProductSpec {
+  name: string
+  options: string[]
+}
+
+export interface ProductVariant {
+  id: number
+  specValues: Record<string, string>
+  price: number
+  originalPrice: number | null
+  stock: number
+  imageUrl: string | null
+}
+
+export interface ProductDetail {
+  id: number
+  name: string | null
+  description: string | null
+  categoryId: number
+  categoryPath: CategoryPathItem[] | null
+  brand: BrandInfo | null
+  store: StoreInfo | null
+  images: ProductImage[] | null
+  priceRange: PriceRange | null
+  originalPriceRange: PriceRange | null
+  discountRate: number | null
+  specs: ProductSpec[] | null
+  variants: ProductVariant[] | null
+  totalStock: number | null
+  soldCount: number | null
+  rating: number | null
+  reviewCount: number | null
+  isOnShelf: boolean
+  createdAt: string | null
+}
+
+// ─── 商品列表相關型別 ───────────────────────────────────────────
+
 /** 對應後端 ProductListItemDto */
 export interface ProductListItem {
   id: number

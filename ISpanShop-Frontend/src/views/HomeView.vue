@@ -245,7 +245,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Filter as FilterIcon } from '@element-plus/icons-vue'
 import ProductCard from '@/components/product/ProductCard.vue'
@@ -259,6 +260,9 @@ import type { ProductListItem } from '@/types/product'
 import type { Category, SubCategory } from '@/types/category'
 import type { Promotion } from '@/types/promotion'
 import type { Brand } from '@/types/brand'
+
+// ── 路由 ─────────────────────────────────────────────────────────
+const route = useRoute()
 
 // ── 響應式斷點 ────────────────────────────────────────────────────
 const isMobile = ref<boolean>(typeof window !== 'undefined' && window.innerWidth < 768)
@@ -442,6 +446,38 @@ async function onSubCategoryChange(subCategoryId: number | null): Promise<void> 
   void loadProducts()
 }
 
+/**
+ * 從 route.query 讀取 categoryId / subCategoryId，
+ * 套用篩選狀態並重新載入商品。
+ * 供 onMounted 和 watch(route.query) 共用。
+ */
+async function applyQueryFilter(): Promise<void> {
+  const rawCatId = route.query['categoryId']
+  const rawSubCatId = route.query['subCategoryId']
+
+  const catId = rawCatId ? Number(rawCatId) : null
+  const subCatId = rawSubCatId ? Number(rawSubCatId) : null
+
+  if (catId !== null && !Number.isNaN(catId)) {
+    clearSidebarState()
+    selectedCategoryId.value = catId
+
+    void loadSubCategories(catId)
+    const brandsParam =
+      subCatId !== null && !Number.isNaN(subCatId)
+        ? { subCategoryId: subCatId }
+        : { categoryId: catId }
+    void loadBrands(brandsParam)
+
+    if (subCatId !== null && !Number.isNaN(subCatId)) {
+      selectedSubCategoryId.value = subCatId
+    }
+  }
+
+  currentPage.value = 1
+  void loadProducts()
+}
+
 function onPageChange(page: number): void {
   currentPage.value = page
   void loadProducts().then(() => {
@@ -452,7 +488,7 @@ function onPageChange(page: number): void {
 // ── 生命週期 ─────────────────────────────────────────────────────
 
 onMounted(() => {
-  void loadProducts()
+  void applyQueryFilter()   // 讀 query 決定是否套分類；沒有 query 就直接載入全部
   void loadCategories()
   void loadPromotions()
   window.addEventListener('resize', handleResize)
@@ -461,6 +497,14 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
 })
+
+// 若已在首頁時 query 改變（例如連點麵包屑不同分類），重新套用篩選
+watch(
+  () => route.query,
+  () => {
+    void applyQueryFilter()
+  },
+)
 
 // ── 靜態預設輪播資料（API 空時顯示） ────────────────────────────
 

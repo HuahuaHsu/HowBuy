@@ -12,7 +12,8 @@ const router = createRouter({
       component: DefaultLayout,
       children: [
         { path: '', name: 'home', component: () => import('@/views/HomeView.vue') },
-        // 之後加:商品列表、商品詳情、購物車等
+        { path: 'product/:id', name: 'ProductDetail', component: () => import('@/views/ProductDetailView.vue') },
+        // 之後加:商品列表、購物車等
       ],
     },
     // 會員中心
