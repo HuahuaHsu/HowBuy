@@ -1080,5 +1080,87 @@ namespace ISpanShop.Repositories.Products
 
             return (items, totalCount);
         }
+
+        // ═══════════════════════════════════════════════════════════
+        //  前台商品詳情頁
+        // ═══════════════════════════════════════════════════════════
+
+        /// <inheritdoc/>
+        public async Task<Product?> GetProductDetailAsync(int id)
+        {
+            return await _context.Products
+                .AsNoTracking()
+                .Include(p => p.Brand)
+                .Include(p => p.Store)
+                .Include(p => p.Category)
+                    .ThenInclude(c => c.Parent)
+                        .ThenInclude(c2 => c2!.Parent)
+                .Include(p => p.ProductImages.OrderBy(img => img.SortOrder))
+                .Include(p => p.ProductVariants.Where(v => v.IsDeleted != true))
+                    .ThenInclude(v => v.ProductImages)
+                .FirstOrDefaultAsync(p => p.Id == id && p.IsDeleted != true);
+        }
+
+        /// <inheritdoc/>
+        public async Task<(decimal? Rating, int ReviewCount)> GetProductRatingAsync(int productId)
+        {
+            // OrderReview → Order → OrderDetail → ProductId
+            var ratings = await _context.OrderReviews
+                .AsNoTracking()
+                .Where(r => r.IsHidden != true
+                         && r.Order.OrderDetails.Any(d => d.ProductId == productId))
+                .Select(r => (decimal)r.Rating)
+                .ToListAsync();
+
+            if (!ratings.Any())
+                return (null, 0);
+
+            return (Math.Round((decimal)ratings.Average(), 1), ratings.Count);
+        }
+
+        /// <inheritdoc/>
+        public async Task<int> GetStoreActiveProductCountAsync(int storeId)
+        {
+            return await _context.Products
+                .AsNoTracking()
+                .CountAsync(p => p.StoreId == storeId && p.Status == 1 && p.IsDeleted != true);
+        }
+
+        /// <inheritdoc/>
+        public async Task<IEnumerable<ProductListDto>> GetRelatedProductsAsync(
+            int productId, int categoryId, int limit)
+        {
+            return await _context.Products
+                .AsNoTracking()
+                .Where(p => p.IsDeleted != true
+                         && p.Status == 1
+                         && p.Id != productId
+                         && p.CategoryId == categoryId)
+                .OrderByDescending(p => p.TotalSales ?? 0)
+                .Take(limit)
+                .Select(p => new ProductListDto
+                {
+                    Id           = p.Id,
+                    CategoryId   = p.CategoryId,
+                    TotalSales   = p.TotalSales,
+                    Name         = p.Name,
+                    CategoryName = p.Category != null ? p.Category.Name : string.Empty,
+                    StoreName    = p.Store    != null ? p.Store.StoreName : string.Empty,
+                    MinPrice     = p.MinPrice,
+                    MaxPrice     = p.MaxPrice,
+                    Status       = p.Status,
+                    CreatedAt    = p.CreatedAt,
+                    ReviewStatus = p.ReviewStatus,
+                    ReviewedBy   = p.ReviewedBy,
+                    ReviewDate   = p.ReviewDate,
+                    RejectReason = p.RejectReason,
+                    MainImageUrl =
+                        p.ProductImages.Where(img => img.IsMain == true)
+                                       .Select(img => img.ImageUrl).FirstOrDefault()
+                        ?? p.ProductImages.Select(img => img.ImageUrl).FirstOrDefault()
+                        ?? string.Empty
+                })
+                .ToListAsync();
+        }
     }
 }

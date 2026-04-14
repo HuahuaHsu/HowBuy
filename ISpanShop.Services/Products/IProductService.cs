@@ -170,5 +170,17 @@ namespace ISpanShop.Services.Products
             int? categoryId, string? keyword, string sortBy, int page, int pageSize,
             int? subCategoryId = null, int[]? brandIds = null,
             decimal? minPrice = null, decimal? maxPrice = null);
+
+        // ═══════════════════════════════════════════════════════════
+        //  前台商品詳情頁
+        // ═══════════════════════════════════════════════════════════
+
+        /// <summary>[Async] 前台商品詳情：載入所有關聯資料，連同評分統計與商店商品數一併回傳。
+        /// 回傳 null 代表找不到或已下架。</summary>
+        Task<(ISpanShop.Models.EfModels.Product? Product, decimal? Rating, int ReviewCount, int StoreProductCount)>
+            GetProductDetailAsync(int id);
+
+        /// <summary>[Async] 取得同子分類相關商品（排除自身、只取上架中、依銷量排序）。</summary>
+        Task<IEnumerable<ProductListDto>> GetRelatedProductsAsync(int productId, int categoryId, int limit);
     }
 }

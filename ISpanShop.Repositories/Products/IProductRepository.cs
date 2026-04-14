@@ -182,5 +182,21 @@ namespace ISpanShop.Repositories.Products
             int? categoryId, string? keyword, string sortBy, int page, int pageSize,
             int? subCategoryId = null, int[]? brandIds = null,
             decimal? minPrice = null, decimal? maxPrice = null);
+
+        // ═══════════════════════════════════════════════════════════
+        //  前台商品詳情頁
+        // ═══════════════════════════════════════════════════════════
+
+        /// <summary>[Async] 前台商品詳情：一次撈商品 + Brand + Store + Category(含父層) + ProductImages + ProductVariants(含圖)。</summary>
+        Task<Product?> GetProductDetailAsync(int id);
+
+        /// <summary>[Async] 計算商品評分與評論數（透過 OrderReview → Order → OrderDetail）。</summary>
+        Task<(decimal? Rating, int ReviewCount)> GetProductRatingAsync(int productId);
+
+        /// <summary>[Async] 計算指定商店上架中商品數。</summary>
+        Task<int> GetStoreActiveProductCountAsync(int storeId);
+
+        /// <summary>[Async] 取得同子分類相關商品（排除自身、只取上架中、依銷量排序）。</summary>
+        Task<IEnumerable<ProductListDto>> GetRelatedProductsAsync(int productId, int categoryId, int limit);
     }
 }
