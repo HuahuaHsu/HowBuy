@@ -15,8 +15,8 @@ namespace ISpanShop.Models.DTOs.Auth
         [EmailAddress(ErrorMessage = "Email 格式不正確")]
         public string Email { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "姓名為必填")]
-        public string FullName { get; set; } = string.Empty;
+        
+        public string? FullName { get; set; } = string.Empty;
 
         public string? PhoneNumber { get; set; }
     }

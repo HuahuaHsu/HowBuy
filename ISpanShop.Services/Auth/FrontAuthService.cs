@@ -40,7 +40,10 @@ namespace ISpanShop.Services.Auth
                 Token = token,
                 MemberId = user.Id,
                 Email = user.Email,
-                MemberName = user.MemberProfile?.FullName ?? user.Account
+                Account = user.Account,
+                MemberName = user.MemberProfile?.FullName ?? user.Account,
+                LevelName = user.MemberProfile?.Level?.LevelName ?? "一般會員",
+                PointBalance = user.MemberProfile?.PointBalance ?? 0
             };
         }
 

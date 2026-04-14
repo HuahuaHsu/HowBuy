@@ -42,6 +42,11 @@ const handleLogin = async (formEl: FormInstance | undefined) => {
     }
   });
 };
+
+const quickFill = () => {
+  loginForm.email = 'fuen49';
+  loginForm.password = 'Fuen49.02';
+};
 </script>
 
 <template>
@@ -73,6 +78,9 @@ const handleLogin = async (formEl: FormInstance | undefined) => {
           <el-button type="primary" class="w-full" @click="handleLogin(loginFormRef)">
             登入
           </el-button>
+          <el-button type="info" class="w-full mt-2" @click="quickFill">
+            快速填入帳號密碼
+          </el-button>
         </el-form-item>
         <div class="text-center">
           還沒有帳號？ <router-link to="/register">立即註冊</router-link>
@@ -94,6 +102,9 @@ const handleLogin = async (formEl: FormInstance | undefined) => {
 }
 .w-full {
   width: 100%;
+}
+.mt-2 {
+  margin-top: 10px;
 }
 .text-center {
   text-align: center;

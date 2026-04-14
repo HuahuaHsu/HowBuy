@@ -22,7 +22,7 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/member',
     name: 'member',
-    component: () => import('../views/member/ProfileView.vue'),
+    component: () => import('../views/member/MemberCenterView.vue'),
     meta: { requiresAuth: true }
   },
   {

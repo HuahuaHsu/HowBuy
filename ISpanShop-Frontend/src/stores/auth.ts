@@ -10,11 +10,17 @@ export const useAuthStore = defineStore('auth', () => {
   const memberInfo = ref<{
     memberId: number | null;
     email: string | null;
+    account: string | null;
     memberName: string | null;
+    levelName: string | null;
+    pointBalance: number | null;
   }>(storage.getUser() || {
     memberId: null,
     email: null,
-    memberName: null
+    account: null,
+    memberName: null,
+    levelName: null,
+    pointBalance: null
   });
 
   // Getters
@@ -31,7 +37,10 @@ export const useAuthStore = defineStore('auth', () => {
       memberInfo.value = {
         memberId: data.memberId,
         email: data.email,
-        memberName: data.memberName
+        account: data.account,
+        memberName: data.memberName,
+        levelName: data.levelName,
+        pointBalance: data.pointBalance
       };
 
       // 2. 持久化到 localStorage
@@ -51,7 +60,10 @@ export const useAuthStore = defineStore('auth', () => {
     memberInfo.value = {
       memberId: null,
       email: null,
-      memberName: null
+      account: null,
+      memberName: null,
+      levelName: null,
+      pointBalance: null
     };
 
     // 2. 清除 localStorage
