@@ -26,9 +26,13 @@ using ISpanShop.Services.Payments;
 using ISpanShop.Services.Stores;
 
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using System.Text;
 using ISpanShop.Repositories.Members.Implementations;
+using ISpanShop.Services.Auth;
 using ISpanShop.Services;
 
 namespace ISpanShop.MVC
@@ -41,6 +45,9 @@ namespace ISpanShop.MVC
 
 			// Add services to the container.
 			builder.Services.AddControllersWithViews();
+            
+            // ── 前台身份驗證服務 ──
+            builder.Services.AddScoped<IFrontAuthService, FrontAuthService>();
 
 			//註冊CORS服務
 			builder.Services.AddCors(options =>
@@ -66,6 +73,7 @@ namespace ISpanShop.MVC
 						errorNumbersToAdd: null);
 				}));
 			builder.Services.AddScoped<IMemberRepository, MemberRepository>();
+			builder.Services.AddScoped<IUserRepository, UserRepository>();
 			builder.Services.AddScoped<IMemberService, MemberService>();
 			builder.Services.AddScoped<IAdminRepository, AdminRepository>();
 			builder.Services.AddScoped<IAdminRoleRepository, AdminRoleRepository>();
@@ -73,7 +81,8 @@ namespace ISpanShop.MVC
 			builder.Services.AddScoped<ILoginHistoryRepository, LoginHistoryRepository>();
 			builder.Services.AddScoped<ILoginHistoryService, LoginHistoryService>();
 
-			// ── Cookie 身份驗證 ──
+			// ── 身份驗證 (Cookie + JWT) ──
+			var jwtSettings = builder.Configuration.GetSection("Jwt");
 			builder.Services.AddAuthentication("AdminCookieAuth")
 				.AddCookie("AdminCookieAuth", options =>
 				{
@@ -81,6 +90,19 @@ namespace ISpanShop.MVC
 					options.LoginPath = "/Admin/Auth/Login";
 					options.AccessDeniedPath = "/Admin/Auth/AccessDenied";
 					options.ExpireTimeSpan = TimeSpan.FromDays(7);
+				})
+				.AddJwtBearer("FrontendJwt", options =>
+				{
+					options.TokenValidationParameters = new TokenValidationParameters
+					{
+						ValidateIssuer = true,
+						ValidateAudience = true,
+						ValidateLifetime = true,
+						ValidateIssuerSigningKey = true,
+						ValidIssuer = jwtSettings["Issuer"],
+						ValidAudience = jwtSettings["Audience"],
+						IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"]!))
+					};
 				});
 
 

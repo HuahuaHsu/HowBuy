@@ -1,11 +1,12 @@
-<script setup lang="ts">
+<!-- api連線測試 -->
+<!-- <script setup lang="ts">
 import { ref } from 'vue'
 
 const apiMessage = ref('目前尚未連線...')
 
 const testConnection = async () => {
   try {
-    // 🚀 關鍵：我們刻意輸入 C# 的絕對網址 (7125)，直接挑戰 CORS 警衛！
+    // 刻意輸入 C# 的絕對網址 (7125)，直接挑戰 CORS ！
     const response = await fetch('https://localhost:7125/api/TestApi')
 
     // 如果警衛放行，我們就能順利拿到資料並解析成 JSON
@@ -31,4 +32,16 @@ const testConnection = async () => {
       {{ apiMessage }}
     </p>
   </div>
+</template> -->
+<template>
+  <el-container direction="vertical">
+    <AppHeader />
+    <el-main>
+      <router-view />
+    </el-main>
+  </el-container>
 </template>
+
+<script setup lang="ts">
+import AppHeader from './components/AppHeader.vue'
+</script>
