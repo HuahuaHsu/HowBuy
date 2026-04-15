@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { useRouter } from "vue-router";
 import { useAuthStore } from "../../stores/auth";
 
 // ── Icons ──────────────────────────────────────────
@@ -20,21 +20,36 @@ const IconChat = () => (
     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
   </svg>`
 );
-const IconBack = () => (
-  `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
-    <polyline points="15 18 9 12 15 6" />
-  </svg>`
-);
 
 // ── State ──────────────────────────────────────────
 const authStore = useAuthStore();
-const activePage = ref<string | null>(null);
+const router = useRouter();
 
 const go = (name: string) => {
-  activePage.value = name;
-};
-const back = () => {
-  activePage.value = null;
+  switch (name) {
+    case '設定':
+      router.push('/member/settings');
+      break;
+    case '所有訂單':
+    case '待付款':
+    case '待出貨':
+    case '待收貨':
+    case '評價':
+      router.push('/member/orders');
+      break;
+    case '紅利點數':
+    case '優惠券':
+      router.push('/member/wallet');
+      break;
+    case '我的賣場':
+      router.push('/member/mystore');
+      break;
+    case '購物車':
+      router.push('/cart');
+      break;
+    default:
+      router.push({ name: 'wip', query: { title: name } });
+  }
 };
 
 // ── Mock Data ──────────────────────────────────────
@@ -55,23 +70,6 @@ const services = [
 
 <template>
   <div class="page">
-    <!-- WIP Overlay -->
-    <Transition name="fade">
-      <div v-if="activePage" class="overlay">
-        <div class="overlay-header">
-          <button class="overlay-back-btn" @click="back" v-html="IconBack()"></button>
-          <span class="overlay-page-title">{{ activePage }}</span>
-        </div>
-        <div class="overlay-body">
-          <div class="wip-emoji">🚧</div>
-          <div class="wip-title">功能開發中</div>
-          <div class="wip-sub">此功能即將上線，敬請期待</div>
-          <div class="wip-tag">{{ activePage }}</div>
-          <button class="wip-btn" @click="back">返回會員中心</button>
-        </div>
-      </div>
-    </Transition>
-
     <!-- Header -->
     <div class="header">
       <div class="header-left">
@@ -406,95 +404,6 @@ const services = [
   font-size: 11px;
   color: #666;
   text-align: center;
-}
-
-/* ── WIP Overlay ─────────────────────────────────── */
-.overlay {
-  position: fixed;
-  inset: 0;
-  background: #F5F5F5;
-  z-index: 200;
-  display: flex;
-  flex-direction: column;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-@media (max-width: 1200px) {
-  .overlay {
-    max-width: 100%;
-  }
-}
-.overlay-header {
-  background: #EE4D2D;
-  padding: 14px 16px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-}
-.overlay-back-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.2);
-  border: none;
-  cursor: pointer;
-  color: #fff;
-  font-size: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.overlay-page-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #fff;
-}
-.overlay-body {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 0 24px 80px;
-}
-.wip-emoji {
-  font-size: 64px;
-  line-height: 1;
-  margin-bottom: 4px;
-}
-.wip-title {
-  font-size: 18px;
-  font-weight: 700;
-  color: #333;
-}
-.wip-sub {
-  font-size: 13px;
-  color: #999;
-}
-.wip-tag {
-  background: #FFF0EB;
-  color: #EE4D2D;
-  border: 1px solid #FFCABB;
-  border-radius: 20px;
-  padding: 4px 16px;
-  font-size: 13px;
-  font-weight: 600;
-  margin-top: 4px;
-}
-.wip-btn {
-  margin-top: 20px;
-  background: #EE4D2D;
-  color: #fff;
-  border: none;
-  border-radius: 24px;
-  padding: 11px 36px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
 }
 
 /* ── Transitions ─────────────────────────────────── */

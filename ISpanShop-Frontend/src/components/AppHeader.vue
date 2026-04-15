@@ -14,7 +14,7 @@ const handleLogout = () => {
 <template>
   <el-header class="app-header">
     <div class="header-container">
-      <div class="logo" @click="router.push('/')">ISpanShop</div>
+      <div class="logo" @click="router.push('/')">好買HowBuy</div>
       <div class="header-actions">
         <template v-if="authStore.isLoggedIn">
           <span class="member-name">{{ `Hello, ${authStore.memberInfo?.memberName}` }}</span>
