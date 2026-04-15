@@ -81,7 +81,7 @@ export const routes: RouteRecordRaw[] = [
     path: '/cart',
     name: 'cart',
     component: () => import('../views/cart/CartView.vue'),
-    meta: { requiresAuth: true }
+     meta: { requiresAuth: true }
   },
   {
     path: '/wip',
