@@ -54,12 +54,13 @@
             placeholder="搜尋商品、品牌或關鍵字..."
             size="large"
             class="search-input"
+            @keyup.enter="handleSearch"
           >
             <template #prefix>
               <el-icon><Search /></el-icon>
             </template>
             <template #append>
-              <el-button class="search-btn">搜尋</el-button>
+              <el-button class="search-btn" @click="handleSearch">搜尋</el-button>
             </template>
           </el-input>
           <div class="hot-keywords">
@@ -77,7 +78,7 @@
             <div class="action-label">收藏</div>
           </div>
           <div class="action-icon cart" @click="$router.push('/cart')">
-            <el-badge :value="cartCount" :max="99">
+            <el-badge :value="cartStore.totalCount" :hidden="cartStore.totalCount === 0" :max="99">
               <el-icon :size="24"><ShoppingCart /></el-icon>
             </el-badge>
             <div class="action-label">購物車</div>
@@ -174,17 +175,27 @@ import {
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useAuthStore } from '../stores/auth'
+import { useCartStore } from '../stores/cart'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const cartStore = useCartStore()
 const searchText = ref('')
-const cartCount = ref(3)
+
+function handleSearch(): void {
+  const kw = searchText.value.trim()
+  if (kw) {
+    void router.push({ path: '/', query: { keyword: kw } })
+  } else {
+    void router.push('/')
+  }
+}
 
 function handleDropdownCommand(command: string) {
   if (command === 'member') {
     router.push('/member')
   } else if (command === 'orders') {
-    router.push('/orders')
+    router.push('/member/orders')
   } else if (command === 'logout') {
     authStore.logout()
     ElMessage.success('已登出')

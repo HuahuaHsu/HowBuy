@@ -341,6 +341,7 @@ import { ElMessage } from 'element-plus'
 import { Picture, Check } from '@element-plus/icons-vue'
 import ProductCard from '@/components/product/ProductCard.vue'
 import { fetchProductDetail, fetchRelatedProducts } from '@/api/product'
+import { useCartStore } from '@/stores/cart'
 import type {
   ProductDetail,
   ProductListItem,
@@ -355,6 +356,7 @@ import type {
 // ─── 路由 ───────────────────────────────────────────────────────
 const route = useRoute()
 const router = useRouter()
+const cartStore = useCartStore()
 
 // ─── 狀態 ───────────────────────────────────────────────────────
 const product = ref<ProductDetail | null>(null)
@@ -610,6 +612,24 @@ watch(
 // ─── 按鈕行為 ────────────────────────────────────────────────────
 
 function handleAddToCart(): void {
+  const p = safeProduct.value
+  const variant = selectedVariant.value
+  const image = activeImageUrl.value || p.images[0]?.url || ''
+  const price = variant ? variant.price : p.priceRange.min
+  const variantId = variant?.id ?? null
+  const specLabel = variant
+    ? Object.entries(variant.specValues).map(([k, v]) => `${k}: ${v}`).join('、')
+    : ''
+
+  cartStore.addItem({
+    productId: p.id,
+    variantId,
+    name: p.name,
+    image,
+    price,
+    quantity: quantity.value,
+    specLabel,
+  })
   ElMessage.success('已加入購物車')
 }
 
