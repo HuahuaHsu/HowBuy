@@ -1,78 +1,92 @@
 <template>
-  <div class="order-detail-container" v-loading="loading">
-    <el-card v-if="order" shadow="never">
-      <template #header>
-        <div class="card-header">
-          <el-button @click="router.back()" circle icon="ArrowLeft" />
-          <span class="title">訂單詳情</span>
-          <span class="order-status" :class="getStatusClass(order.status)">
-            {{ order.statusName }}
-          </span>
+  <div class="order-detail-page">
+    <div class="order-detail-container" v-loading="loading">
+      <!-- 頂部導航/狀態 -->
+      <div class="detail-header-card">
+        <div class="header-top">
+          <el-button link @click="router.back()">
+            <el-icon><ArrowLeft /></el-icon> 返回
+          </el-button>
+          <div class="header-right">
+            <span class="order-no">訂單編號. {{ order?.orderNumber }}</span>
+            <el-divider direction="vertical" />
+            <span class="status-text">{{ order?.statusName }}</span>
+          </div>
         </div>
-      </template>
-
-      <div class="info-section">
-        <div class="info-item">
-          <span class="label">訂單編號：</span>
-          <span class="value">{{ order.orderNumber }}</span>
-        </div>
-        <div class="info-item">
-          <span class="label">下單時間：</span>
-          <span class="value">{{ formatDate(order.createdAt) }}</span>
-        </div>
-        <div v-if="order.paymentDate" class="info-item">
-          <span class="label">付款時間：</span>
-          <span class="value">{{ formatDate(order.paymentDate) }}</span>
+        
+        <!-- 狀態進度 (模擬) -->
+        <div class="status-steps">
+          <el-steps :active="getStepActive(order?.status)" align-center finish-status="success">
+            <el-step title="訂單已成立" :description="formatDate(order?.createdAt)"></el-step>
+            <el-step title="待付款" v-if="order?.status === 0"></el-step>
+            <el-step title="付款成功" :description="formatDate(order?.paymentDate)"></el-step>
+            <el-step title="待出貨"></el-step>
+            <el-step title="訂單已完成" :description="formatDate(order?.completedAt)"></el-step>
+          </el-steps>
         </div>
       </div>
 
-      <el-divider />
-
-      <div class="address-section">
-        <h3 class="section-title">收件資訊</h3>
-        <p><strong>收件人：</strong>{{ order.recipientName }}</p>
-        <p><strong>電話：</strong>{{ order.recipientPhone }}</p>
-        <p><strong>地址：</strong>{{ order.recipientAddress }}</p>
-        <p v-if="order.note"><strong>備註：</strong>{{ order.note }}</p>
+      <!-- 地址資訊與物流 -->
+      <div class="info-grid">
+        <div class="address-card">
+          <h3 class="card-title">收貨地址</h3>
+          <div class="address-content">
+            <div class="recipient-name">{{ order?.recipientName }}</div>
+            <div class="recipient-phone">{{ order?.recipientPhone }}</div>
+            <div class="recipient-address">{{ order?.recipientAddress }}</div>
+          </div>
+        </div>
+        <div class="logistics-card">
+          <h3 class="card-title">訂單備註</h3>
+          <div class="logistics-content">
+            <p v-if="order?.note" class="note-text">{{ order.note }}</p>
+            <p v-else class="no-note">無備註資訊</p>
+          </div>
+        </div>
       </div>
 
-      <el-divider />
-
-      <div class="items-section">
-        <h3 class="section-title">商品清單</h3>
-        <div v-for="item in order.items" :key="item.id" class="product-item">
-          <el-image :src="item.coverImage || '/placeholder.png'" class="product-image" fit="cover" />
-          <div class="product-info">
-            <div class="name">{{ item.productName }}</div>
-            <div class="variant">{{ item.variantName }}</div>
-            <div class="price-qty">
-              <span class="price">${{ formatPrice(item.price) }}</span>
-              <span class="qty">x {{ item.quantity }}</span>
+      <!-- 商品清單 -->
+      <div class="items-card">
+        <div class="store-header">
+          <span class="store-name">{{ order?.storeName }}</span>
+          <el-button size="small">查看賣場</el-button>
+        </div>
+        
+        <div v-for="item in order?.items" :key="item.id" class="order-item">
+          <div class="item-main">
+            <el-image :src="item.coverImage || '/placeholder.png'" class="item-image" fit="cover" />
+            <div class="item-info">
+              <h4 class="item-name">{{ item.productName }}</h4>
+              <div class="item-variant">{{ item.variantName }}</div>
+              <div class="item-qty">x{{ item.quantity }}</div>
             </div>
           </div>
-          <div class="subtotal">
-            ${{ formatPrice(item.price * item.quantity) }}
+          <div class="item-price">
+            <span class="unit-price">${{ formatPrice(item.price) }}</span>
+          </div>
+        </div>
+
+        <!-- 價格結算 -->
+        <div class="order-summary">
+          <div class="summary-row">
+            <span class="label">商品總金額</span>
+            <span class="value">${{ formatPrice(order?.totalAmount || 0) }}</span>
+          </div>
+          <div class="summary-row">
+            <span class="label">運費</span>
+            <span class="value">${{ formatPrice(order?.shippingFee || 0) }}</span>
+          </div>
+          <div class="summary-row total">
+            <span class="label">訂單總金額</span>
+            <span class="value final-price">${{ formatPrice(order?.finalAmount || 0) }}</span>
+          </div>
+          <div class="summary-row payment-method">
+            <span class="label">付款方式</span>
+            <span class="value">線上支付</span>
           </div>
         </div>
       </div>
-
-      <el-divider />
-
-      <div class="summary-section">
-        <div class="summary-item">
-          <span>商品總計</span>
-          <span>${{ formatPrice(order.totalAmount) }}</span>
-        </div>
-        <div class="summary-item">
-          <span>運費</span>
-          <span>${{ formatPrice(order.shippingFee || 0) }}</span>
-        </div>
-        <div class="summary-item total">
-          <span>實付金額</span>
-          <span class="final-amount">${{ formatPrice(order.finalAmount) }}</span>
-        </div>
-      </div>
-    </el-card>
+    </div>
   </div>
 </template>
 
@@ -109,20 +123,26 @@ const formatPrice = (price: number) => {
   return new Intl.NumberFormat('zh-TW').format(price);
 };
 
-const formatDate = (dateStr: string) => {
-  if (!dateStr) return '-';
+const formatDate = (dateStr?: string | null) => {
+  if (!dateStr) return '';
   const date = new Date(dateStr);
-  return date.toLocaleString('zh-TW');
+  return date.toLocaleString('zh-TW', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
 };
 
-const getStatusClass = (status: number) => {
+const getStepActive = (status?: number) => {
+  if (status === undefined) return 0;
   switch (status) {
-    case 0: return 'status-pending';
-    case 1: return 'status-processing';
-    case 2: return 'status-shipped';
-    case 3: return 'status-completed';
-    case 4: return 'status-cancelled';
-    default: return '';
+    case 0: return 1; // 待付款
+    case 1: return 3; // 待出貨 (假設付款完成)
+    case 2: return 4; // 運送中
+    case 3: return 5; // 已完成
+    default: return 1;
   }
 };
 
@@ -132,105 +152,213 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
+.order-detail-page {
+  background-color: #f5f5f5;
+  min-height: calc(100vh - 200px);
+  padding: 20px 0;
+}
+
 .order-detail-container {
-  max-width: 800px;
+  max-width: 1000px;
   margin: 0 auto;
+  padding: 0 10px;
+}
+
+/* 頂部標題卡片 */
+.detail-header-card {
+  background: #fff;
   padding: 20px;
-}
+  border-radius: 2px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 1px 0 rgba(0,0,0,.05);
 
-.card-header {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  
-  .title {
-    font-size: 1.2rem;
-    font-weight: bold;
-    flex-grow: 1;
-  }
-
-  .order-status {
-    font-weight: bold;
-    &.status-pending { color: #e6a23c; }
-    &.status-processing { color: #409eff; }
-    &.status-shipped { color: #67c23a; }
-    &.status-completed { color: #909399; }
-    &.status-cancelled { color: #f56c6c; }
-  }
-}
-
-.section-title {
-  font-size: 1.1rem;
-  margin-bottom: 15px;
-  border-left: 4px solid #409eff;
-  padding-left: 10px;
-}
-
-.info-section {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
-  .info-item {
-    font-size: 0.95rem;
-    .label { color: #909399; }
-  }
-}
-
-.address-section {
-  p {
-    margin: 5px 0;
-    line-height: 1.6;
-  }
-}
-
-.product-item {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  padding: 10px 0;
-  border-bottom: 1px solid #f0f0f0;
-
-  &:last-child { border-bottom: none; }
-
-  .product-image {
-    width: 60px;
-    height: 60px;
-    border-radius: 4px;
-  }
-
-  .product-info {
-    flex-grow: 1;
-    .name { font-weight: 500; }
-    .variant { font-size: 0.85rem; color: #909399; }
-    .price-qty {
-      margin-top: 5px;
-      .price { color: #f56c6c; margin-right: 10px; }
-      .qty { color: #909399; }
-    }
-  }
-
-  .subtotal {
-    font-weight: bold;
-  }
-}
-
-.summary-section {
-  .summary-item {
+  .header-top {
     display: flex;
-    justify-content: flex-end;
-    gap: 20px;
-    margin-bottom: 8px;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    border-bottom: 1px solid #f0f0f0;
+    padding-bottom: 15px;
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      color: #757575;
+      font-size: 14px;
+      
+      .status-text {
+        color: #ee4d2d;
+        font-weight: 500;
+        text-transform: uppercase;
+      }
+    }
+  }
+
+  .status-steps {
+    padding: 20px 0;
+  }
+}
+
+/* 資訊網格 */
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+
+  .address-card, .logistics-card {
+    background: #fff;
+    padding: 20px;
+    border-radius: 2px;
+    box-shadow: 0 1px 1px 0 rgba(0,0,0,.05);
     
-    &.total {
-      margin-top: 15px;
-      font-size: 1.1rem;
-      font-weight: bold;
+    .card-title {
+      font-size: 18px;
+      font-weight: normal;
+      color: rgba(0,0,0,.8);
+      margin: 0 0 20px 0;
+    }
+  }
+
+  .address-content {
+    .recipient-name {
+      font-weight: 500;
+      font-size: 16px;
+      margin-bottom: 8px;
+    }
+    .recipient-phone, .recipient-address {
+      color: rgba(0,0,0,.54);
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+  }
+
+  .logistics-content {
+    .note-text {
+      color: rgba(0,0,0,.8);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .no-note {
+      color: rgba(0,0,0,.26);
+      font-size: 14px;
+    }
+  }
+}
+
+/* 商品清單卡片 */
+.items-card {
+  background: #fff;
+  border-radius: 2px;
+  box-shadow: 0 1px 1px 0 rgba(0,0,0,.05);
+  overflow: hidden;
+
+  .store-header {
+    padding: 15px 20px;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .store-name {
+      font-weight: 500;
+    }
+  }
+
+  .order-item {
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px solid #f0f0f0;
+
+    .item-main {
+      display: flex;
+      gap: 15px;
+
+      .item-image {
+        width: 80px;
+        height: 80px;
+        border: 1px solid #e1e1e1;
+      }
+
+      .item-info {
+        .item-name {
+          font-weight: normal;
+          font-size: 16px;
+          margin: 0 0 5px 0;
+        }
+        .item-variant {
+          color: rgba(0,0,0,.54);
+          font-size: 14px;
+          margin-bottom: 5px;
+        }
+        .item-qty {
+          font-size: 14px;
+        }
+      }
     }
 
-    .final-amount {
-      color: #f56c6c;
-      font-size: 1.4rem;
+    .item-price {
+      display: flex;
+      align-items: center;
+      .unit-price {
+        color: #ee4d2d;
+      }
     }
+  }
+
+  .order-summary {
+    padding: 20px;
+    background-color: #fffbf8;
+    
+    .summary-row {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      margin-bottom: 12px;
+      
+      .label {
+        width: 150px;
+        text-align: right;
+        color: rgba(0,0,0,.54);
+        font-size: 14px;
+        padding-right: 20px;
+        border-right: 1px solid #e1e1e1;
+      }
+
+      .value {
+        width: 150px;
+        text-align: right;
+        padding-left: 20px;
+        font-size: 14px;
+        color: rgba(0,0,0,.8);
+      }
+
+      &.total {
+        margin-top: 20px;
+        .final-price {
+          color: #ee4d2d;
+          font-size: 24px;
+          font-weight: 500;
+        }
+      }
+
+      &.payment-method {
+        border-top: 1px solid #f0f0f0;
+        padding-top: 15px;
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .order-summary .summary-row {
+    .label { width: 100px; }
+    .value { width: 120px; }
   }
 }
 </style>

@@ -1,69 +1,95 @@
 <template>
-  <div class="order-history-container">
-    <el-card shadow="never">
-      <template #header>
-        <div class="card-header">
-          <span class="title">我的訂單</span>
-        </div>
-      </template>
+  <div class="orders-page">
+    <div class="orders-container">
+      <!-- 導航 Tabs -->
+      <div class="tabs-card">
+        <el-tabs v-model="activeTab" class="custom-tabs" @tab-change="handleTabChange">
+          <el-tab-pane label="全部" name="all"></el-tab-pane>
+          <el-tab-pane label="待付款" name="0"></el-tab-pane>
+          <el-tab-pane label="待出貨" name="1"></el-tab-pane>
+          <el-tab-pane label="運送中" name="2"></el-tab-pane>
+          <el-tab-pane label="已完成" name="3"></el-tab-pane>
+          <el-tab-pane label="已取消" name="4"></el-tab-pane>
+        </el-tabs>
+      </div>
 
-      <el-tabs v-model="activeTab" @tab-change="handleTabChange">
-        <el-tab-pane label="全部" name="all"></el-tab-pane>
-        <el-tab-pane label="待付款" name="0"></el-tab-pane>
-        <el-tab-pane label="待出貨" name="1"></el-tab-pane>
-        <el-tab-pane label="運送中" name="2"></el-tab-pane>
-        <el-tab-pane label="已完成" name="3"></el-tab-pane>
-        <el-tab-pane label="已取消" name="4"></el-tab-pane>
-      </el-tabs>
+      <!-- 搜尋欄 (可選，模擬蝦皮風格) -->
+      <div class="search-section">
+        <el-input
+          v-model="searchQuery"
+          placeholder="您可以透過訂單編號或商品名稱進行搜尋"
+          prefix-icon="Search"
+          class="order-search"
+        />
+      </div>
 
+      <!-- 訂單列表 -->
       <div v-loading="loading" class="order-list">
         <el-empty v-if="filteredOrders.length === 0" description="暫無訂單資料" />
         
-        <div v-for="order in filteredOrders" :key="order.id" class="order-item">
-          <div class="order-item-header">
-            <span class="store-name">
-              <el-icon><Shop /></el-icon>
-              {{ order.storeName }}
-            </span>
-            <span class="order-status" :class="getStatusClass(order.status)">
-              {{ order.statusName }}
-            </span>
+        <div v-for="order in filteredOrders" :key="order.id" class="order-card">
+          <div class="order-card-header">
+            <div class="store-info">
+              <span class="store-tag">賣場</span>
+              <span class="store-name">{{ order.storeName }}</span>
+              <el-button link type="primary" size="small" class="chat-btn">聊聊</el-button>
+              <el-divider direction="vertical" />
+              <el-button link size="small">查看賣場</el-button>
+            </div>
+            <div class="status-info">
+              <span class="status-text" :class="getStatusClass(order.status)">
+                {{ order.statusName }}
+              </span>
+              <template v-if="order.status === 3">
+                <el-divider direction="vertical" />
+                <span class="status-subtext">已完成</span>
+              </template>
+            </div>
           </div>
 
-          <div class="order-item-content" @click="goToDetail(order.id)">
+          <div class="order-card-content" @click="goToDetail(order.id)">
             <div class="product-info">
-              <el-image 
-                :src="order.firstProductImage || '/placeholder.png'" 
-                class="product-image"
-                fit="cover"
-              />
+              <div class="image-wrapper">
+                <el-image 
+                  :src="order.firstProductImage || '/placeholder.png'" 
+                  class="product-image"
+                  fit="cover"
+                />
+              </div>
               <div class="product-detail">
-                <div class="product-name">{{ order.firstProductName }}</div>
-                <div class="item-count">共 {{ order.totalItemCount }} 件商品</div>
+                <h4 class="product-name">{{ order.firstProductName }}</h4>
+                <div class="item-meta">
+                  <span class="item-count">共 {{ order.totalItemCount }} 件商品</span>
+                </div>
               </div>
             </div>
-            <div class="order-price">
-              <span class="label">訂單金額：</span>
-              <span class="amount">${{ formatPrice(order.finalAmount) }}</span>
+            <div class="price-info">
+              <div class="total-label">訂單金額：</div>
+              <div class="total-amount">${{ formatPrice(order.finalAmount) }}</div>
             </div>
           </div>
 
-          <div class="order-item-footer">
-            <span class="order-time">下單時間：{{ formatDate(order.createdAt) }}</span>
-            <div class="actions">
-              <el-button size="small" @click="goToDetail(order.id)">查看詳情</el-button>
+          <div class="order-card-footer">
+            <div class="footer-left">
+              <span class="order-no">訂單編號: {{ order.orderNumber }}</span>
+              <span class="order-time">下單時間: {{ formatDate(order.createdAt) }}</span>
+            </div>
+            <div class="footer-right">
+              <el-button v-if="order.status === 3" type="primary" plain size="default">再次購買</el-button>
+              <el-button @click="goToDetail(order.id)" size="default" class="detail-btn">查看訂單詳情</el-button>
+              <el-button v-if="order.status === 0" type="primary" size="default">立即付款</el-button>
             </div>
           </div>
         </div>
       </div>
-    </el-card>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { Shop } from '@element-plus/icons-vue';
+import { Search } from '@element-plus/icons-vue';
 import { getMyOrdersApi } from '@/api/order';
 import type { OrderListItem } from '@/types/order';
 import { ElMessage } from 'element-plus';
@@ -72,6 +98,7 @@ const router = useRouter();
 const loading = ref(false);
 const orders = ref<OrderListItem[]>([]);
 const activeTab = ref('all');
+const searchQuery = ref('');
 
 const fetchOrders = async () => {
   loading.value = true;
@@ -87,14 +114,25 @@ const fetchOrders = async () => {
 };
 
 const filteredOrders = computed(() => {
-  if (activeTab.value === 'all') {
-    return orders.value;
+  let result = orders.value;
+  
+  if (activeTab.value !== 'all') {
+    result = result.filter(o => o.status.toString() === activeTab.value);
   }
-  return orders.value.filter(o => o.status.toString() === activeTab.value);
+  
+  if (searchQuery.value) {
+    const q = searchQuery.value.toLowerCase();
+    result = result.filter(o => 
+      o.orderNumber.toLowerCase().includes(q) || 
+      o.firstProductName.toLowerCase().includes(q)
+    );
+  }
+  
+  return result;
 });
 
-const handleTabChange = (name: string) => {
-  // 可以在這裡實作分頁或重新抓取，目前僅過濾本地資料
+const handleTabChange = () => {
+  // 可以擴充後端分頁抓取
 };
 
 const goToDetail = (id: number) => {
@@ -134,115 +172,282 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-.order-history-container {
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: 20px;
+.orders-page {
+  background-color: #f5f5f5;
+  min-height: calc(100vh - 200px);
+  padding: 20px 0;
 }
 
-.card-header {
-  .title {
-    font-size: 1.2rem;
-    font-weight: bold;
+.orders-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 10px;
+}
+
+/* Tabs 樣式優化 */
+.tabs-card {
+  background: #fff;
+  border-radius: 2px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 1px 0 rgba(0,0,0,.05);
+}
+
+.custom-tabs :deep(.el-tabs__header) {
+  margin: 0;
+}
+
+.custom-tabs :deep(.el-tabs__nav-scroll) {
+  display: flex;
+  justify-content: center;
+}
+
+.custom-tabs :deep(.el-tabs__item) {
+  height: 54px;
+  line-height: 54px;
+  font-size: 16px;
+  padding: 0 32px;
+  
+  &:hover {
+    color: #ee4d2d;
+  }
+  
+  &.is-active {
+    color: #ee4d2d;
   }
 }
 
-.order-list {
-  margin-top: 20px;
+.custom-tabs :deep(.el-tabs__active-bar) {
+  background-color: #ee4d2d;
 }
 
-.order-item {
-  border: 1px solid #ebeef5;
-  border-radius: 4px;
-  margin-bottom: 20px;
-  background-color: #fff;
+/* 搜尋欄樣式 */
+.search-section {
+  margin-bottom: 12px;
+}
+
+.order-search :deep(.el-input__wrapper) {
+  background-color: #eaeaea;
+  box-shadow: none;
+  padding: 8px 16px;
+  
+  &.is-focus {
+    background-color: #fff;
+    box-shadow: 0 0 0 1px #ee4d2d inset;
+  }
+}
+
+/* 訂單卡片設計 */
+.order-card {
+  background: #fff;
+  border-radius: 2px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 1px 0 rgba(0,0,0,.05);
+  transition: transform 0.2s;
 
   &:hover {
-    box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
+    box-shadow: 0 1px 20px 0 rgba(0,0,0,.05);
   }
 
-  .order-item-header {
-    padding: 10px 20px;
-    border-bottom: 1px solid #ebeef5;
+  .order-card-header {
+    padding: 12px 20px;
+    border-bottom: 1px solid rgba(0,0,0,.09);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background-color: #fafafa;
 
-    .store-name {
-      font-weight: bold;
+    .store-info {
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: 8px;
+
+      .store-tag {
+        background-color: #ee4d2d;
+        color: #fff;
+        font-size: 12px;
+        padding: 1px 4px;
+        border-radius: 2px;
+      }
+
+      .store-name {
+        font-weight: 500;
+        color: #333;
+      }
+
+      .chat-btn {
+        margin-left: 5px;
+      }
     }
 
-    .order-status {
-      font-size: 0.9rem;
-      &.status-pending { color: #e6a23c; }
-      &.status-processing { color: #409eff; }
-      &.status-shipped { color: #67c23a; }
-      &.status-completed { color: #909399; }
-      &.status-cancelled { color: #f56c6c; }
+    .status-info {
+      .status-text {
+        text-transform: uppercase;
+        font-weight: 500;
+        
+        &.status-pending { color: #ee4d2d; }
+        &.status-processing { color: #26aa99; }
+        &.status-shipped { color: #26aa99; }
+        &.status-completed { color: #ee4d2d; }
+        &.status-cancelled { color: #929292; }
+      }
+
+      .status-subtext {
+        color: #ee4d2d;
+        font-size: 14px;
+      }
     }
   }
 
-  .order-item-content {
+  .order-card-content {
     padding: 20px;
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-end;
     cursor: pointer;
 
     .product-info {
       display: flex;
-      gap: 15px;
+      gap: 12px;
+      flex: 1;
+
+      .image-wrapper {
+        border: 1px solid #e1e1e1;
+        border-radius: 2px;
+        overflow: hidden;
+      }
 
       .product-image {
         width: 80px;
         height: 80px;
-        border-radius: 4px;
-        flex-shrink: 0;
+        display: block;
       }
 
       .product-detail {
         display: flex;
         flex-direction: column;
-        justify-content: center;
+        justify-content: flex-start;
 
         .product-name {
-          font-weight: 500;
-          margin-bottom: 5px;
+          font-size: 16px;
+          margin: 0 0 8px 0;
+          color: #333;
+          font-weight: normal;
           display: -webkit-box;
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
           overflow: hidden;
         }
 
-        .item-count {
-          color: #909399;
-          font-size: 0.85rem;
+        .item-meta {
+          color: #929292;
+          font-size: 14px;
         }
       }
     }
 
-    .order-price {
-      text-align: right;
-      .amount {
-        font-size: 1.2rem;
-        font-weight: bold;
-        color: #f56c6c;
+    .price-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+
+      .total-label {
+        font-size: 14px;
+        color: #333;
+      }
+
+      .total-amount {
+        font-size: 24px;
+        color: #ee4d2d;
+        font-weight: 500;
+        
+        &::before {
+          content: '$';
+          font-size: 16px;
+          margin-right: 2px;
+        }
       }
     }
   }
 
-  .order-item-footer {
-    padding: 10px 20px;
-    border-top: 1px dotted #ebeef5;
+  .order-card-footer {
+    padding: 20px;
+    background-color: #fffbf8;
+    border-top: 1px dotted rgba(0,0,0,.09);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 0.85rem;
-    color: #909399;
+
+    .footer-left {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 12px;
+      color: #929292;
+    }
+
+    .footer-right {
+      display: flex;
+      gap: 10px;
+
+      .el-button {
+        min-width: 120px;
+        
+        &.detail-btn:hover {
+          color: #ee4d2d;
+          border-color: #ee4d2d;
+          background-color: #fff;
+        }
+      }
+
+      .el-button--primary {
+        background-color: #ee4d2d;
+        border-color: #ee4d2d;
+        
+        &:hover {
+          background-color: #f05d40;
+          border-color: #f05d40;
+        }
+
+        &.is-plain {
+          color: #ee4d2d;
+          background-color: #fff;
+          border-color: #ee4d2d;
+          
+          &:hover {
+            background-color: #fffbf8;
+          }
+        }
+      }
+    }
+  }
+}
+
+/* 移動端適配 */
+@media (max-width: 768px) {
+  .custom-tabs :deep(.el-tabs__item) {
+    padding: 0 15px;
+    font-size: 14px;
+  }
+
+  .order-card-content {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 15px;
+    
+    .price-info {
+      width: 100%;
+      justify-content: flex-end;
+    }
+  }
+
+  .order-card-footer {
+    flex-direction: column;
+    gap: 15px;
+    align-items: flex-start !important;
+    
+    .footer-right {
+      width: 100%;
+      justify-content: flex-end;
+    }
   }
 }
 </style>
