@@ -94,6 +94,16 @@ namespace ISpanShop.Repositories.Orders
 			}
 		}
 
+		public async Task<List<Order>> GetOrdersByMemberIdAsync(int memberId)
+		{
+			return await _context.Orders
+				.Include(o => o.Store)
+				.Include(o => o.OrderDetails)
+				.Where(o => o.UserId == memberId)
+				.OrderByDescending(o => o.CreatedAt)
+				.ToListAsync();
+		}
+
 		public async Task<PagedResultDto<OrderListDto>> GetFilteredOrdersAsync(OrderSearchDto criteria)
 		{
 			var query = _context.Orders

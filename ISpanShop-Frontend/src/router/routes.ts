@@ -53,6 +53,12 @@ export const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/member/orders/:id',
+    name: 'member-order-detail',
+    component: () => import('../views/member/OrderDetailView.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/member/settings',
     name: 'member-settings',
     component: () => import('../views/member/SettingsView.vue'),
