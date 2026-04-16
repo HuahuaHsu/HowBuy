@@ -50,6 +50,11 @@ export const routes: RouteRecordRaw[] = [
             component: () => import('../views/member/MemberCenterView.vue'),
           },
           {
+            path: 'profile',
+            name: 'member-profile',
+            component: () => import('../views/member/ProfileView.vue'),
+          },
+          {
             path: 'orders',
             name: 'member-orders',
             component: () => import('../views/member/OrdersView.vue'),
@@ -70,27 +75,9 @@ export const routes: RouteRecordRaw[] = [
             component: () => import('../views/member/WalletView.vue'),
           },
           {
-            path: '/member/coupons',
+            path: 'coupons',
             name: 'member-coupons',
             component: () => import('../views/member/MemberCouponsView.vue'),
-            meta: { requiresAuth: true }
-          },
-          {
-            path: '/checkout',
-            name: 'checkout',
-            component: () => import('../views/cart/CheckoutView.vue'),
-            meta: { requiresAuth: true }
-          },
-          {
-            path: '/wip',
-            name: 'wip',
-            component: () => import('../views/error/WipView.vue'),
-            meta: { requiresAuth: false }
-          },
-          {
-            path: '/:pathMatch(.*)*',
-            name: 'not-found',
-            component: () => import('../views/error/NotFoundView.vue')
           },
           {
             path: 'mystore',

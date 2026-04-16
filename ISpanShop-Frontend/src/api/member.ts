@@ -14,15 +14,15 @@ export interface MemberDto {
   avatarUrl?: string;
 }
 
-/** 更新會員資料 DTO (用於寫入) */
+/** 更新會員資料 DTO (用於寫入) - 對應 C# UpdateMemberProfileDto */
 export interface UpdateMemberProfileDto {
   id: number;
   account: string;
   email: string;
   fullName: string;
   phoneNumber: string;
-  gender: number | null;
-  birthday: string | null;
+  gender: number | null;  // byte? (0-255)
+  birthday: string | null;  // DateOnly? -> 送 "YYYY-MM-DD" 字串
   avatarUrl?: string;
 }
 

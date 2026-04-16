@@ -5,7 +5,7 @@ using ISpanShop.MVC.Middleware;
 // Repository namespaces
 using ISpanShop.Repositories.Admins;
 using ISpanShop.Repositories.Members;
-using ISpanShop.Repositories.Members.Implementations; // 補上實作命名空間
+using ISpanShop.Repositories.Members.Implementations;
 using ISpanShop.Repositories.Products;
 using ISpanShop.Repositories.Categories;
 using ISpanShop.Repositories.Orders;
@@ -30,6 +30,8 @@ using ISpanShop.Services.Stores;
 using ISpanShop.Services.Promotions;
 using ISpanShop.Services.Brands;
 using ISpanShop.Services.Coupons;
+using ISpanShop.Services.Auth;
+using ISpanShop.Services;
 
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -37,8 +39,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
-using ISpanShop.Services.Auth;
-using ISpanShop.Services;
 
 namespace ISpanShop.MVC
 {
@@ -48,22 +48,17 @@ namespace ISpanShop.MVC
 		{
 			var builder = WebApplication.CreateBuilder(args);
 
-			// 1. 註冊控制器與視圖
+			// Add services to the container.
 			builder.Services.AddControllersWithViews();
 
 			// ── 1. CORS 服務註冊 (合併為單一政策) ──
-            builder.Services.AddScoped<IFrontAuthService, FrontAuthService>();
-
-			// 2. CORS 跨域配置
 			builder.Services.AddCors(options =>
 			{
 				options.AddPolicy("ISpanShopFrontendPolicy", policy =>
-				options.AddPolicy("FrontendPolicy", policy =>
 				{
 					// 開發環境：允許 Vite (localhost:5173) 
 					// 分開部署後，可將此網址移動到 appsettings.json
 					policy.WithOrigins("http://localhost:5173")
-					policy.WithOrigins("http://localhost:5173") 
 						  .AllowAnyHeader()
 						  .AllowAnyMethod()
 						  .AllowCredentials(); // 支援未來可能需要的 Cookie 傳遞
@@ -71,10 +66,7 @@ namespace ISpanShop.MVC
 			});
 
 			// ── 2. 資料庫連線 ──
-			builder.Services.AddDbContext<ISpanShopDBContext>(options => 
-				options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"),
-			// 3. 資料庫連線註冊
-			builder.Services.AddDbContext<ISpanShopDBContext>(options => 
+			builder.Services.AddDbContext<ISpanShopDBContext>(options =>
 				options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"),
 				sqlServerOptionsAction: sqlOptions =>
 				{
@@ -82,11 +74,9 @@ namespace ISpanShop.MVC
 						maxRetryCount: 5,
 						maxRetryDelay: TimeSpan.FromSeconds(30),
 						errorNumbersToAdd: null);
-					sqlOptions.EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(30), errorNumbersToAdd: null);
 				}));
 
 			// ── 3. 身份驗證 (Cookie 後台 + JWT 前台) ──
-			// 4. 身份驗證 (Cookie 與 JWT 徹底分離)
 			var jwtSettings = builder.Configuration.GetSection("Jwt");
 			builder.Services.AddAuthentication("AdminCookieAuth")
 				.AddCookie("AdminCookieAuth", options =>
@@ -109,32 +99,9 @@ namespace ISpanShop.MVC
 						IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"]!))
 					};
 				});
-			builder.Services.AddAuthentication(options => {
-				options.DefaultScheme = "AdminCookieAuth";
-			})
-			.AddCookie("AdminCookieAuth", options =>
-			{
-				options.Cookie.Name = "ISpanShop.Admin.Session";
-				options.LoginPath = "/Admin/Auth/Login";
-				options.AccessDeniedPath = "/Admin/Auth/AccessDenied";
-				options.ExpireTimeSpan = TimeSpan.FromDays(7);
-			})
-			.AddJwtBearer("FrontendJwt", options =>
-			{
-				options.TokenValidationParameters = new TokenValidationParameters
-				{
-					ValidateIssuer = true,
-					ValidateAudience = true,
-					ValidateLifetime = true,
-					ValidateIssuerSigningKey = true,
-					ValidIssuer = jwtSettings["Issuer"],
-					ValidAudience = jwtSettings["Audience"],
-					IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"]!))
-				};
-			});
 
 			// ── 4. DI 服務註冊 ──
-			
+
 			// 核心身分與會員
 			builder.Services.AddScoped<IFrontAuthService, FrontAuthService>();
 			builder.Services.AddScoped<IUserRepository, UserRepository>();
@@ -151,53 +118,40 @@ namespace ISpanShop.MVC
 			builder.Services.AddScoped<ILoginHistoryService, LoginHistoryService>();
 
 			// 商品與分類
-			// 5. 註冊所有倉儲層 (Repositories)
-			builder.Services.AddScoped<IMemberRepository, MemberRepository>();
-			builder.Services.AddScoped<IUserRepository, UserRepository>();
-			builder.Services.AddScoped<IAdminRepository, AdminRepository>();
-			builder.Services.AddScoped<IAdminRoleRepository, AdminRoleRepository>();
-			builder.Services.AddScoped<ILoginHistoryRepository, LoginHistoryRepository>();
 			builder.Services.AddScoped<IProductRepository, ProductRepository>();
-			builder.Services.AddScoped<ICategoryAttributeRepository, CategoryAttributeRepository>();
-			builder.Services.AddScoped<ICategoryManageRepository, CategoryManageRepository>();
-			builder.Services.AddScoped<IOrderRepository, OrderRepository>();
-			builder.Services.AddScoped<IOrderReviewRepository, OrderReviewRepository>();
-			builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
-			builder.Services.AddScoped<IPointRepository, PointRepository>();
-			builder.Services.AddScoped<ISensitiveWordRepository, SensitiveWordRepository>();
-			builder.Services.AddScoped<ISupportTicketRepository, SupportTicketRepository>();
-			builder.Services.AddScoped<IStoreRepository, StoreRepository>();
-			builder.Services.AddScoped<IPromotionRepository, PromotionRepository>();
-			builder.Services.AddScoped<IBrandRepository, BrandRepository>();
-
-			// 6. 註冊所有服務層 (Services)
-			builder.Services.AddScoped<IMemberService, MemberService>();
-			builder.Services.AddScoped<IAdminService, AdminService>();
-			builder.Services.AddScoped<ILoginHistoryService, LoginHistoryService>();
 			builder.Services.AddScoped<IProductService, ProductService>();
+			builder.Services.AddScoped<ICategoryAttributeRepository, CategoryAttributeRepository>();
 			builder.Services.AddScoped<CategoryAttributeService>();
+			builder.Services.AddScoped<ICategoryManageRepository, CategoryManageRepository>();
 			builder.Services.AddScoped<CategoryManageService>();
+			builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
+			builder.Services.AddScoped<IInventoryService, InventoryService>();
+			builder.Services.AddScoped<IBrandRepository, BrandRepository>();
+			builder.Services.AddScoped<BrandService>();
+
+			// 訂單、評論與行銷
+			builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 			builder.Services.AddScoped<IOrderService, OrderService>();
 			builder.Services.AddScoped<IFrontOrderService, FrontOrderService>();
 			builder.Services.AddScoped<IOrderDashboardService, OrderDashboardService>();
+			builder.Services.AddScoped<IOrderReviewRepository, OrderReviewRepository>();
 			builder.Services.AddScoped<IOrderReviewService, OrderReviewService>();
 			builder.Services.AddScoped<IPromotionRepository, PromotionRepository>();
 			builder.Services.AddScoped<PromotionService>();
+			builder.Services.AddScoped<ICouponService, CouponService>();
+			builder.Services.AddHostedService<CouponCleanupService>();
 
 			// 支付與系統
-			builder.Services.AddScoped<IInventoryService, InventoryService>();
-			builder.Services.AddScoped<PointService>();
 			builder.Services.AddScoped<PaymentService>();
 			builder.Services.AddScoped<CheckoutService>();
 			builder.Services.AddScoped<NewebPayService>();
+			builder.Services.AddScoped<ISensitiveWordRepository, SensitiveWordRepository>();
 			builder.Services.AddScoped<ISensitiveWordService, SensitiveWordService>();
+			builder.Services.AddScoped<ISupportTicketRepository, SupportTicketRepository>();
 			builder.Services.AddScoped<ISupportTicketService, SupportTicketService>();
+			builder.Services.AddScoped<IStoreRepository, StoreRepository>();
 			builder.Services.AddScoped<IStoreService, StoreService>();
 			builder.Services.AddScoped<IFrontStoreService, FrontStoreService>();
-			builder.Services.AddScoped<PromotionService>();
-			builder.Services.AddScoped<BrandService>();
-			builder.Services.AddScoped<ICouponService, CouponService>();
-			builder.Services.AddHostedService<CouponCleanupService>();
 
 			// ── 5. Swagger / OpenAPI ──
 			builder.Services.AddEndpointsApiExplorer();
@@ -209,7 +163,7 @@ namespace ISpanShop.MVC
 					Version = "v1",
 					Description = "ISpanShop 電商平台 RESTful API (後台 Cookie + 前台 JWT)"
 				});
-				
+
 				// 讓 Swagger 支援輸入 JWT Token 進行測試
 				c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
 				{
@@ -231,33 +185,25 @@ namespace ISpanShop.MVC
 					}
 				});
 			});
-			// 7. Swagger / OpenAPI
-			builder.Services.AddEndpointsApiExplorer();
-			builder.Services.AddSwaggerGen(c =>
-			{
-				c.SwaggerDoc("v1", new OpenApiInfo { Title = "ISpanShop API", Version = "v1" });
-			});
 
 			var app = builder.Build();
 
 			// ── 6. HTTP Request Pipeline ──
 			if (!app.Environment.IsDevelopment())
-			// 8. 中間件管線 (Middleware Pipeline)
-			if (app.Environment.IsDevelopment())
 			{
-				app.UseSwagger();
-				app.UseSwaggerUI();
+				app.UseExceptionHandler("/Home/Error");
+				app.UseHsts();
 			}
 
 			app.UseHttpsRedirection();
 			app.UseStaticFiles();
+
 			app.UseRouting();
 
 			// CORS 必須在 Routing 之後，Authentication 之前
 			app.UseCors("ISpanShopFrontendPolicy");
-			// CORS 必須在 Routing 與 Auth 之前
-			app.UseCors("FrontendPolicy");
 
+			// 全域例外處理
 			app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 			// 驗證與授權 (順序不可對調)
@@ -272,18 +218,11 @@ namespace ISpanShop.MVC
 					c.SwaggerEndpoint("/swagger/v1/swagger.json", "ISpanShop API v1");
 				});
 			}
-			app.UseAuthentication(); 
-			app.UseAuthorization();
 
 			// ── 7. 路由設定 ──
 			app.MapControllerRoute(
 				name: "areas",
 				pattern: "{area:exists}/{controller=Home}/{action=Index}/{id?}");
-			// 9. 路由映射
-			app.MapAreaControllerRoute(
-				name: "admin",
-				areaName: "Admin",
-				pattern: "Admin/{controller=Home}/{action=Index}/{id?}");
 
 			app.MapControllerRoute(
 				name: "default",
@@ -294,16 +233,15 @@ namespace ISpanShop.MVC
 				name: "home",
 				pattern: "Home/{action=Index}/{id?}");
 
-			// ── 8. 資料初始化與結構補強 ──
 			app.MapControllers();
 
-			// 10. 種子資料與資料庫檢查
+			// ── 8. 資料初始化與結構補強 ──
 			using (var scope = app.Services.CreateScope())
 			{
 				var services = scope.ServiceProvider;
 				var context = services.GetRequiredService<ISpanShopDBContext>();
 
-				try 
+				try
 				{
 					await DataSeeder.SeedAsync(context);
 					await DataSeeder.PatchMissingReviewDataAsync(context);
@@ -343,9 +281,6 @@ namespace ISpanShop.MVC
 			foreach (var sql in sqlCommands)
 			{
 				try { await context.Database.ExecuteSqlRawAsync(sql); } catch { /* 忽略重複執行錯誤 */ }
-				var context = services.GetRequiredService<ISpanShopDBContext>();
-				await DataSeeder.SeedAsync(context);
-				await DataSeeder.EnsureAdminUserAsync(context);
 			}
 		}
 	}

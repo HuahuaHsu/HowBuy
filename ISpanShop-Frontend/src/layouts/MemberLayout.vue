@@ -81,11 +81,12 @@ function logout() {
   authStore.logout()
   router.push('/login')
 }
+</script>
 
 <style scoped>
-.layout { 
-  min-height: 100vh; 
-  background: linear-gradient(180deg, #f1f5f9 0%, #e2e8f0 100%); 
+.layout {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #f1f5f9 0%, #e2e8f0 100%);
 }
 
 /* 深色 Header (同步首頁 DefaultLayout) */
@@ -93,25 +94,15 @@ function logout() {
   background: linear-gradient(135deg, #1e293b 0%, #0f172a 50%, #1e1b4b 100%);
   padding: 18px 0;
   color: white;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
 }
 .header-inner {
   max-width: 1200px;
   margin: 0 auto;
   display: flex;
-  gap: 20px;
-  padding: 0 10px;
-}
-
-.sidebar {
-  width: 180px;
-  flex-shrink: 0;
-}
-
-.user-card {
-  padding: 15px 0;
-  display: flex;
+  justify-content: space-between;
   align-items: center;
+  gap: 20px;
   padding: 0 20px;
 }
 
@@ -123,8 +114,12 @@ function logout() {
   cursor: pointer;
   transition: transform 0.3s;
 }
-.logo:hover { transform: scale(1.05); }
-.logo-icon { font-size: 24px; }
+.logo:hover {
+  transform: scale(1.05);
+}
+.logo-icon {
+  font-size: 24px;
+}
 .logo-text {
   font-size: 24px;
   font-weight: 800;
@@ -150,7 +145,7 @@ function logout() {
   color: #EE4D2D !important;
 }
 .divider-text {
-  color: rgba(255,255,255,0.2);
+  color: rgba(255, 255, 255, 0.2);
   font-size: 12px;
 }
 
@@ -163,6 +158,7 @@ function logout() {
   gap: 30px;
   padding: 0 20px;
 }
+
 .sidebar {
   background: white;
   border-radius: 12px;
@@ -171,7 +167,7 @@ function logout() {
   overflow: hidden;
 }
 
-/* 會員資訊卡片 (更符合現代感) */
+/* 會員資訊卡片 */
 .sidebar-user-card {
   padding: 24px 20px;
   display: flex;

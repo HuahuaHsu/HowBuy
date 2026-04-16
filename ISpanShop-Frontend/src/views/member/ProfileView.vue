@@ -40,7 +40,11 @@ const rules = reactive<FormRules>({
 // ── 初始化資料 ────────────────────────────────────
 const fetchProfile = async () => {
   const memberId = profileForm.id
-  if (!memberId) return
+  if (!memberId) {
+    ElMessage.error('無法取得會員 ID，請重新登入')
+    console.error('會員 ID 為空:', authStore.memberInfo)
+    return
+  }
 
   try {
     isLoading.value = true
@@ -56,9 +60,14 @@ const fetchProfile = async () => {
     const rawBirthday = data.birthday ?? data.Birthday ?? data.DateOfBirth ?? ''
     profileForm.birthday = rawBirthday ? String(rawBirthday).split('T')[0] : ''
     profileForm.avatarUrl = data.avatarUrl ?? data.AvatarUrl ?? ''
-  } catch (error) {
+  } catch (error: any) {
     console.error('取得資料錯誤:', error)
-    ElMessage.error('無法從伺服器載入資料')
+    const status = error.response?.status
+    if (status === 404) {
+      ElMessage.error('找不到會員資料，會員 ID 可能不存在')
+    } else {
+      ElMessage.error('無法從伺服器載入資料')
+    }
   } finally {
     isLoading.value = false
   }
@@ -90,6 +99,8 @@ const handleSave = async (formEl: FormInstance | undefined) => {
       avatarUrl: profileForm.avatarUrl
     }
 
+    console.log('送出資料:', submitData) // 除錯用
+
     await updateMemberProfile(submitData.id, submitData)
     ElMessage.success('個人資料已成功更新')
     
@@ -98,6 +109,7 @@ const handleSave = async (formEl: FormInstance | undefined) => {
     authStore.memberInfo.memberName = profileForm.memberName
   } catch (error: any) {
     console.error('更新失敗:', error)
+    console.error('錯誤詳情:', error.response?.data) // 印出後端錯誤訊息
     const msg = error.response?.data?.message || '更新失敗，請稍後再試'
     ElMessage.error(msg)
   } finally {
