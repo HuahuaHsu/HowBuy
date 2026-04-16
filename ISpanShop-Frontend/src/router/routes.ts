@@ -32,6 +32,12 @@ export const routes: RouteRecordRaw[] = [
         component: () => import('../views/cart/CartView.vue'),
         meta: { requiresAuth: true }
       },
+      {
+        path: 'coupons',
+        name: 'coupons',
+        component: () => import('../views/CouponsView.vue'),
+        meta: { requiresAuth: false }
+      },
       // ── 會員中心嵌套佈局（在 DefaultLayout 內再包一層側邊欄） ──
       {
         path: 'member',
@@ -62,6 +68,29 @@ export const routes: RouteRecordRaw[] = [
             path: 'wallet',
             name: 'member-wallet',
             component: () => import('../views/member/WalletView.vue'),
+          },
+          {
+            path: '/member/coupons',
+            name: 'member-coupons',
+            component: () => import('../views/member/MemberCouponsView.vue'),
+            meta: { requiresAuth: true }
+          },
+          {
+            path: '/checkout',
+            name: 'checkout',
+            component: () => import('../views/cart/CheckoutView.vue'),
+            meta: { requiresAuth: true }
+          },
+          {
+            path: '/wip',
+            name: 'wip',
+            component: () => import('../views/error/WipView.vue'),
+            meta: { requiresAuth: false }
+          },
+          {
+            path: '/:pathMatch(.*)*',
+            name: 'not-found',
+            component: () => import('../views/error/NotFoundView.vue')
           },
           {
             path: 'mystore',
