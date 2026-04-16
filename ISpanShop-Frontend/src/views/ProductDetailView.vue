@@ -206,13 +206,13 @@
             <div class="pd-action-buttons">
               <el-button
                 class="btn-cart"
-                :disabled="isSoldOut || !canAddToCart"
+                :disabled="isSoldOut"
                 @click="handleAddToCart"
               >加入購物車</el-button>
               <el-button
                 type="primary"
                 class="btn-buy"
-                :disabled="isSoldOut || !canAddToCart"
+                :disabled="isSoldOut"
                 @click="handleBuyNow"
               >直接購買</el-button>
             </div>
@@ -416,6 +416,12 @@ const isSoldOut = computed<boolean>(() => {
   return safeProduct.value.totalStock === 0
 })
 
+/** 商品是否有規格 */
+const hasSpecs = computed<boolean>(() => {
+  if (!isReady.value) return false
+  return safeProduct.value.specs.length > 0
+})
+
 /** 所有規格軸都已選齊（無規格商品視為「已選齊」） */
 const allSpecsSelected = computed<boolean>(() => {
   if (!isReady.value) return false
@@ -599,6 +605,13 @@ watch(
 // ─── 按鈕行為 ────────────────────────────────────────────────────
 
 function handleAddToCart(): void {
+  // 狀態 B：有規格但還沒選完
+  if (hasSpecs.value && !allSpecsSelected.value) {
+    ElMessage.warning('請選擇規格')
+    return
+  }
+
+  // 狀態 C：正常加入購物車
   const p = safeProduct.value
   const variant = selectedVariant.value
   const image = activeImageUrl.value || p.images[0]?.url || ''
@@ -621,6 +634,13 @@ function handleAddToCart(): void {
 }
 
 function handleBuyNow(): void {
+  // 狀態 B：有規格但還沒選完
+  if (hasSpecs.value && !allSpecsSelected.value) {
+    ElMessage.warning('請選擇規格')
+    return
+  }
+
+  // 狀態 C：正常執行購買流程
   ElMessage.info('即將前往結帳')
 }
 
