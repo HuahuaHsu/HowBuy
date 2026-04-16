@@ -1,5 +1,7 @@
 using ISpanShop.Models.DTOs.Stores;
+using ISpanShop.Models.EfModels;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace ISpanShop.Repositories.Stores
 {
