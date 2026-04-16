@@ -65,12 +65,32 @@ namespace ISpanShop.Services.Members
 			_repo.Update(userInDb);
 		}
 
+		public void UpdateMemberProfile(UpdateMemberProfileDto dto)
+		{
+			var userInDb = _repo.GetById(dto.Id);
+			if (userInDb == null) throw new Exception("找不到該會員");
+
+			// 更新基本資訊 (Email, Account)
+			userInDb.Email = dto.Email;
+			
+			// 更新詳細資料 (MemberProfile)
+			if (userInDb.MemberProfile != null)
+			{
+				userInDb.MemberProfile.FullName = dto.FullName;
+				userInDb.MemberProfile.PhoneNumber = dto.PhoneNumber;
+				userInDb.MemberProfile.Gender = dto.Gender;
+				userInDb.MemberProfile.DateOfBirth = dto.Birthday;
+			}
+
+			_repo.Update(userInDb);
+		}
+
 		public void UpdateMemberProfile(MemberDto dto)
 		{
 			var userInDb = _repo.GetById(dto.Id);
 			if (userInDb == null) throw new Exception("找不到該會員");
 
-			// 直接帶入 Email，不進行空值檢查 (前端保證必填)
+			// 更新 Users 表中的基本資訊
 			userInDb.Email = dto.Email;
 			userInDb.IsBlacklisted = dto.IsBlacklisted;
 

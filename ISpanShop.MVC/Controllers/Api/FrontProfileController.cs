@@ -35,18 +35,15 @@ namespace ISpanShop.MVC.Controllers.Api
         }
 
         /// <summary>
-        /// 更新個人資料
+        /// 更新個人資料 (使用專用 DTO)
         /// </summary>
         [HttpPut("{id}")]
-        public IActionResult UpdateProfile(int id, [FromBody] MemberDto dto)
+        public IActionResult UpdateProfile(int id, [FromBody] UpdateMemberProfileDto dto)
         {
             try
             {
-                // 如果 Body 中的 Id 為 0，自動補上路由中的 ID
-                if (dto.Id == 0) dto.Id = id;
-
                 if (id != dto.Id) 
-                    return BadRequest(new { message = $"ID 不符: 路由={id}, 資料={dto.Id}" });
+                    return BadRequest(new { message = "會員 ID 不符" });
 
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);

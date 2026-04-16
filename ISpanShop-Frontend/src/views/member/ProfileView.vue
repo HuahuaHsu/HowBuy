@@ -4,7 +4,7 @@ import { useAuthStore } from '../../stores/auth'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules, UploadProps } from 'element-plus'
 import { User, Message, Iphone, Calendar } from '@element-plus/icons-vue'
-import { getMemberProfile, updateMemberProfile } from '../../api/member'
+import { getMemberProfile, updateMemberProfile, type UpdateMemberProfileDto } from '../../api/member'
 
 const authStore = useAuthStore()
 const profileFormRef = ref<FormInstance>()
@@ -39,7 +39,7 @@ const rules = reactive<FormRules>({
 
 // ── 初始化資料 ────────────────────────────────────
 const fetchProfile = async () => {
-  const memberId = Number(profileForm.id)
+  const memberId = profileForm.id
   if (!memberId) return
 
   try {
@@ -47,16 +47,7 @@ const fetchProfile = async () => {
     const response = await getMemberProfile(memberId)
     const data = response.data as any
     
-    // 檢查回傳的是否為 HTML (如果是 HTML 代表 Proxy 或路徑有問題)
-    if (typeof data === 'string' && data.includes('<!DOCTYPE html>')) {
-      console.error('API 錯誤: 回傳了 HTML 內容，可能是路徑錯誤或代理失效')
-      ElMessage.error('伺服器設定錯誤 (API 404)')
-      return
-    }
-
-    console.log('載入資料:', data)
-    
-    // 補足其餘細節欄位
+    // 補足其餘細節欄位 (相容大小寫)
     profileForm.memberName = data.fullName ?? data.FullName ?? profileForm.memberName
     profileForm.email = data.email ?? data.Email ?? profileForm.email
     profileForm.phone = data.phoneNumber ?? data.PhoneNumber ?? profileForm.phone
@@ -65,9 +56,9 @@ const fetchProfile = async () => {
     const rawBirthday = data.birthday ?? data.Birthday ?? data.DateOfBirth ?? ''
     profileForm.birthday = rawBirthday ? String(rawBirthday).split('T')[0] : ''
     profileForm.avatarUrl = data.avatarUrl ?? data.AvatarUrl ?? ''
-  } catch (error: any) {
-    console.error('取得資料發生錯誤:', error)
-    ElMessage.error(error.response?.data?.message || '無法連線至伺服器')
+  } catch (error) {
+    console.error('取得資料錯誤:', error)
+    ElMessage.error('無法從伺服器載入資料')
   } finally {
     isLoading.value = false
   }
@@ -87,48 +78,40 @@ const handleSave = async (formEl: FormInstance | undefined) => {
   isSaving.value = true
 
   try {
-    // 嚴格對應 MemberDto 的結構，避免多餘欄位造成 400
-    const submitData = {
-      Id: Number(profileForm.id),
-      Account: profileForm.account,
-      Email: profileForm.email,
-      FullName: profileForm.memberName,
-      PhoneNumber: profileForm.phone,
-      Gender: profileForm.gender,
-      Birthday: profileForm.birthday || null,
-      IsBlacklisted: false,
-      IsSeller: false
+    // 使用專用 DTO 結構，僅發送必要的欄位
+    const submitData: UpdateMemberProfileDto = {
+      id: Number(profileForm.id),
+      account: profileForm.account,
+      email: profileForm.email,
+      fullName: profileForm.memberName,
+      phoneNumber: profileForm.phone,
+      gender: profileForm.gender,
+      birthday: profileForm.birthday || null,
+      avatarUrl: profileForm.avatarUrl
     }
 
-    console.log('提交資料:', submitData)
-    await updateMemberProfile(submitData.Id, submitData as any)
+    await updateMemberProfile(submitData.id, submitData)
     ElMessage.success('個人資料已成功更新')
     
-    // 同步更新 Pinia 中的資訊
+    // 同步更新 Pinia 與 LocalStorage
     authStore.memberInfo.email = profileForm.email
     authStore.memberInfo.memberName = profileForm.memberName
   } catch (error: any) {
-    console.error('更新失敗錯誤:', error.response?.data)
-    const errorMsg = error.response?.data?.message || '更新失敗'
-    ElMessage.error(errorMsg)
+    console.error('更新失敗:', error)
+    const msg = error.response?.data?.message || '更新失敗，請稍後再試'
+    ElMessage.error(msg)
   } finally {
     isSaving.value = false
   }
 }
 
-// ── 頭像處理 ──────────────────────────────────────
+// ── 頭像處理 (預覽) ──────────────────────────────────
 const beforeAvatarUpload: UploadProps['beforeUpload'] = (rawFile) => {
   const isImage = ['image/jpeg', 'image/png', 'image/jpg'].includes(rawFile.type)
   const isLt1M = rawFile.size / 1024 / 1024 < 1
 
-  if (!isImage) {
-    ElMessage.error('頭像只能是 JPG 或 PNG 格式!')
-    return false
-  }
-  if (!isLt1M) {
-    ElMessage.error('頭像檔案大小不能超過 1MB!')
-    return false
-  }
+  if (!isImage) { ElMessage.error('頭像只能是 JPG 或 PNG 格式!'); return false }
+  if (!isLt1M) { ElMessage.error('頭像檔案大小不能超過 1MB!'); return false }
   
   profileForm.avatarUrl = URL.createObjectURL(rawFile)
   return false 
