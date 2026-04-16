@@ -256,7 +256,7 @@ import { fetchMainCategories, fetchChildCategories } from '@/api/category'
 import { fetchActivePromotions } from '@/api/promotion'
 import { fetchBrands } from '@/api/brand'
 import { getCategoryIcon } from '@/constants/categoryIcon'
-import type { ProductListItem } from '@/types/product'
+import type { ProductListItem, FetchProductsParams } from '@/types/product'
 import type { Category, SubCategory } from '@/types/category'
 import type { Promotion } from '@/types/promotion'
 import type { Brand } from '@/types/brand'
@@ -277,6 +277,7 @@ const currentPage = ref<number>(1)
 const pageSize = ref<number>(30)
 const total = ref<number>(0)
 const sectionRef = ref<HTMLElement | null>(null)
+const keyword = ref<string>('')
 
 // ── 主分類篩選 ───────────────────────────────────────────────────
 const selectedCategoryId = ref<number | null>(null)
@@ -307,14 +308,7 @@ const promotions = ref<Promotion[]>([])
 async function loadProducts(): Promise<void> {
   loading.value = true
   try {
-    const params: {
-      page: number
-      pageSize: number
-      sortBy: 'latest'
-      categoryId?: number
-      subCategoryId?: number
-      brandIds?: number[]
-    } = {
+    const params: FetchProductsParams = {
       page: currentPage.value,
       pageSize: pageSize.value,
       sortBy: 'latest',
@@ -322,6 +316,7 @@ async function loadProducts(): Promise<void> {
     if (selectedCategoryId.value !== null) params.categoryId = selectedCategoryId.value
     if (selectedSubCategoryId.value !== null) params.subCategoryId = selectedSubCategoryId.value
     if (selectedBrandIds.value.length > 0) params.brandIds = selectedBrandIds.value
+    if (keyword.value.trim()) params.keyword = keyword.value.trim()
 
     const res = await fetchProductList(params)
     if (res.success) {
@@ -342,7 +337,12 @@ async function loadCategories(): Promise<void> {
   try {
     const res = await fetchMainCategories()
     if (res.success) {
-      apiCategories.value = res.data
+      // 過濾髒資料：純數字或名稱長度 < 2 的分類
+      const dirty = res.data.filter(c => /^\d+$/.test(c.name) || c.name.length < 2)
+      if (dirty.length > 0) {
+        console.warn('⚠️ 偵測到髒分類資料，已過濾（請至後端清理）:', dirty.map(c => `[id:${c.id}] "${c.name}"`))
+      }
+      apiCategories.value = res.data.filter(c => !/^\d+$/.test(c.name) && c.name.length >= 2)
     } else {
       ElMessage.error(res.message || '分類載入失敗')
     }
@@ -454,9 +454,13 @@ async function onSubCategoryChange(subCategoryId: number | null): Promise<void> 
 async function applyQueryFilter(): Promise<void> {
   const rawCatId = route.query['categoryId']
   const rawSubCatId = route.query['subCategoryId']
+  const rawKeyword = route.query['keyword']
 
   const catId = rawCatId ? Number(rawCatId) : null
   const subCatId = rawSubCatId ? Number(rawSubCatId) : null
+
+  // 關鍵字
+  keyword.value = typeof rawKeyword === 'string' ? rawKeyword : ''
 
   if (catId !== null && !Number.isNaN(catId)) {
     clearSidebarState()

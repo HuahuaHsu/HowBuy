@@ -11,13 +11,13 @@ const authStore = useAuthStore();
 const loginFormRef = ref<FormInstance>();
 
 const loginForm = reactive({
-  email: '',
+  account: '',
   password: ''
 });
 
 const rules = reactive<FormRules>({
-  email: [
-    { required: true, message: '請輸入 Email', trigger: 'blur' },
+  account: [
+    { required: true, message: '請輸入帳號或 Email', trigger: 'blur' },
   ],
   password: [
     { required: true, message: '請輸入密碼', trigger: 'blur' },
@@ -27,24 +27,28 @@ const rules = reactive<FormRules>({
 
 const handleLogin = async (formEl: FormInstance | undefined) => {
   if (!formEl) return;
-  await formEl.validate(async (valid) => {
-    if (valid) {
-      try {
-        await authStore.login(loginForm);
-        ElMessage.success('登入成功');
-        const redirectPath = route.query.redirect as string || '/';
-        router.push(redirectPath);
-      }
-      catch (error: unknown) {
-      const err = error as { response?: { data?: { message?: string } } }
-      ElMessage.error(err.response?.data?.message || '登入失敗');
-      }
-    }
-  });
+
+  // Promise-based validate: resolves true if valid, rejects if invalid
+  const valid = await formEl.validate().catch(() => false);
+  if (!valid) return;
+
+  console.log('準備登入', loginForm);
+  try {
+    const result = await authStore.login(loginForm);
+    console.log('登入成功', result);
+    ElMessage.success('登入成功');
+    const redirectPath = (route.query.redirect as string) || '/';
+    await router.push(redirectPath);
+  } catch (error: unknown) {
+    const err = error as { response?: { data?: { message?: string } }; message?: string };
+    console.error('登入失敗完整錯誤', error);
+    console.error('後端回應', err.response?.data);
+    ElMessage.error(err.response?.data?.message ?? err.message ?? '登入失敗');
+  }
 };
 
 const quickFill = () => {
-  loginForm.email = 'fuen49';
+  loginForm.account = 'fuen49';
   loginForm.password = 'Fuen49.02';
 };
 </script>
@@ -62,8 +66,8 @@ const quickFill = () => {
         label-width="0"
         @keyup.enter="handleLogin(loginFormRef)"
       >
-        <el-form-item prop="email">
-          <el-input v-model="loginForm.email" placeholder="Email (或帳號)" prefix-icon="User" />
+        <el-form-item prop="account">
+          <el-input v-model="loginForm.account" placeholder="帳號或 Email" prefix-icon="User" />
         </el-form-item>
         <el-form-item prop="password">
           <el-input
