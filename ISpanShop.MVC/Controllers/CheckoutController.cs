@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Authorization;
 using ISpanShop.Services.Payments;
 using ISpanShop.Models.DTOs.Orders;
 using ISpanShop.Services;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using System.Security.Claims;
 using System.Linq;
 using System.Threading.Tasks;
@@ -11,7 +10,7 @@ using System.Threading.Tasks;
 namespace ISpanShop.WebAPI.Controllers
 {
 	[ApiController]
-	[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+	[Authorize(AuthenticationSchemes = "FrontendJwt")]
 	[Route("api/checkout")]
 	public class CheckoutController : ControllerBase
 	{

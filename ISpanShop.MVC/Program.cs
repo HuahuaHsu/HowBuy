@@ -84,7 +84,7 @@ namespace ISpanShop.MVC
 				options.AccessDeniedPath = "/Admin/Auth/AccessDenied";
 				options.ExpireTimeSpan = TimeSpan.FromDays(7);
 			})
-			.AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
+			.AddJwtBearer("FrontendJwt", options =>
 			{
 				options.TokenValidationParameters = new TokenValidationParameters
 				{

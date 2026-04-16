@@ -6,12 +6,11 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using System;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace ISpanShop.WebAPI.Controllers
 {
     [ApiController]
-    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [Authorize(AuthenticationSchemes = "FrontendJwt")]
     [Route("api/member")]
     public class MemberApiController : ControllerBase
     {

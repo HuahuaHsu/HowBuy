@@ -2,7 +2,6 @@ using ISpanShop.Models.DTOs.Auth;
 using ISpanShop.Services.Auth;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using System.Security.Claims;
 using System;
 using System.Threading.Tasks;
@@ -21,7 +20,7 @@ namespace ISpanShop.MVC.Controllers.Api
         }
 
         [HttpGet("me")]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [Authorize(AuthenticationSchemes = "FrontendJwt")]
         public IActionResult GetMe()
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
