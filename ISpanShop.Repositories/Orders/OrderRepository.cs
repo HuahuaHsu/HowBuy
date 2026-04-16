@@ -99,6 +99,12 @@ namespace ISpanShop.Repositories.Orders
 			return await _context.Orders
 				.Include(o => o.Store)
 				.Include(o => o.OrderDetails)
+					.ThenInclude(od => od.Product)
+						.ThenInclude(p => p.ProductImages)
+				.Include(o => o.OrderDetails)
+					.ThenInclude(od => od.Product)
+						.ThenInclude(p => p.ProductVariants)
+							.ThenInclude(pv => pv.ProductImages)
 				.Where(o => o.UserId == memberId)
 				.OrderByDescending(o => o.CreatedAt)
 				.ToListAsync();
