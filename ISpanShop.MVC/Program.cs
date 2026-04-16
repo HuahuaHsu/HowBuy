@@ -11,6 +11,7 @@ using ISpanShop.Repositories.Orders;
 using ISpanShop.Repositories.Inventories;
 using ISpanShop.Repositories.ContentModeration;
 using ISpanShop.Repositories.Support;
+using ISpanShop.Repositories.Stores;
 
 // Service namespaces
 using ISpanShop.Services.Admins;
@@ -22,6 +23,7 @@ using ISpanShop.Services.Inventories;
 using ISpanShop.Services.ContentModeration;
 using ISpanShop.Services.Support;
 using ISpanShop.Services.Payments;
+using ISpanShop.Services.Stores;
 
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
@@ -40,12 +42,24 @@ namespace ISpanShop.MVC
 			// Add services to the container.
 			builder.Services.AddControllersWithViews();
 
-			// �o�̪� "DefaultConnection" ������ appsettings.json��appsettings.Development�̪��W�r�@�Ҥ@��
+			//註冊CORS服務
+			builder.Services.AddCors(options =>
+			{
+				options.AddPolicy("AllowVite", policy =>
+				{
+					policy.WithOrigins("http://localhost:5173") // 這邊對應你剛剛綁死的 Vite 網址
+						  .AllowAnyHeader()
+						  .AllowAnyMethod()
+						  .AllowCredentials();
+				});
+			});
+
+			//連線註冊
 			builder.Services.AddDbContext<ISpanShopDBContext>
 				(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
 				);
 			builder.Services.AddScoped<IMemberRepository, MemberRepository>();
-			builder.Services.AddScoped<MemberService>();
+			builder.Services.AddScoped<IMemberService, MemberService>();
 			builder.Services.AddScoped<IAdminRepository, AdminRepository>();
 			builder.Services.AddScoped<IAdminRoleRepository, AdminRoleRepository>();
 			builder.Services.AddScoped<IAdminService, AdminService>();
@@ -53,29 +67,29 @@ namespace ISpanShop.MVC
 			builder.Services.AddScoped<ILoginHistoryService, LoginHistoryService>();
 
 			// ── Cookie 身份驗證 ──
-			builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-				.AddCookie(options =>
+			builder.Services.AddAuthentication("AdminCookieAuth")
+				.AddCookie("AdminCookieAuth", options =>
 				{
-					options.LoginPath = "/Admin/Account/Login";
-					options.LogoutPath = "/Admin/Account/Logout";
-					options.AccessDeniedPath = "/Admin/Account/Login";
-					options.Cookie.Name = "ISpanShop.Admin.Auth";
-					options.Cookie.HttpOnly = true;
-					options.ExpireTimeSpan = TimeSpan.FromHours(8);
-					options.SlidingExpiration = true;
+					options.Cookie.Name = "ISpanShop.Admin"; //替後台的登入憑證(Cookie)取名防止跟前台的登入狀態「撞名」而互相覆蓋
+					options.LoginPath = "/Admin/Auth/Login";
+					options.AccessDeniedPath = "/Admin/Auth/AccessDenied";
+					options.ExpireTimeSpan = TimeSpan.FromDays(7);
 				});
 
+
+		
 			builder.Services.AddScoped<IProductService, ProductService>();
 
 
 			builder.Services.AddScoped<IProductRepository, ProductRepository>();
 
-			builder.Services.AddScoped<ICategorySpecRepository, CategorySpecRepository>();
+			builder.Services.AddScoped<ICategoryAttributeRepository, CategoryAttributeRepository>();
 
-			builder.Services.AddScoped<CategorySpecService>();
+			builder.Services.AddScoped<CategoryAttributeService>();
 
 			builder.Services.AddScoped<ICategoryManageRepository, CategoryManageRepository>();
 			builder.Services.AddScoped<CategoryManageService>();
+
 
 			// 註冊倉儲層 (Repositories)
 			builder.Services.AddScoped<IOrderRepository, OrderRepository>();
@@ -115,15 +129,13 @@ namespace ISpanShop.MVC
 				});
 			});
 
-			//2�� �̿�`�J (Dependency Injection)�G�O�ѤF�b Program.cs �����U�o�� Service�A�_�h����ɷ|�����G
+			
 
+			builder.Services.AddScoped<IPointRepository, PointRepository>();
 			builder.Services.AddScoped<PointService>();
 			builder.Services.AddScoped<PaymentService>();
 			builder.Services.AddScoped<CheckoutService>();
 			builder.Services.AddScoped<NewebPayService>();
-
-
-			//2�� ���a
 
 
 			builder.Services.AddScoped<ISensitiveWordRepository, SensitiveWordRepository>();
@@ -132,13 +144,16 @@ namespace ISpanShop.MVC
 			// 註冊客服工單的 Repo 與 Service
 			builder.Services.AddScoped<ISupportTicketRepository, SupportTicketRepository>();
 			builder.Services.AddScoped<ISupportTicketService, SupportTicketService>();
+
+			// 註冊商店管理的 Repo 與 Service
+			builder.Services.AddScoped<IStoreRepository, StoreRepository>();
+			builder.Services.AddScoped<IStoreService, StoreService>();
 			var app = builder.Build();
 
 			// Configure the HTTP request pipeline.
 			if (!app.Environment.IsDevelopment())
 			{
 				app.UseExceptionHandler("/Home/Error");
-				// The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
 				app.UseHsts();
 			}
 
@@ -146,6 +161,9 @@ namespace ISpanShop.MVC
 			app.UseStaticFiles();
 
 			app.UseRouting();
+
+			// 2. 啟用 CORS (🔥 務必夾在 Routing 和 Authorization 中間)
+			app.UseCors("AllowVite");
 
 			//app.UseAuthorization();
 			// ── 全域例外處理（放在 Routing 之後，授權之前）──
@@ -163,8 +181,7 @@ namespace ISpanShop.MVC
 					c.SwaggerEndpoint("/swagger/v1/swagger.json", "ISpanShop 前台 API v1");
 				});
 			}
-
-			app.UseAuthentication();
+			app.UseAuthentication(); // 必須在 UseAuthorization 之前
 			app.UseAuthorization();
 
 			// ── Area 路由（後台 MVC，必須在 default 之前）──
@@ -172,7 +189,7 @@ namespace ISpanShop.MVC
 				name: "areas",
 				pattern: "{area:exists}/{controller=Home}/{action=Index}/{id?}");
 
-			// ★ 支援直接以 /Orders/ 做存取，以及讓根目錄預設導向 訂單儀表板
+			// 支援直接以 /Orders/ 做存取，以及讓根目錄預設導向 訂單儀表板
 			app.MapControllerRoute(
 				name: "default",
 				pattern: "{controller=Orders}/{action=Dashboard}/{id?}",
@@ -235,21 +252,21 @@ namespace ISpanShop.MVC
 					)
 					ALTER TABLE Categories ADD NameEn NVARCHAR(200) NULL");
 
-				// 確保 CategorySpecMappings 資料表有 Sort 欄位（分類內屬性排序用）
+				// 確保 CategoryAttributeMappings 資料表有 Sort 欄位（分類內屬性排序用）
 				await context.Database.ExecuteSqlRawAsync(@"
 					IF NOT EXISTS (
 						SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
-						WHERE TABLE_NAME = 'CategorySpecMappings' AND COLUMN_NAME = 'Sort'
+						WHERE TABLE_NAME = 'CategoryAttributeMappings' AND COLUMN_NAME = 'Sort'
 					)
-					ALTER TABLE CategorySpecMappings ADD Sort INT NOT NULL DEFAULT 0");
+					ALTER TABLE CategoryAttributeMappings ADD Sort INT NOT NULL DEFAULT 0");
 
-				// 確保 CategorySpecs 資料表有 AllowCustomInput 欄位（允許賣家自填選項）
+				// 確保 CategoryAttributes 資料表有 AllowCustomInput 欄位（允許賣家自填選項）
 				await context.Database.ExecuteSqlRawAsync(@"
 					IF NOT EXISTS (
 						SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
-						WHERE TABLE_NAME = 'CategorySpecs' AND COLUMN_NAME = 'AllowCustomInput'
+						WHERE TABLE_NAME = 'CategoryAttributes' AND COLUMN_NAME = 'AllowCustomInput'
 					)
-					ALTER TABLE CategorySpecs ADD AllowCustomInput BIT NOT NULL DEFAULT 0");
+					ALTER TABLE CategoryAttributes ADD AllowCustomInput BIT NOT NULL DEFAULT 0");
 
 				// 清除歷史資料中被錯誤加上的 [待審核] 名稱前綴
 				await context.Database.ExecuteSqlRawAsync(@"

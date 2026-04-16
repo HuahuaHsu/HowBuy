@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using ISpanShop.Models.EfModels;
+using Microsoft.EntityFrameworkCore;
 
 namespace ISpanShop.Models.Seeding
 {
@@ -46,6 +47,35 @@ namespace ISpanShop.Models.Seeding
 			{ "", " (2025 全新升級版)", " (特仕限量版)", " (海外平輸版)", " - 聯名精裝版" };
 
 		// ====================================================================
+		// CategoryId → StoreId 對應表（依 ReadMe 賣場分類對應）
+		// ====================================================================
+		private static readonly Dictionary<int, int[]> CategoryToStores = new Dictionary<int, int[]>
+		{
+			{ 7,  new[] { 1 } },        // 生鮮食材與飲品   → 小明の奇妙雜貨
+			{ 8,  new[] { 1, 2, 7 } },  // 居家裝飾與收納   → Store 1, 2, 7 隨機
+			{ 9,  new[] { 1, 2 } },     // 廚房餐具與用品   → Store 1, 2 隨機
+			{ 5,  new[] { 2 } },        // 大型家具         → 建國五金
+			{ 11, new[] { 3 } },        // 筆記型電腦       → 豪客3C
+			{ 16, new[] { 3 } },        // 手機與平板周邊   → 豪客3C
+			{ 20, new[] { 3 } },        // 智慧型手機       → 豪客3C
+			{ 24, new[] { 3 } },        // 平板電腦         → 豪客3C
+			{ 13, new[] { 4 } },        // 男款上衣與襯衫   → 秘密衣櫥
+			{ 14, new[] { 4 } },        // 男士鞋款         → 秘密衣櫥
+			{ 26, new[] { 4 } },        // 女款上衣與洋裝   → 秘密衣櫥
+			{ 28, new[] { 4 } },        // 精品包包         → 秘密衣櫥
+			{ 29, new[] { 4 } },        // 派對與晚禮服     → 秘密衣櫥
+			{ 31, new[] { 4 } },        // 女款鞋類         → 秘密衣櫥
+			{ 32, new[] { 4 } },        // 女士腕錶         → 秘密衣櫥
+			{ 3,  new[] { 5, 6 } },     // 香水與香氛       → Store 5, 6 隨機
+			{ 19, new[] { 5, 6 } },     // 臉部與身體保養   → Store 5, 6 隨機
+			{ 2,  new[] { 6 } },        // 彩妝與修容       → 心怡日韓嚴選
+			{ 15, new[] { 7 } },        // 男士腕錶         → 宇過天晴文創
+			{ 30, new[] { 7 } },        // 珠寶與飾品       → 宇過天晴文創
+			{ 22, new[] { 8 } },        // 運動裝備與球類   → 流浪戶外
+			{ 23, new[] { 8 } },        // 太陽眼鏡與配件   → 流浪戶外
+		};
+
+		// ====================================================================
 		// ★★★ 核心播種方法 ★★★
 		// ====================================================================
 		public static async Task SeedAsync(ISpanShopDBContext context)
@@ -68,12 +98,22 @@ namespace ISpanShop.Models.Seeding
 				foreach (var dummy in dummyProducts)
 				{
 					var category = ResolveCategory(dummy.Category, categories);
+					// 分類不在對照表（如 vehicle、motorcycle 汽機車）→ 跳過，不植入資料庫
+					if (category == null) continue;
+
 					var brand = ResolveBrand(dummy.Brand, brands);
 					var (productName, productDescription) = TranslateProduct(dummy);
 					int basePriceTwd = (int)(dummy.Price * USD_TO_TWD);
 
 					// 建立圖片清單 (可被所有克隆版本共用模板)
 					var imageTemplates = BuildImageTemplates(dummy.Images);
+
+					// 根據分類決定所屬賣場（找不到對應則退回預設賣場）
+					int resolvedStoreId;
+					if (CategoryToStores.TryGetValue(category.Id, out var storeOptions))
+						resolvedStoreId = storeOptions[_random.Next(storeOptions.Length)];
+					else
+						resolvedStoreId = store.Id;
 
 					// 資料倍增術：將 1 筆真實商品變種成 5 筆
 					for (int k = 0; k < CloneSuffixes.Length; k++)
@@ -82,8 +122,8 @@ namespace ISpanShop.Models.Seeding
 						var variants = ProductVariantHelper.GenerateVariants(dummy.Category, clonePrice, maxCombinations: 6);
 
 						products.Add(CreateProductEntity(
-							storeId: store.Id,
-							categoryId: category?.Id ?? categories.First().Id,
+							storeId: resolvedStoreId,
+							categoryId: category.Id,
 							brandId: brand?.Id ?? brands.First().Id,
 							name: productName + CloneSuffixes[k],
 							description: productDescription,
@@ -93,22 +133,190 @@ namespace ISpanShop.Models.Seeding
 					}
 				}
 
-				// 3. 將最後 15 筆設為「待審核」
-				foreach (var p in products.Skip(Math.Max(0, products.Count - 15)))
+				// 3. 所有商品預設為「已上架」狀態 (不再生成待審核商品)
+				// 備註：若需測試審核流程，請使用「商品總覽」的「生成測試用待審核商品」功能
+
+				// 3b. 庫存狀態平均分佈：1/3 零庫存 / 1/3 低庫存 / 1/3 正常
+				//     低庫存閾值由各 variant 的 SafetyStock 決定（系統判斷：Stock <= SafetyStock）
+				var allVariants = products
+					.SelectMany(p => p.ProductVariants)
+					.OrderBy(_ => _random.Next())   // 隨機打散，確保各狀態平均分佈到不同商品
+					.ToList();
+				int vTotal = allVariants.Count;
+				int vThird = vTotal / 3;
+
+				for (int vi = 0; vi < vTotal; vi++)
 				{
-					p.Status = 2;
+					var v = allVariants[vi];
+					int safety = v.SafetyStock ?? 10;
+
+					if (vi < vThird)
+					{
+						// 零庫存（已售罄狀態）
+						v.Stock = 0;
+					}
+					else if (vi < vThird * 2)
+					{
+						// 低庫存警報：Stock 設為 1 ~ SafetyStock，確保 Stock <= SafetyStock 觸發警報
+						v.Stock = _random.Next(1, Math.Max(2, safety + 1));
+					}
+					else
+					{
+						// 正常庫存：50 ~ 200，且確保高於 SafetyStock（SafetyStock 最高 19，不影響下限 50）
+						v.Stock = _random.Next(Math.Max(50, safety + 1), 201);
+					}
+				}
+
+				// 3c. 上架狀態二次分配：10-20% 已審核通過的商品設為「未上架」
+				//     確保商品總覽的「未上架」統計卡片有數據可展示
+				var approvedProducts = products
+					.OrderBy(_ => _random.Next())   // 隨機打散
+					.ToList();
+				int unpublishCount = (int)(approvedProducts.Count * _random.Next(10, 21) / 100.0);  // 10-20%
+
+				for (int i = 0; i < unpublishCount; i++)
+				{
+					approvedProducts[i].Status = 0;  // 未上架（已審核通過但未公開銷售）
 				}
 
 				// 4. 一次性批次寫入資料庫
 				context.Products.AddRange(products);
 				await context.SaveChangesAsync();
+
+				int publishedCount = products.Count(p => p.Status == 1);
 				Console.WriteLine($"✅ 成功匯入 {products.Count} 筆商品 (含多規格變體) 到資料庫");
+				Console.WriteLine($"   └─ 已上架: {publishedCount} 筆 / 未上架: {unpublishCount} 筆");
+
+				// 5. 順便生成客服工單與評論 (若為空)
+				await EnsureSupportTicketsAsync(context);
+				await EnsureOrderReviewsAsync(context);
 			}
 			catch (Exception ex)
 			{
 				Console.WriteLine($"❌ 播種過程出錯：{ex.Message}");
 				throw;
 			}
+		}
+
+		// ====================================================================
+		// ★ 客服工單播種
+		// ====================================================================
+		public static async Task GenerateSupportTicketsAsync(ISpanShopDBContext context, int count = 20)
+		{
+			var users = context.Users.Take(10).ToList();
+			if (!users.Any()) return;
+
+			var subjects = new[] { "帳號無法登入", "商品收到有瑕疵", "想詢問退貨流程", "檢舉違規賣家", "購物車結帳失敗", "請問這款衣服還會補貨嗎？", "忘記密碼收不到驗證信", "買家提領申請", "檢舉違規商品" };
+			var descriptions = new[] { "使用者反應登入時出現 404 錯誤，請工程師檢查 Log", "商品收到時包裝破損，想申請退換貨", "請問退貨運費是由誰負擔？", "這個賣家好像在賣假貨，請查核", "一直跳轉失敗，無法完成付款", "我很喜歡這件，拜託快補貨", "點了好幾次都沒有收到信，垃圾信箱也沒有", "賣家反應無法提領款項", "這個商品描述與圖片不符" };
+			
+			var tickets = new List<SupportTicket>();
+			for (int i = 0; i < count; i++)
+			{
+				var user = users[_random.Next(users.Count)];
+				int status = _random.Next(0, 3); // 0:待處理, 1:處理中, 2:已結案
+				int category = _random.Next(0, 3); // 0:訂單, 1:帳號, 2:檢舉
+
+				tickets.Add(new SupportTicket
+				{
+					UserId = user.Id,
+					OrderId = category == 0 ? _random.Next(100, 500) : null,
+					Subject = subjects[_random.Next(subjects.Length)],
+					Category = (byte)category,
+					Description = descriptions[_random.Next(descriptions.Length)],
+					Status = (byte)status,
+					AdminReply = status == 2 ? "我們已經處理完畢，感謝您的回饋。" : (status == 1 ? "正在查詢相關 Log 中..." : null),
+					CreatedAt = DateTime.Now.AddDays(-_random.Next(0, 5)),
+					ResolvedAt = status == 2 ? DateTime.Now : null
+				});
+			}
+
+			context.SupportTickets.AddRange(tickets);
+			await context.SaveChangesAsync();
+		}
+
+		public static async Task EnsureSupportTicketsAsync(ISpanShopDBContext context)
+		{
+			if (context.SupportTickets.Any()) return;
+			await GenerateSupportTicketsAsync(context, 20);
+		}
+
+		// ====================================================================
+		// ★ 商品評論播種 (修復：確保 OrderId 存在)
+		// ====================================================================
+		public static async Task GenerateOrderReviewsAsync(ISpanShopDBContext context, int count = 30)
+		{
+			var users = context.Users.Take(10).ToList();
+			if (!users.Any()) return;
+
+			// 1. 取得真實存在的 Order ID
+			var orderIds = context.Orders.Select(o => o.Id).Take(20).ToList();
+
+			// 2. 如果完全沒訂單，先手動生幾筆基本的
+			if (!orderIds.Any())
+			{
+				var store = context.Stores.FirstOrDefault();
+				if (store != null)
+				{
+					for (int j = 0; j < 5; j++)
+					{
+						var newOrder = new Order
+						{
+							UserId = users.First().Id,
+							StoreId = store.Id,
+							OrderNumber = "SEED" + DateTime.Now.ToString("yyyyMMddHHmmss") + j,
+							Status = 1,
+							TotalAmount = 1000,
+							FinalAmount = 1000,
+							CreatedAt = DateTime.Now
+						};
+						context.Orders.Add(newOrder);
+					}
+					await context.SaveChangesAsync();
+					orderIds = context.Orders.Select(o => o.Id).ToList();
+				}
+			}
+
+			if (!orderIds.Any()) return;
+
+			var comments = new[] { 
+				"品質真的很棒，值得推薦！", 
+				"發貨速度很快，包裝也很細心。", 
+				"這款商品真的很好用，cp值很高。", 
+				"雖然有一點色差，但整體來說還不錯。", 
+				"這個商品真的很爛，根本是詐騙集團，退錢啦！", 
+				"客服態度很好，解決問題很迅速。",
+				"這個賣家寄錯東西了，真是差勁！",
+				"物超所值，下次還會再買。",
+				"外觀精美，手感也很好。",
+				"跟照片完全不一樣，感覺被騙了。"
+			};
+
+			var reviews = new List<OrderReview>();
+			for (int i = 0; i < count; i++)
+			{
+				var user = users[_random.Next(users.Count)];
+				var comment = comments[_random.Next(comments.Length)];
+				var orderId = orderIds[_random.Next(orderIds.Count)];
+
+				reviews.Add(new OrderReview
+				{
+					OrderId = orderId, // 使用真實的 OrderId
+					UserId = user.Id,
+					Rating = (byte)_random.Next(1, 6),
+					Comment = comment,
+					IsHidden = false,
+					CreatedAt = DateTime.Now.AddDays(-_random.Next(0, 10))
+				});
+			}
+
+			context.OrderReviews.AddRange(reviews);
+			await context.SaveChangesAsync();
+		}
+
+		public static async Task EnsureOrderReviewsAsync(ISpanShopDBContext context)
+		{
+			if (context.OrderReviews.Any()) return;
+			await GenerateOrderReviewsAsync(context, 30);
 		}
 
 		// ====================================================================
@@ -129,7 +337,10 @@ namespace ISpanShop.Models.Seeding
 				Description = description,
 				MinPrice = variants.Min(v => v.Price),
 				MaxPrice = variants.Max(v => v.Price),
-				Status = (byte)_random.Next(0, 2),
+				Status = 1,  // 修改：所有商品預設為「已上架」(1)，不再隨機分配待審核狀態
+				ReviewStatus = 1,  // 已審核通過
+				ReviewedBy = "系統預設",
+				ReviewDate = DateTime.Now.AddDays(-_random.Next(1, 30)),
 				CreatedAt = DateTime.Now.AddDays(-_random.Next(1, 100)),
 				UpdatedAt = DateTime.Now,
 				ProductVariants = variants,
@@ -146,12 +357,12 @@ namespace ISpanShop.Models.Seeding
 		// ★ 輔助方法：解析分類、品牌、翻譯
 		// ====================================================================
 
-		/// <summary>根據 API 分類名稱找到對應的子分類</summary>
+		/// <summary>根據 API 分類名稱找到對應的子分類；若分類不在對照表則回傳 null</summary>
 		private static Category ResolveCategory(string apiCategory, List<Category> categories)
 		{
-			var childCatName = SeederMappings.CategoryHierarchyMap.ContainsKey(apiCategory)
-				? SeederMappings.CategoryHierarchyMap[apiCategory].ChildName
-				: char.ToUpper(apiCategory[0]) + apiCategory.Substring(1);
+			if (!SeederMappings.CategoryHierarchyMap.ContainsKey(apiCategory))
+				return null;
+			var childCatName = SeederMappings.CategoryHierarchyMap[apiCategory].ChildName;
 			return categories.FirstOrDefault(c => c.Name == childCatName);
 		}
 
@@ -219,7 +430,6 @@ namespace ISpanShop.Models.Seeding
 				Email = "dataseed@example.com",
 				IsConfirmed = true,
 				IsBlacklisted = false,
-				IsSeller = true,
 				CreatedAt = DateTime.Now,
 				UpdatedAt = DateTime.Now
 			};
@@ -388,11 +598,10 @@ namespace ISpanShop.Models.Seeding
 				{
 					RoleId = adminRole.Id,
 					Account = "admin",
-					Password = "Admin@1234",
+					Password = "Test123456",
 					Email = "admin@ispanshop.com",
 					IsConfirmed = true,
 					IsBlacklisted = false,
-					IsSeller = false,
 					CreatedAt = DateTime.Now,
 					UpdatedAt = DateTime.Now
 				};
@@ -403,31 +612,15 @@ namespace ISpanShop.Models.Seeding
 		}
 
 		/// <summary>
-		/// 確保有足夠的待審核商品 (至少 15 筆)
+		/// [已停用] 確保有足夠的待審核商品 (至少 15 筆)
+		/// 修改說明：為了讓系統初始化時「待審核」列表為空，此方法已停用
+		/// 若需測試審核流程，請使用「商品總覽」的「生成測試用待審核商品」功能
 		/// </summary>
 		public static async Task EnsurePendingProductsAsync(ISpanShopDBContext context)
 		{
-			var currentCount = context.Products.Count(p => p.Status == 2);
-			if (currentCount >= 15)
-			{
-				Console.WriteLine($"ℹ️  待審核商品已有 {currentCount} 筆，無需補充。");
-				return;
-			}
-
-			var needed = 15 - currentCount;
-			var candidates = context.Products
-				.Where(p => p.Status != 2 && p.IsDeleted != true)
-				.Take(needed)
-				.ToList();
-
-			foreach (var p in candidates)
-			{
-				p.Status = 2;
-				p.UpdatedAt = DateTime.Now;
-			}
-
-			await context.SaveChangesAsync();
-			Console.WriteLine($"✅ 已補充 {candidates.Count} 筆待審核商品，目前共 {currentCount + candidates.Count} 筆");
+			// 停用此功能：不再自動補充待審核商品
+			Console.WriteLine("ℹ️  種子資料不再自動生成待審核商品，待審核列表保持淨空。");
+			await Task.CompletedTask;
 		}
 	}
 }

@@ -1,33 +1,36 @@
 using ISpanShop.Models.DTOs.Admins;
-using System.Collections.Generic;
+using ISpanShop.Models.DTOs.Common;
 
 namespace ISpanShop.Services.Admins
 {
-	/// <summary>
-	/// 管理員服務介面 - 處理管理員相關業務邏輯
-	/// </summary>
 	public interface IAdminService
 	{
-		/// <summary>
-		/// 取得所有管理員資訊
-		/// </summary>
-		/// <returns>管理員 DTO 列表</returns>
-		IEnumerable<AdminDto> GetAllAdmins();
+		// 查詢
+		IEnumerable<AdminDto> GetAllAdmins(AdminCriteria criteria = null);
+		PagedResult<AdminDto> SearchPaged(AdminCriteria criteria);
+		AdminDto? GetAdminById(int adminId);
+		IEnumerable<AdminLevelDto> GetAllAdminLevels();
+		IEnumerable<PermissionDto> GetAllPermissions();
+		IEnumerable<AdminLevelDto> GetSelectableAdminLevels();
 
-		/// <summary>
-		/// 取得所有可用的管理員權限列表（用於下拉選單）
-		/// </summary>
-		/// <returns>管理員權限 列表</returns>
-		IEnumerable<AdminPermissionDto> GetAllPermissions();
+		// 管理員帳號
+		(bool IsSuccess, string Message) CreateAdmin(AdminCreateDto dto);
+		(bool IsSuccess, string Message) UpdateAdmin(AdminUpdateDto dto);
+		(bool IsSuccess, string Message) DeactivateAdmin(int userId, int currentUserId);
+		(bool IsSuccess, string Message) ResetAdminPassword(AdminResetPasswordDto dto);
 
-		/// <summary>
-		/// 更新管理員的權限
-		/// </summary>
-		/// <param name="adminId">要更新的管理員 ID</param>
-		/// <param name="roleId">新的權限</param>
-		/// <param name="currentPermissionId">當前登入的管理員 ID（用於防止自我鎖定）</param>
-		/// <returns>是否更新成功</returns>
-		/// <exception cref="InvalidOperationException">當管理員試圖修改自己的角色時拋出</exception>
-		bool UpdateAdminRole(int adminId, int PermissionId, int currentPermissionId);
+		// 身分管理
+		(bool IsSuccess, string Message) CreateAdminLevel(AdminLevelCreateDto dto);
+		(bool IsSuccess, string Message) UpdateAdminLevelConfig(AdminLevelUpdateDto dto);
+		(bool IsSuccess, string Message) DeleteAdminLevel(int adminLevelId);
+
+		// 原有方法
+		AdminDto? VerifyLogin(string account, string password, string? ipAddress);
+		(bool IsSuccess, string Message) ChangePassword(AdminChangePasswordDto dto);
+		bool UpdateAdminRole(int adminId, int roleId, int currentAdminId);
+		string GetNextAccount();
+
+		/// <summary>取得管理員及其擁有的所有權限清單</summary>
+		AdminLoginClaimsDto GetAdminWithPermissions(int adminId);
 	}
 }

@@ -1,0 +1,201 @@
+@model ISpanShop.MVC.Areas.Admin.Models.Admins.AdminEditVm
+
+@{
+    Layout = null;
+
+    // ── 1. 使用與會員管理一致的粉彩色盤 ──
+    var avatarColors = new[] {
+        "#e57373", "#f06292", "#ba68c8", "#9575cd",
+        "#7986cb", "#64b5f6", "#29b6f6", "#26c6da",
+        "#4db6ac", "#81c784", "#9ccc65", "#ffa726",
+        "#ff8a65", "#a1887f", "#90a4ae"
+    };
+
+    // ── 2. 直接使用 UserId 計算專屬顏色與首字 ──
+    string bgColor = avatarColors[Math.Abs(Model.UserId) % avatarColors.Length];
+    string initial = !string.IsNullOrWhiteSpace(Model.Account) ? Model.Account.Substring(0, 1).ToUpper() : "A";
+}
+
+<style>
+    .admin-avatar-container {
+        position: relative;
+        border-radius: 50%;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 3px solid #fff;
+        flex-shrink: 0;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    .admin-avatar-initial {
+        color: #ffffff;
+        font-weight: 600;
+        user-select: none;
+    }
+
+    .drawer-edit-avatar {
+        width: 64px;
+        height: 64px;
+    }
+
+    .drawer-form-section {
+        border-bottom: 1px solid #f1f5f9;
+        padding-bottom: 1.25rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .drawer-form-section:last-of-type {
+        border-bottom: none;
+    }
+
+    .blacklist-box {
+        background: #ffffff;
+        border: 1px solid #feb2b2;
+        border-radius: 0.5rem;
+        padding: 1rem 1.25rem;
+        transition: background-color 0.2s;
+    }
+
+    .blacklist-box.active {
+        background: #fff5f5;
+    }
+
+    .blacklist-box .form-check-input:checked {
+        background-color: #ea5455;
+        border-color: #ea5455;
+    }
+
+    .readonly-field {
+        background-color: #f8f9fa !important;
+        cursor: not-allowed !important;
+    }
+</style>
+
+@* ── 管理員資訊標頭 ── *@
+<div class="d-flex align-items-center gap-3 p-4 border-bottom bg-light bg-opacity-50">
+    <div class="admin-avatar-container drawer-edit-avatar" style="background-color: @bgColor;">
+        <span class="admin-avatar-initial fs-4">@initial</span>
+    </div>
+    <div>
+        <div class="fw-bold fs-5" style="color:#1e2d3d;">@Model.Account</div>
+        <div class="text-muted small">@Model.Email</div>
+        @if (Model.IsSuperAdmin)
+        {
+            <span class="badge bg-label-info mt-1">
+                <i class="bx bx-shield-alt-2 me-1"></i>超級管理員
+            </span>
+        }
+    </div>
+</div>
+
+<form id="adminDrawerEditForm" action="/Admin/Admin/UpdateAdmin" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="UserId" value="@Model.UserId" />
+
+    <div class="p-4">
+        @* 基本資料 *@
+        <div class="drawer-form-section">
+            <h6 class="fw-bold mb-3" style="color:#1e2d3d;">
+                <i class="bx bx-user-circle me-2" style="color:#3182ce;"></i>帳號資訊
+            </h6>
+            <div class="row g-3">
+                <div class="col-12">
+                    <label class="form-label fw-semibold small">登入帳號</label>
+                    <input type="text" class="form-control form-control-sm readonly-field" value="@Model.Account" readonly />
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold small">電子信箱</label>
+                    <input type="text" class="form-control form-control-sm readonly-field" value="@Model.Email" readonly />
+                </div>
+            </div>
+        </div>
+
+        @* 權限設定 *@
+        <div class="drawer-form-section">
+            <h6 class="fw-bold mb-3" style="color:#1e2d3d;">
+                <i class="bx bx-shield me-2" style="color:#3182ce;"></i>權限設定
+            </h6>
+            <div class="mb-3">
+                <label class="form-label fw-semibold small">身分等級</label>
+                <select name="AdminLevelId" class="form-select form-select-sm" @(Model.IsSuperAdmin ? "disabled" : "")>
+                    @foreach (var level in Model.AdminLevelOptions)
+                    {
+                        <option value="@level.AdminLevelId" selected="@(Model.AdminLevelId == level.AdminLevelId)">@level.LevelName</option>
+                    }
+                </select>
+                @if (Model.IsSuperAdmin)
+                {
+                    <div class="form-text text-info small mt-1">
+                        <i class="bx bx-info-circle me-1"></i>系統預設超級管理員身分不可修改
+                    </div>
+                }
+            </div>
+
+            <div class="blacklist-box @(Model.IsBlacklisted ? "active" : "")" id="adminBlacklistBox">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="fw-bold mb-1" style="color:#ea5455;">
+                            <i class="bx bx-block me-2"></i>停權狀態
+                        </div>
+                        <small class="text-danger">啟用後，該帳號將無法登入後台</small>
+                    </div>
+                    <div class="form-check form-switch ms-3">
+                        <input type="checkbox"
+                               name="IsBlacklisted"
+                               id="drawerAdminBlacklistSwitch"
+                               class="form-check-input"
+                               role="switch"
+                               value="true"
+                               @(Model.IsBlacklisted ? "checked" : "")
+                               @(Model.IsSuperAdmin || Model.IsSelf ? "disabled" : "")
+                               onchange="document.getElementById('adminBlacklistBox').classList.toggle('active', this.checked); document.getElementById('drawerIsBlacklistedHidden').value = this.checked ? 'true' : 'false'" />
+                    </div>
+                </div>
+                <input type="hidden" name="IsBlacklisted" id="drawerIsBlacklistedHidden" value="@(Model.IsBlacklisted ? "true" : "false")" />
+            </div>
+            @if (Model.IsSelf)
+            {
+                <div class="form-text text-muted small mt-2">
+                    <i class="bx bx-info-circle me-1"></i>不可停用目前登入的帳號
+                </div>
+            }
+        </div>
+
+        @* 操作按鈕 *@
+        <div class="d-flex justify-content-end gap-3 pt-2">
+            <button type="button" onclick="closeAdminDrawer()" class="btn btn-label-secondary px-4">
+                取消
+            </button>
+            <button type="submit" id="adminDrawerSaveBtn" class="btn btn-primary px-4" @(Model.IsSuperAdmin ? "disabled" : "")>
+                <i class="bx bx-save me-1"></i>儲存變更
+            </button>
+        </div>
+    </div>
+</form>
+
+<div class="p-4 pt-0">
+    <hr class="my-4" />
+    <h6 class="fw-bold mb-3" style="color:#1e2d3d;">
+        <i class="bx bx-key me-2" style="color:#ffa726;"></i>重設密碼
+    </h6>
+    <p class="text-muted small mb-3">重設為臨時密碼後，管理員下次登入將被強制要求修改密碼。</p>
+    <form action="/Admin/Admin/ResetPassword" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="UserId" value="@Model.UserId" />
+        <div class="mb-3">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text bg-light"><i class="bx bx-lock-open"></i></span>
+                <input type="password" name="NewPassword" id="drawerNewPassword"
+                       class="form-control" placeholder="輸入臨時密碼 (至少8碼)" required minlength="8" />
+                <button type="button" class="btn btn-outline-secondary" onclick="togglePwd('drawerNewPassword', this)">
+                    <i class="bx bx-hide"></i>
+                </button>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-outline-warning btn-sm w-100">
+            <i class="bx bx-refresh me-1"></i>發送臨時密碼
+        </button>
+    </form>
+</div>

@@ -36,10 +36,15 @@ namespace ISpanShop.Services
                     OrderId = e.OrderId,
                     Rating = e.Rating,
                     Comment = e.Comment,
-                    SellerReply = e.SellerReply,
+                    StoreReply = e.StoreReply,
                     IsHidden = e.IsHidden ?? false, 
                     IsAutoFlagged = isAutoFlagged, // 賦予系統掃描後的狀態
-                    CreatedAt = e.CreatedAt ?? DateTime.MinValue
+                    CreatedAt = e.CreatedAt ?? DateTime.MinValue,
+                    ImageUrls = e.ReviewImages.Select(img => img.ImageUrl).ToList(),
+                    ProductMainImage = e.Order?.OrderDetails?.FirstOrDefault()?.Product?.ProductImages?
+                                        .FirstOrDefault(pi => pi.IsMain == true)?.ImageUrl 
+                                        ?? e.Order?.OrderDetails?.FirstOrDefault()?.Product?.ProductImages?.FirstOrDefault()?.ImageUrl
+                                        ?? "/images/no-image.png"
                 });
             }
 

@@ -33,5 +33,11 @@ namespace ISpanShop.Repositories.Members
 		/// </summary>
 		/// <param name="loginHistories">登入紀錄列表</param>
 		void AddRange(List<LoginHistoryDto> loginHistories);
+
+		/// <summary>
+		/// 新增單筆登入紀錄
+		/// </summary>
+		/// <param name="loginHistory">登入紀錄 DTO</param>
+		void Add(LoginHistoryDto loginHistory);
 	}
 }

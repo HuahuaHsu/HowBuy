@@ -17,7 +17,7 @@ public partial class OrderReview
 
     public string Comment { get; set; }
 
-    public string SellerReply { get; set; }
+    public string StoreReply { get; set; }
 
     public bool? IsHidden { get; set; }
 

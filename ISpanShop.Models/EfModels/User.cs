@@ -31,9 +31,9 @@ public partial class User
 
     public DateTime? UpdatedAt { get; set; }
 
-    public bool? IsSeller { get; set; }
-
     public int? AdminLevelId { get; set; }
+
+    public bool IsFirstLogin { get; set; }
 
     public virtual ICollection<Address> Addresses { get; set; } = new List<Address>();
 
@@ -58,6 +58,12 @@ public partial class User
     public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
 
     public virtual ICollection<PointHistory> PointHistories { get; set; } = new List<PointHistory>();
+
+    public virtual ICollection<Product> Products { get; set; } = new List<Product>();
+
+    public virtual ICollection<Promotion> PromotionReviewedByNavigations { get; set; } = new List<Promotion>();
+
+    public virtual ICollection<Promotion> PromotionSellers { get; set; } = new List<Promotion>();
 
     public virtual Role Role { get; set; }
 
