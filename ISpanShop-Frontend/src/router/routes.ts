@@ -89,6 +89,12 @@ export const routes: RouteRecordRaw[] = [
 
   // ── 錯誤/其他頁面 ──
   {
+    path: '/checkout',
+    name: 'checkout',
+    component: () => import('../views/cart/CheckoutView.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/wip',
     name: 'wip',
     component: () => import('../views/error/WipView.vue'),
