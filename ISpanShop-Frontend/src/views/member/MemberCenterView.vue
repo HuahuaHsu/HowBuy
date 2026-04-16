@@ -36,10 +36,8 @@ onMounted(async () => {
     const res = await checkoutApi.getWalletBalance();
     console.log('Member Center Wallet Sync:', res.data);
     liveBalance.value = res.data.pointBalance ?? res.data.balance ?? 0;
-    // 同步更新 store 中的資料（如果有的話）
-    if (authStore.memberInfo) {
-      authStore.memberInfo.pointBalance = liveBalance.value;
-    }
+    // 同步更新 store 中的資料並持久化
+    authStore.updatePoints(liveBalance.value);
   } catch (err) {
     console.error('Failed to sync wallet balance', err);
   }

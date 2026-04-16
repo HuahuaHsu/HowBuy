@@ -6,10 +6,13 @@ using System.Security.Claims;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace ISpanShop.WebAPI.Controllers
 {
     [ApiController]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     [Route("api/coupon")]
     public class CouponController : ControllerBase
     {
@@ -72,6 +75,7 @@ namespace ISpanShop.WebAPI.Controllers
             return Ok(coupons);
         }
 
+        [AllowAnonymous]
         [HttpGet("public-list")]
         public async Task<IActionResult> GetPublicCoupons()
         {
@@ -82,7 +86,6 @@ namespace ISpanShop.WebAPI.Controllers
 
                 var coupons = await _couponService.GetPublicCouponsAsync(userId);
                 
-                // 如果用戶已登入，取得該用戶已領取的優惠券 ID 清單
                 var claimedIds = new List<int>();
                 if (userId.HasValue)
                 {
@@ -92,7 +95,6 @@ namespace ISpanShop.WebAPI.Controllers
                         .ToListAsync();
                 }
 
-                // 回傳 DTO，標記是否已領取
                 var result = coupons.Select(c => new {
                     c.Id,
                     c.Title,
@@ -130,6 +132,7 @@ namespace ISpanShop.WebAPI.Controllers
             return Ok(new { message });
         }
 
+        [AllowAnonymous]
         [HttpGet("fix-locks")]
         public async Task<IActionResult> FixLocks()
         {

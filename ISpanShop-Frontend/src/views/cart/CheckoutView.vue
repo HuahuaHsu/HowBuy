@@ -75,6 +75,9 @@ onMounted(async () => {
     availableCoupons.value = couponsRes.data
     // 支援 balance 或 pointBalance 欄位
     walletBalance.value = walletRes.data.pointBalance ?? walletRes.data.balance ?? 0
+    
+    // 同步更新 store 中的資料並持久化
+    authStore.updatePoints(walletBalance.value)
 
     // ── 自動帶入最佳優惠券 ──
     if (availableCoupons.value.length > 0) {
@@ -124,7 +127,7 @@ async function handleSubmit() {
   
   try {
     const payload: CheckoutRequest = {
-      userId: authStore.user?.id || 0,
+      userId: authStore.memberInfo?.memberId || 0,
       storeId: cartStore.items[0].storeId,
       usePoints: usePoints.value,
       couponId: selectedCouponId.value,

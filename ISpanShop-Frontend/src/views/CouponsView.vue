@@ -3,12 +3,16 @@ import { ref, onMounted } from 'vue';
 import { getPublicCoupons, claimCoupon, type Coupon } from '@/api/coupon';
 import { ElMessage } from 'element-plus';
 import { Ticket, Timer, CircleCheck, InfoFilled } from '@element-plus/icons-vue';
+import { useAuthStore } from '@/stores/auth';
+import { useRouter } from 'vue-router';
 
+const authStore = useAuthStore();
+const router = useRouter();
 const coupons = ref<Coupon[]>([]);
 const loading = ref(true);
 
 const fetchCoupons = async () => {
-  loading.ref = true;
+  loading.value = true;
   try {
     const res = await getPublicCoupons();
     coupons.value = res.data;
@@ -21,6 +25,13 @@ const fetchCoupons = async () => {
 };
 
 const handleClaim = async (coupon: Coupon) => {
+  // 1. 檢查登入狀態
+  if (!authStore.isLoggedIn) {
+    ElMessage.warning('請先登入後再領取優惠券');
+    router.push({ name: 'login', query: { redirect: router.currentRoute.value.fullPath } });
+    return;
+  }
+
   if (coupon.isClaimed) return;
   
   try {
