@@ -173,15 +173,13 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .orders-page {
-  background-color: #f5f5f5;
-  min-height: calc(100vh - 200px);
-  padding: 20px 0;
+  /* 移除原本的背景色與 padding */
 }
 
 .orders-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 10px;
+  max-width: 1000px; /* 稍微縮小寬度以適應側邊欄後的空間 */
+  margin: 0;
+  padding: 0;
 }
 
 /* Tabs 樣式優化 */
