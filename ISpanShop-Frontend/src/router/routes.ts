@@ -147,6 +147,8 @@ export const routes: RouteRecordRaw[] = [
     name: 'checkout',
     component: () => import('../views/cart/CheckoutView.vue'),
     meta: { requiresAuth: true }
+  },
+  {
     path: '/cart',
     name: 'cart',
     component: () => import('../views/cart/CartView.vue'),
