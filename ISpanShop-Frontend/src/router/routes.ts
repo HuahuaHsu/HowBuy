@@ -55,6 +55,21 @@ export const routes: RouteRecordRaw[] = [
             component: () => import('../views/member/ProfileView.vue'),
           },
           {
+            path: 'address',
+            name: 'member-address',
+            component: () => import('../views/member/AddressView.vue'),
+          },
+          {
+            path: 'password',
+            name: 'member-password',
+            component: () => import('../views/member/PasswordView.vue'),
+          },
+          {
+            path: 'privacy',
+            name: 'member-privacy',
+            component: () => import('../views/member/PrivacyView.vue'),
+          },
+          {
             path: 'orders',
             name: 'member-orders',
             component: () => import('../views/member/OrdersView.vue'),

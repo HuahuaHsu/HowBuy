@@ -38,7 +38,8 @@
     <header class="main-header">
       <div class="main-header-inner">
         <div class="logo" @click="$router.push('/')">
-          <span class="logo-icon">🛍️</span>
+          <img src="@/assets/images/howbuyLogo.png" class="logo-icon" alt="HowBuy Logo">
+          <!-- <span data-v-75d0be1e="" class="logo-icon">🛍️</span> -->
           <span class="logo-text">HowBuy</span>
         </div>
 
@@ -159,7 +160,10 @@
 
       <div class="footer-inner">
         <div class="footer-col footer-brand">
-          <div class="footer-logo">🛍️ HowBuy</div>
+          <div class="footer-logo">
+            <img src="@/assets/images/howbuyLogo.png" class="footer-logo-img" alt="HowBuy Logo">
+            HowBuy
+          </div>
           <p>讓購物變得更簡單、更美好</p>
           <div class="social-icons">
             <a href="#"><el-icon><ChatDotRound /></el-icon></a>
@@ -321,7 +325,11 @@ function handleDropdownCommand(command: string) {
   transition: transform 0.3s;
 }
 .logo:hover { transform: scale(1.05); }
-.logo-icon { font-size: 36px; }
+.logo-icon {
+  height: 70px;
+  width: auto;
+  object-fit: contain;
+}
 .logo-text {
   font-size: 32px;
   font-weight: 800;
@@ -453,10 +461,18 @@ function handleDropdownCommand(command: string) {
   padding: 50px 30px 30px;
 }
 .footer-brand .footer-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 26px;
   font-weight: 800;
   color: #EE4D2D;
   margin-bottom: 12px;
+}
+.footer-logo-img {
+  height: 30px;
+  width: auto;
+  object-fit: contain;
 }
 .footer-brand p {
   color: #94a3b8;

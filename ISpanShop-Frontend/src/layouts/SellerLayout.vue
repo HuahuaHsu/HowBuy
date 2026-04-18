@@ -4,7 +4,7 @@
     <header class="seller-header">
       <div class="header-left">
         <div class="seller-logo" @click="router.push('/seller')">
-          <span class="logo-icon">🏪</span>
+          <img src="@/assets/images/howbuyLogo.png" class="logo-icon" alt="HowBuy Logo">
           <span class="logo-text">HowBuy <span class="logo-sub">賣家中心</span></span>
         </div>
       </div>
@@ -204,7 +204,11 @@ function handleCommand(command: string): void {
   cursor: pointer;
   user-select: none;
 }
-.logo-icon { font-size: 22px; }
+.logo-icon {
+  height: 32px;
+  width: auto;
+  object-fit: contain;
+}
 .logo-text {
   font-size: 18px;
   font-weight: 700;

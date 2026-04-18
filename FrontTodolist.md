@@ -139,3 +139,5 @@
   [ ] 20. 建立 RegisterView.vue
           位置：src/views/auth/RegisterView.vue
           說明：使用 Element Plus el-form，呼叫 registerApi()，成功後導向登入頁。
+
+
