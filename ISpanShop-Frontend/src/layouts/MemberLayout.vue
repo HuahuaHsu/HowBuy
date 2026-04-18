@@ -8,8 +8,13 @@
           <!-- 會員資訊區塊 -->
           <div class="sidebar-user-card" @click="router.push('/member/profile')">
             <div class="avatar">
+            <img v-if="authStore.memberInfo?.avatarUrl"
+            :src="`https://localhost:7125${authStore.memberInfo.avatarUrl}`"
+            style="width:100%; height:100%; border-radius:50%; object-fit:cover;"/>
+            <span v-else>
               {{ authStore.memberInfo?.account?.charAt(0).toUpperCase() || 'U' }}
-            </div>
+            </span>
+          </div>
             <div class="user-details">
               <span class="username">{{ authStore.memberInfo?.account || '正在讀取...' }}</span>
               <span class="level-badge">
@@ -61,7 +66,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { User, Document, Wallet, Setting, Menu } from '@element-plus/icons-vue'
+import { User, Document, Wallet, Menu } from '@element-plus/icons-vue'
 import { useAuthStore } from '../stores/auth'
 
 const route = useRoute()
@@ -69,10 +74,7 @@ const router = useRouter()
 const authStore = useAuthStore()
 const activeMenu = computed(() => route.path)
 
-function logout() {
-  authStore.logout()
-  router.push('/login')
-}
+
 </script>
 
 <style scoped>

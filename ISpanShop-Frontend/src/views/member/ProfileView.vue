@@ -4,7 +4,8 @@ import { useAuthStore } from '../../stores/auth'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { User, Message, Iphone, Calendar } from '@element-plus/icons-vue'
-import { getMemberProfile, updateMemberProfile, uploadAvatar, type UpdateMemberProfileDto } from '../../api/member'
+import { getMemberProfile, updateMemberProfile, uploadAvatar, type UpdateMemberProfileDto, type MemberDto } from '../../api/member'
+import { storage } from '../../utils/storage'
 
 const authStore = useAuthStore()
 const profileFormRef = ref<FormInstance>()
@@ -49,20 +50,20 @@ const fetchProfile = async () => {
   try {
     isLoading.value = true
     const response = await getMemberProfile(memberId)
-    const data = response.data as any
+    const data = response.data as MemberDto
 
     // 補足其餘細節欄位 (相容大小寫)
-    profileForm.memberName = data.fullName ?? data.FullName ?? profileForm.memberName
-    profileForm.email = data.email ?? data.Email ?? profileForm.email
-    profileForm.phone = data.phoneNumber ?? data.PhoneNumber ?? profileForm.phone
-    profileForm.gender = data.gender ?? data.Gender ?? null
+    profileForm.memberName = data.fullName ?? data.fullName ?? profileForm.memberName
+    profileForm.email = data.email ?? data.email ?? profileForm.email
+    profileForm.phone = data.phoneNumber ?? data.phoneNumber ?? profileForm.phone
+    profileForm.gender = data.gender ?? data.gender ?? null
 
-    const rawBirthday = data.birthday ?? data.Birthday ?? data.DateOfBirth ?? ''
-    profileForm.birthday = rawBirthday ? String(rawBirthday).split('T')[0] : ''
-    profileForm.avatarUrl = data.avatarUrl ?? data.AvatarUrl ?? ''
-  } catch (error: any) {
-    console.error('取得資料錯誤:', error)
-    const status = error.response?.status
+    const rawBirthday = data.birthday ?? ''
+    profileForm.birthday = rawBirthday ? (String(rawBirthday).split('T')[0] || '') : ''
+    profileForm.avatarUrl = (data.avatarUrl ?? data.avatarUrl ?? '') as string
+  } catch (error: unknown) {
+  const err = error as { response?: { status?: number; data?: { message?: string } } }
+  const status = err.response?.status
     if (status === 404) {
       ElMessage.error('找不到會員資料，會員 ID 可能不存在')
     } else {
@@ -107,10 +108,13 @@ const handleSave = async (formEl: FormInstance | undefined) => {
     // 同步更新 Pinia 與 LocalStorage
     authStore.memberInfo.email = profileForm.email
     authStore.memberInfo.memberName = profileForm.memberName
-  } catch (error: any) {
+    authStore.memberInfo.avatarUrl = profileForm.avatarUrl
+    storage.setUser(authStore.memberInfo)
+  } catch (error: unknown) {
     console.error('更新失敗:', error)
-    console.error('錯誤詳情:', error.response?.data) // 印出後端錯誤訊息
-    const msg = error.response?.data?.message || '更新失敗，請稍後再試'
+    const err = error as { response?: { data?: { message?: string } } }
+    console.error('錯誤詳情:', err.response?.data) // 印出後端錯誤訊息
+    const msg = err.response?.data?.message || '更新失敗，請稍後再試'
     ElMessage.error(msg)
   } finally {
     isSaving.value = false
@@ -151,8 +155,8 @@ const handleAvatarUpload = async (rawFile: File) => {
     profileForm.avatarUrl = res.data.url
 
     ElMessage.success('頭像上傳成功，請記得點擊儲存')
-  } catch (error: any) {
-    ElMessage.error('頭像上傳失敗，請稍後再試')
+  } catch {
+  ElMessage.error('頭像上傳失敗，請稍後再試')
     profileForm.avatarUrl = '' // 上傳失敗就清掉預覽
   } finally {
     isUploading.value = false

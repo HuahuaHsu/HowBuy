@@ -11,6 +11,7 @@ export interface LoginResponse {
   memberName: string;
   levelName: string;
   pointBalance: number;
+  avatarUrl?: string;
 }
 
 export interface RegisterRequest {

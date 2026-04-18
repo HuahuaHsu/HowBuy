@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { loginApi } from '../api/auth';
+import { getMemberProfile } from '../api/member'
 import type { LoginRequest } from '../types/auth';
 import { storage } from '../utils/storage';
 
@@ -14,13 +15,15 @@ export const useAuthStore = defineStore('auth', () => {
     memberName: string | null;
     levelName: string | null;
     pointBalance: number | null;
+    avatarUrl: string | null;
   }>(storage.getUser() || {
     memberId: null,
     email: null,
     account: null,
     memberName: null,
     levelName: null,
-    pointBalance: null
+    pointBalance: null,
+    avatarUrl: null
   });
 
   // Getters
@@ -34,7 +37,7 @@ export const useAuthStore = defineStore('auth', () => {
 
       const response = await loginApi(loginData);
       const { data } = response;
-      
+
       // 1. 存入 Token 與 使用者資訊 (由後端 DTO 回傳)
       token.value = data.token;
       memberInfo.value = {
@@ -43,14 +46,23 @@ export const useAuthStore = defineStore('auth', () => {
         account: data.account,
         memberName: data.memberName,
         levelName: data.levelName,
-        pointBalance: data.pointBalance
+        pointBalance: data.pointBalance,
+        avatarUrl: data.avatarUrl || null
       };
 
       // 2. 持久化到 localStorage
-      storage.setToken(data.token);
-      storage.setUser(memberInfo.value);
-      
+        storage.setToken(data.token);
+        storage.setUser(memberInfo.value);;
+    try {
+        const profileRes = await getMemberProfile(data.memberId)
+        memberInfo.value.avatarUrl = profileRes.data.avatarUrl ?? null
+        storage.setUser(memberInfo.value)
+      } catch {
+        // 拿不到也沒關係，不影響登入
+      }
+
       return true;
+
     } catch (error) {
       console.error('登入失敗:', error);
       throw error;
@@ -66,7 +78,8 @@ export const useAuthStore = defineStore('auth', () => {
       account: null,
       memberName: null,
       levelName: null,
-      pointBalance: null
+      pointBalance: null,
+      avatarUrl: null
     };
 
     // 2. 清除 localStorage
