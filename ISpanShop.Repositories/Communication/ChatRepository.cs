@@ -3,52 +3,76 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-using ISpanShop.Models.EfModels; // 引用你生成的實體模型
+using ISpanShop.Models.EfModels;
 
 namespace ISpanShop.Repositories.Communication
 {
-	// 1. 定義介面 (Interface)
-	public interface IChatRepository
-	{
-		// 取得使用者的未讀訊息總數 (用於導覽列紅點)
-		Task<int> GetUnreadCountAsync(int receiverId);
-
-		// 將特定對象傳來的訊息標記為「已讀」
-		Task MarkAsReadAsync(int senderId, int receiverId);
-
-		// 儲存新訊息
-		Task AddMessageAsync(ChatMessage message);
-
-		// 取得買賣家雙方的歷史聊天紀錄
-		Task<List<ChatMessage>> GetChatHistoryAsync(int user1Id, int user2Id);
-
-        // 取得聯絡人列表 (包含最後一則訊息)
+    public interface IChatRepository
+    {
+        Task<int> GetUnreadCountAsync(int receiverId);
+        Task MarkAsReadAsync(int senderId, int receiverId);
+        Task AddMessageAsync(ChatMessage message);
+        Task<List<ChatMessage>> GetChatHistoryAsync(int user1Id, int user2Id);
         Task<List<dynamic>> GetChatSessionsAsync(int userId);
-	}
+    }
 
-	// 2. 實作介面
-	public class ChatRepository : IChatRepository
-	{
-		// ... (existing constructor)
-		private readonly ISpanShopDBContext _context;
+    public class ChatRepository : IChatRepository
+    {
+        private readonly ISpanShopDBContext _context;
 
-		public ChatRepository(ISpanShopDBContext context)
-		{
-			_context = context;
-		}
+        public ChatRepository(ISpanShopDBContext context)
+        {
+            _context = context;
+        }
 
-		// ... (existing methods)
+        public async Task<int> GetUnreadCountAsync(int receiverId)
+        {
+            return await _context.ChatMessages
+                .Where(m => m.ReceiverId == receiverId && m.IsRead == false)
+                .CountAsync();
+        }
 
-		// 實作：取得聯絡人列表.
-		public async Task<List<dynamic>> GetChatSessionsAsync(int userId)
-		{
-            // 找出所有與該使用者有關的訊息，並依對象分組
-            var messages = await _context.ChatMessages
+        public async Task MarkAsReadAsync(int senderId, int receiverId)
+        {
+            var unreadMessages = await _context.ChatMessages
+                .Where(m => m.SenderId == senderId && m.ReceiverId == receiverId && m.IsRead == false)
+                .ToListAsync();
+
+            if (unreadMessages.Any())
+            {
+                foreach (var msg in unreadMessages)
+                {
+                    msg.IsRead = true;
+                }
+                await _context.SaveChangesAsync();
+            }
+        }
+
+        public async Task AddMessageAsync(ChatMessage message)
+        {
+            _context.ChatMessages.Add(message);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<List<ChatMessage>> GetChatHistoryAsync(int user1Id, int user2Id)
+        {
+            return await _context.ChatMessages
+                .Where(m => (m.SenderId == user1Id && m.ReceiverId == user2Id) ||
+                            (m.SenderId == user2Id && m.ReceiverId == user1Id))
+                .OrderBy(m => m.SentAt)
+                .ToListAsync();
+        }
+
+        public async Task<List<dynamic>> GetChatSessionsAsync(int userId)
+        {
+            // 找出所有與該使用者有關的訊息
+            var allMessages = await _context.ChatMessages
                 .Where(m => m.SenderId == userId || m.ReceiverId == userId)
                 .OrderByDescending(m => m.SentAt)
                 .ToListAsync();
 
-            var sessions = messages
+            // 依對象分組，取得最後一則訊息與未讀數
+            var sessions = allMessages
                 .GroupBy(m => m.SenderId == userId ? m.ReceiverId : m.SenderId)
                 .Select(g => new
                 {
@@ -60,6 +84,6 @@ namespace ISpanShop.Repositories.Communication
                 .ToList<dynamic>();
 
             return sessions;
-		}
-	}
+        }
+    }
 }

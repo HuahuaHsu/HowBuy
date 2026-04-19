@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ISpanShop.Services.Communication;
 using System.Security.Claims;
+using System.Threading.Tasks;
 
 namespace ISpanShop.MVC.Controllers.Api
 {
