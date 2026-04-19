@@ -8,6 +8,7 @@ import { storage } from '../utils/storage';
 export const useAuthStore = defineStore('auth', () => {
   // State
   const token = ref<string | null>(storage.getToken());
+  const isLoginDialogOpen = ref(false); // 控制彈窗顯示
   const memberInfo = ref<{
     memberId: number | null;
     email: string | null;
@@ -94,12 +95,23 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  function openLoginDialog() {
+    isLoginDialogOpen.value = true;
+  }
+
+  function closeLoginDialog() {
+    isLoginDialogOpen.value = false;
+  }
+
   return {
     token,
+    isLoginDialogOpen,
     memberInfo,
     isLoggedIn,
     login,
     logout,
-    updatePoints
+    updatePoints,
+    openLoginDialog,
+    closeLoginDialog
   };
 });

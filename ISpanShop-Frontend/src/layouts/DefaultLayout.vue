@@ -9,10 +9,10 @@
         </div>
         <div class="top-right">
           <template v-if="!authStore.isLoggedIn">
-            <a href="#" @click.prevent="router.push('/member')">會員中心</a>
+            <a href="#" @click.prevent="authStore.openLoginDialog()">會員中心</a>
             <span class="divider">|</span>
             <a href="#" @click.prevent="router.push('/register')">註冊</a>
-            <a href="#" @click.prevent="router.push('/login')">登入</a>
+            <a href="#" @click.prevent="authStore.openLoginDialog()">登入</a>
           </template>
 
           <template v-else>
@@ -74,7 +74,7 @@
         </div>
 
         <div class="header-actions">
-          <div class="action-icon" @click="$router.push('/member/favorites')">
+          <div class="action-icon" @click="handleActionClick('/member/favorites')">
             <el-icon :size="24"><Star /></el-icon>
             <div class="action-label">收藏</div>
           </div>
@@ -86,7 +86,7 @@
             :disabled="cartStore.totalCount === 0"
           >
             <template #reference>
-              <div class="action-icon cart" @click="$router.push('/cart')">
+              <div class="action-icon cart" @click="handleActionClick('/cart')">
                 <el-badge :value="cartStore.totalCount" :hidden="cartStore.totalCount === 0" :max="99">
                   <el-icon :size="24"><ShoppingCart /></el-icon>
                 </el-badge>
@@ -248,7 +248,16 @@ function handleDropdownCommand(command: string) {
   } else if (command === 'logout') {
     authStore.logout()
     ElMessage.success('已登出')
-    router.push('/login')
+    router.push('/')
+  }
+}
+
+/** 處理需要登入的點擊動作 */
+function handleActionClick(path: string) {
+  if (authStore.isLoggedIn) {
+    router.push(path)
+  } else {
+    authStore.openLoginDialog()
   }
 }
 </script>
