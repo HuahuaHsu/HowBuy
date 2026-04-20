@@ -14,6 +14,7 @@ namespace ISpanShop.Repositories.Communication
         Task AddMessageAsync(ChatMessage message);
         Task<List<ChatMessage>> GetChatHistoryAsync(int user1Id, int user2Id);
         Task<List<ISpanShop.Models.DTOs.Common.ChatSessionDto>> GetChatSessionsAsync(int userId);
+        Task<bool> RecallMessageAsync(long messageId, int senderId);
     }
 
     public class ChatRepository : IChatRepository
@@ -54,6 +55,17 @@ namespace ISpanShop.Repositories.Communication
             await _context.SaveChangesAsync();
         }
 
+        public async Task<bool> RecallMessageAsync(long messageId, int senderId)
+        {
+            var msg = await _context.ChatMessages.FirstOrDefaultAsync(m => m.Id == messageId && m.SenderId == senderId);
+            if (msg == null) return false;
+
+            msg.Content = "訊息已撤回";
+            msg.Type = 99; // 撤回專用類型
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
         public async Task<List<ChatMessage>> GetChatHistoryAsync(int user1Id, int user2Id)
         {
             return await _context.ChatMessages
@@ -80,7 +92,7 @@ namespace ISpanShop.Repositories.Communication
             // 一次撈出這些對象的姓名資訊 (優先顯示商店名稱，若無則顯示姓名)
             var userInfos = await _context.Users
                 .Include(u => u.MemberProfile)
-                .Include(u => u.Products) // 透過 Products 或直接 Include Store (視導覽屬性而定)
+                .Include(u => u.Products)
                 .Where(u => otherUserIds.Contains(u.Id))
                 .Select(u => new { 
                     u.Id, 
@@ -101,11 +113,10 @@ namespace ISpanShop.Repositories.Communication
                         1 => "[圖片]",
                         2 => "[影片]",
                         3 => "[檔案]",
+                        99 => "[訊息已撤回]",
                         _ => lastMsg.Content
                     };
                     
-                    Console.WriteLine($"[DebugChat] MsgId: {lastMsg.Id}, Type: {lastMsg.Type}, Display: {displayMsg}");
-
                     return new ISpanShop.Models.DTOs.Common.ChatSessionDto
                     {
                         OtherUserId = g.Key,

@@ -15,14 +15,11 @@ export function useChat() {
   const initConnection = async () => {
     if (!authStore.token) return;
 
-    // ── 修正：移除 skipNegotiation，讓連線更穩定 ──
     const hubUrl = 'https://localhost:7125/chatHub';
 
     connection.value = new signalR.HubConnectionBuilder()
       .withUrl(hubUrl, {
         accessTokenFactory: () => authStore.token!,
-        // 移除 skipNegotiation: true
-        // 讓 SignalR 自動選擇最佳傳輸方式
       })
       .withAutomaticReconnect()
       .build();
@@ -35,7 +32,17 @@ export function useChat() {
         content,
         type,
         sentAt: new Date().toISOString()
-      });
+      } as any);
+      fetchSessions();
+    });
+
+    // 監聽撤回訊息
+    connection.value.on('MessageRecalled', (messageId: number) => {
+      const msg = messages.value.find(m => (m as any).id === messageId);
+      if (msg) {
+        msg.type = 99;
+        msg.content = '訊息已撤回';
+      }
       fetchSessions();
     });
 
@@ -88,6 +95,16 @@ export function useChat() {
     }
   };
 
+  const recallMessage = async (messageId: number, receiverId: number) => {
+    if (connection.value && isConnected.value) {
+      try {
+        await connection.value.invoke('RecallMessage', messageId, receiverId);
+      } catch (err) {
+        console.error('Recall Message Error:', err);
+      }
+    }
+  };
+
   onMounted(() => {
     if (authStore.isLoggedIn) {
       initConnection();
@@ -104,8 +121,10 @@ export function useChat() {
     messages,
     sessions,
     isConnected,
+    connection,
     fetchHistory,
     fetchSessions,
-    sendMessage
+    sendMessage,
+    recallMessage
   };
 }
