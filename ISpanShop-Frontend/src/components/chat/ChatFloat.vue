@@ -20,56 +20,61 @@
             </div>
           </div>
           <div class="session-list">
-            <div 
-              v-for="session in sessions" 
-              :key="session.otherUserId" 
-              class="session-item"
-              :class="{ active: chatStore.currentChatUser?.id === session.otherUserId }"
-              @click="selectUser(session)"
-            >
-              <el-avatar :size="40" src="https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png" />
-              <div class="session-info">
-                <div class="session-top">
-                  <span class="session-name">用戶 {{ session.otherUserId }}</span>
-                  <span class="session-time">{{ formatDate(session.sentAt) }}</span>
-                </div>
-                <div class="session-bottom">
-                  <span class="session-last-msg">{{ session.lastMessage }}</span>
-                  <el-badge :value="session.unreadCount" :hidden="session.unreadCount === 0" />
-                </div>
+          <div 
+            v-for="session in sessions" 
+            :key="session.otherUserId" 
+            class="session-item"
+            :class="{ active: chatStore.currentChatUser?.id === session.otherUserId }"
+            @click="selectUser(session)"
+          >
+            <el-avatar :size="40" src="https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png" />
+            <div class="session-info">
+              <div class="session-top">
+                <span class="session-name">{{ session.otherUserName }}</span>
+                <span class="session-time">{{ formatDate(session.sentAt) }}</span>
+              </div>
+              <div class="session-bottom">
+                <span class="session-last-msg">{{ session.lastMessage }}</span>
+                <el-badge :value="session.unreadCount" :hidden="session.unreadCount === 0" />
               </div>
             </div>
           </div>
-        </div>
+          </div>
+          </div>
 
-        <!-- 右側對話區域 -->
-        <div class="chat-main">
+          <!-- 右側對話區域 -->
+          <div class="chat-main">
           <template v-if="chatStore.currentChatUser?.id">
-            <div class="chat-header">
-              <span class="chat-title">{{ chatStore.currentChatUser.name }}</span>
-              <div class="header-actions">
-                <el-icon class="close-btn" @click="chatStore.closeChat()"><Close /></el-icon>
-              </div>
+          <div class="chat-header">
+            <span class="chat-title">{{ chatStore.currentChatUser.name }}</span>
+            <div class="header-actions">
+              <el-icon class="close-btn" @click="chatStore.closeChat()"><Close /></el-icon>
             </div>
+          </div>
 
-            <div class="chat-body" ref="messageBox">
-              <div v-for="(msg, index) in messages" :key="index" 
-                   class="message-item" 
-                   :class="{ 'is-me': msg.senderId === authStore.memberInfo.memberId }">
-                <div class="message-content">
+          <div class="chat-body" ref="messageBox">
+            <div v-for="(msg, index) in messages" :key="index" 
+                 class="message-item" 
+                 :class="{ 'is-me': msg.senderId === authStore.memberInfo.memberId }">
+              <div class="message-content">
+                <template v-if="msg.type === 1">
+                  <el-image :src="msg.content" :preview-src-list="[msg.content]" class="chat-img" />
+                </template>
+                <template v-else>
                   {{ msg.content }}
-                </div>
-                <div class="message-time">{{ formatTime(msg.sentAt) }}</div>
+                </template>
               </div>
+              <div class="message-time">{{ formatTime(msg.sentAt) }}</div>
             </div>
+          </div>
 
-            <div class="chat-footer">
-              <div class="footer-tools">
-                <el-icon><Picture /></el-icon>
-                <el-icon><VideoCamera /></el-icon>
-                <el-icon><FolderOpened /></el-icon>
-              </div>
-              <div class="input-area">
+          <div class="chat-footer">
+            <div class="footer-tools">
+              <el-icon @click="triggerImageUpload"><Picture /></el-icon>
+              <input type="file" ref="fileInput" style="display: none" accept="image/*" @change="handleImageUpload" />
+              <el-icon><VideoCamera /></el-icon>
+              <el-icon><FolderOpened /></el-icon>
+            </div>              <div class="input-area">
                 <el-input
                   v-model="inputMsg"
                   type="textarea"
@@ -116,6 +121,25 @@ const { messages, sessions, fetchSessions, fetchHistory, sendMessage } = useChat
 
 const inputMsg = ref('');
 const messageBox = ref<HTMLElement | null>(null);
+const fileInput = ref<HTMLInputElement | null>(null);
+
+const triggerImageUpload = () => {
+  fileInput.value?.click();
+};
+
+const handleImageUpload = async (e: Event) => {
+  const target = e.target as HTMLInputElement;
+  const file = target.files?.[0];
+  if (!file || !chatStore.currentChatUser?.id) return;
+
+  const reader = new FileReader();
+  reader.onload = async (event) => {
+    const base64 = event.target?.result as string;
+    await sendMessage(chatStore.currentChatUser!.id!, base64, 1); // type 1 為圖片
+    target.value = ''; // 清空 input
+  };
+  reader.readAsDataURL(file);
+};
 
 const totalUnread = computed(() => {
   return sessions.value ? sessions.value.reduce((sum, s) => sum + (s.unreadCount || 0), 0) : 0;
@@ -129,7 +153,7 @@ const toggleChat = () => {
 };
 
 const selectUser = async (session: any) => {
-  chatStore.openChatWithUser(session.otherUserId, `用戶 ${session.otherUserId}`);
+  chatStore.openChatWithUser(session.otherUserId, session.otherUserName);
   await fetchHistory(session.otherUserId);
   scrollToBottom();
   fetchSessions();
@@ -315,6 +339,13 @@ watch(() => messages.value.length, () => {
   background: #EE4D2D;
   color: white;
   border-color: #EE4D2D;
+}
+
+.chat-img {
+  max-width: 200px;
+  max-height: 200px;
+  border-radius: 4px;
+  cursor: pointer;
 }
 
 .message-time { font-size: 10px; color: #94a3b8; margin-top: 4px; }

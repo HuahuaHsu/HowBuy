@@ -64,6 +64,7 @@ export function useChat() {
       const response = await axios.get('https://localhost:7125/api/chat/sessions', {
         headers: { Authorization: `Bearer ${authStore.token}` }
       });
+      console.log('Chat Sessions Data:', response.data);
       sessions.value = response.data;
     } catch (err) {
       console.error('Fetch Sessions Error:', err);
@@ -71,12 +72,19 @@ export function useChat() {
   };
 
   const sendMessage = async (receiverId: number, content: string, type: number = 0) => {
+    console.log('Attempting to send message:', { receiverId, content, type });
     if (connection.value && isConnected.value) {
       try {
         await connection.value.invoke('SendMessage', receiverId, content, type);
+        console.log('Message sent successfully via SignalR');
       } catch (err) {
         console.error('Send Message Error: ', err);
       }
+    } else {
+      console.error('Cannot send message: SignalR not connected.', { 
+        connectionExists: !!connection.value, 
+        isConnected: isConnected.value 
+      });
     }
   };
 

@@ -13,7 +13,7 @@ namespace ISpanShop.Repositories.Communication
         Task MarkAsReadAsync(int senderId, int receiverId);
         Task AddMessageAsync(ChatMessage message);
         Task<List<ChatMessage>> GetChatHistoryAsync(int user1Id, int user2Id);
-        Task<List<dynamic>> GetChatSessionsAsync(int userId);
+        Task<List<ISpanShop.Models.DTOs.Common.ChatSessionDto>> GetChatSessionsAsync(int userId);
     }
 
     public class ChatRepository : IChatRepository
@@ -63,7 +63,7 @@ namespace ISpanShop.Repositories.Communication
                 .ToListAsync();
         }
 
-        public async Task<List<dynamic>> GetChatSessionsAsync(int userId)
+        public async Task<List<ISpanShop.Models.DTOs.Common.ChatSessionDto>> GetChatSessionsAsync(int userId)
         {
             // 找出所有與該使用者有關的訊息
             var allMessages = await _context.ChatMessages
@@ -71,17 +71,45 @@ namespace ISpanShop.Repositories.Communication
                 .OrderByDescending(m => m.SentAt)
                 .ToListAsync();
 
+            // 取得所有對話對象的 ID
+            var otherUserIds = allMessages
+                .Select(m => m.SenderId == userId ? m.ReceiverId : m.SenderId)
+                .Distinct()
+                .ToList();
+
+            // 一次撈出這些對象的姓名資訊 (優先顯示商店名稱，若無則顯示姓名)
+            var userInfos = await _context.Users
+                .Include(u => u.MemberProfile)
+                .Include(u => u.Products) // 透過 Products 或直接 Include Store (視導覽屬性而定)
+                .Where(u => otherUserIds.Contains(u.Id))
+                .Select(u => new { 
+                    u.Id, 
+                    DisplayName = _context.Stores.Where(s => s.UserId == u.Id).Select(s => s.StoreName).FirstOrDefault() 
+                                 ?? u.MemberProfile.FullName 
+                                 ?? u.Account 
+                })
+                .ToDictionaryAsync(u => u.Id, u => u.DisplayName ?? "未知用戶");
+
             // 依對象分組，取得最後一則訊息與未讀數
             var sessions = allMessages
                 .GroupBy(m => m.SenderId == userId ? m.ReceiverId : m.SenderId)
-                .Select(g => new
-                {
-                    OtherUserId = g.Key,
-                    LastMessage = g.First().Content,
-                    SentAt = g.First().SentAt,
-                    UnreadCount = g.Count(m => m.ReceiverId == userId && m.IsRead == false)
+                .Select(g => {
+                    var lastMsg = g.First();
+                    // 強制檢查 Type，如果是 1 (byte) 則顯示 [圖片]
+                    string displayMsg = lastMsg.Type == (byte)1 ? "[圖片]" : lastMsg.Content;
+                    
+                    Console.WriteLine($"[DebugChat] MsgId: {lastMsg.Id}, Type: {lastMsg.Type}, Display: {displayMsg}");
+
+                    return new ISpanShop.Models.DTOs.Common.ChatSessionDto
+                    {
+                        OtherUserId = g.Key,
+                        OtherUserName = userInfos.ContainsKey(g.Key) ? userInfos[g.Key] : $"用戶 {g.Key}",
+                        LastMessage = displayMsg,
+                        SentAt = lastMsg.SentAt,
+                        UnreadCount = g.Count(m => m.ReceiverId == userId && m.IsRead == false)
+                    };
                 })
-                .ToList<dynamic>();
+                .ToList();
 
             return sessions;
         }

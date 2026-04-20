@@ -18,7 +18,7 @@ public interface IChatService
     Task<List<ChatMessage>> GetChatHistoryAsync(int user1Id, int user2Id);
 
     // 取得對話清單
-    Task<List<dynamic>> GetChatSessionsAsync(int userId);
+    Task<List<ISpanShop.Models.DTOs.Common.ChatSessionDto>> GetChatSessionsAsync(int userId);
 }
 
 // 2. 實作
@@ -40,7 +40,7 @@ public class ChatService : IChatService
         return await _chatRepo.GetChatHistoryAsync(user1Id, user2Id);
     }
 
-    public async Task<List<dynamic>> GetChatSessionsAsync(int userId)
+    public async Task<List<ISpanShop.Models.DTOs.Common.ChatSessionDto>> GetChatSessionsAsync(int userId)
     {
         return await _chatRepo.GetChatSessionsAsync(userId);
     }

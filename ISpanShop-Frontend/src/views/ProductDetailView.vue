@@ -428,7 +428,7 @@ function handleOpenChat() {
   }
   const store = safeProduct.value.store
   if (store) {
-    chatStore.openChatWithUser(store.id || 1, store.name || '賣家')
+    chatStore.openChatWithUser(store.userId || 1, store.name || '賣家')
   }
 }
 
