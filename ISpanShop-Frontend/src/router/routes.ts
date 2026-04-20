@@ -98,6 +98,11 @@ export const routes: RouteRecordRaw[] = [
             path: 'mystore',
             name: 'member-mystore',
             component: () => import('../views/member/MyStoreView.vue'),
+          },
+          {
+            path: 'seller-apply',
+            name: 'member-seller-apply',
+            component: () => import('../views/member/SellerApplyView.vue'),
           }
         ]
       }

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using ISpanShop.Models.DTOs.Stores;
 using ISpanShop.Repositories.Stores;
+using ISpanShop.Repositories.Members;
 using ISpanShop.Common.Helpers;
 
 namespace ISpanShop.Services.Stores
@@ -9,10 +10,12 @@ namespace ISpanShop.Services.Stores
      public class StoreService : IStoreService
     {
         private readonly IStoreRepository _storeRepository;
+        private readonly IMemberRepository _memberRepository;
 
-        public StoreService(IStoreRepository storeRepository)
+        public StoreService(IStoreRepository storeRepository, IMemberRepository memberRepository)
         {
             _storeRepository = storeRepository;
+            _memberRepository = memberRepository;
         }
 
         public IEnumerable<StoreDto> GetAllStores(
@@ -57,10 +60,16 @@ namespace ISpanShop.Services.Stores
 
         public (bool IsSuccess, string Message) ToggleVerified(int storeId, bool isVerified)
         {
+            var store = _storeRepository.GetStoreById(storeId);
+            if (store == null) return (false, "找不到賣場");
+
             var result = _storeRepository.ToggleVerified(storeId, isVerified);
             if (!result) return (false, "操作失敗");
 
-            string msg = isVerified ? "已通過審核" : "已取消審核";
+            // 同步更新會員的身分
+            _memberRepository.UpdateIsSeller(store.UserId, isVerified);
+
+            string msg = isVerified ? "已通過審核，賣家身分已開通" : "已取消審核，賣家身分已關閉";
             return (true, msg);
         }
 

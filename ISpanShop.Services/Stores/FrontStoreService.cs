@@ -94,5 +94,49 @@ namespace ISpanShop.Services.Stores
                 TopProducts = topProducts
             };
         }
+
+        public async Task<bool> ApplyStoreAsync(int userId, StoreApplyRequestDto dto)
+        {
+            // 1. 檢查是否已有賣場
+            var existingStore = await _context.Stores.AnyAsync(s => s.UserId == userId);
+            if (existingStore)
+            {
+                throw new Exception("您已經申請過或已擁有賣場");
+            }
+
+            // 2. 建立新賣場
+            var newStore = new Store
+            {
+                UserId = userId,
+                StoreName = dto.StoreName,
+                Description = dto.Description,
+                LogoUrl = dto.LogoUrl,
+                IsVerified = null, // 待審核
+                StoreStatus = 2,    // 休假中
+                CreatedAt = DateTime.Now
+            };
+
+            _context.Stores.Add(newStore);
+            return await _context.SaveChangesAsync() > 0;
+        }
+
+        public async Task<string> GetStoreStatusAsync(int userId)
+        {
+            var store = await _context.Stores
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.UserId == userId);
+
+            if (store == null)
+            {
+                return "NotApplied";
+            }
+
+            if (store.IsVerified == null)
+            {
+                return "Pending";
+            }
+
+            return store.IsVerified.Value ? "Approved" : "Rejected";
+        }
     }
 }

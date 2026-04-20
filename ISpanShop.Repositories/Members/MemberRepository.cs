@@ -181,5 +181,10 @@ namespace ISpanShop.Repositories.Members.Implementations
 			_context.Users.Update(user);
 			_context.SaveChanges();
 		}
+
+		public void UpdateIsSeller(int userId, bool isVerified)
+		{
+			throw new NotImplementedException();
+		}
 	}
 }

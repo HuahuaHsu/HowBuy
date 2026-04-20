@@ -1,29 +1,11 @@
-export interface SellerKpi {
-  totalRevenue: number;
-  totalOrders: number;
-  pendingOrders: number;
-  totalProducts: number;
-  lowStockCount: number;
+export interface StoreApplyRequest {
+  storeName: string
+  description?: string
+  logoUrl?: string
 }
 
-export interface ApexChartSeries {
-  name: string;
-  data: number[];
-}
+export type StoreStatus = 'NotApplied' | 'Pending' | 'Approved' | 'Rejected'
 
-export interface ApexChartData {
-  labels: string[];
-  series: ApexChartSeries[];
-}
-
-export interface TopProduct {
-  productName: string;
-  salesVolume: number;
-  salesRevenue: number;
-}
-
-export interface SellerDashboardData {
-  kpis: SellerKpi;
-  salesTrend: ApexChartData;
-  topProducts: TopProduct[];
+export interface StoreStatusResponse {
+  status: StoreStatus
 }

@@ -17,6 +17,7 @@ export const useAuthStore = defineStore('auth', () => {
     levelName: string | null;
     pointBalance: number | null;
     avatarUrl: string | null;
+    isSeller: boolean;
   }>(storage.getUser() || {
     memberId: null,
     email: null,
@@ -24,7 +25,8 @@ export const useAuthStore = defineStore('auth', () => {
     memberName: null,
     levelName: null,
     pointBalance: null,
-    avatarUrl: null
+    avatarUrl: null,
+    isSeller: false
   });
 
   // Getters
@@ -48,7 +50,8 @@ export const useAuthStore = defineStore('auth', () => {
         memberName: data.memberName,
         levelName: data.levelName,
         pointBalance: data.pointBalance,
-        avatarUrl: data.avatarUrl || null
+        avatarUrl: data.avatarUrl || null,
+        isSeller: data.isSeller
       };
 
       // 2. 持久化到 localStorage
@@ -80,7 +83,8 @@ export const useAuthStore = defineStore('auth', () => {
       memberName: null,
       levelName: null,
       pointBalance: null,
-      avatarUrl: null
+      avatarUrl: null,
+      isSeller: false
     };
 
     // 2. 清除 localStorage

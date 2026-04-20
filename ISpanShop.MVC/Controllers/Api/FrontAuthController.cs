@@ -42,10 +42,12 @@ namespace ISpanShop.MVC.Controllers.Api
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] FrontLoginRequestDto request)
         {
-            // ... (existing code)
             try
             {
-                var response = await _authService.LoginAsync(request);
+                // 取得 Client IP
+                var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
+
+                var response = await _authService.LoginAsync(request, ipAddress);
                 return Ok(response);
             }
             catch (Exception ex)

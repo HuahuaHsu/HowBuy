@@ -346,3 +346,57 @@
           說明：新增以下兩條路由，皆使用 BlankLayout，不需 requiresAuth：
             { path: '/forgot-password', component: ForgotPasswordView }
             { path: '/reset-password', component: ResetPasswordView }
+
+【開通賣場】
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+▌Phase 1：後端 — 模型與介面定義
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  [ ] 1. 建立 StoreApplyRequestDto
+         位置：ISpanShop.Models 專案 -> DTOs -> Stores 資料夾 -> StoreApplyRequestDto.cs
+         說明：接收前端傳來的賣場申請資料。
+         內容：StoreName (必填)、Description (選填)、LogoUrl (選填)
+
+  [ ] 2. 更新 IFrontStoreService 介面
+         位置：ISpanShop.Services 專案 -> Interfaces -> IFrontStoreService.cs
+         新增方法：
+         Task<bool> ApplyStoreAsync(int userId, StoreApplyRequestDto dto);
+         Task<string> GetStoreStatusAsync(int userId); // 回傳狀態：NotApplied, Pending, Approved, Rejected
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+▌Phase 2：後端 — Service 與 API 實作
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  [ ] 3. 實作 FrontStoreService 申請邏輯
+         位置：ISpanShop.Services 專案 -> Stores -> FrontStoreService.cs
+         說明：
+         1. 檢查該會員是否已有 Store 紀錄 (避免重複申請)。
+         2. 新增 Store：IsVerified 設為 null (待審核), StoreStatus 設為 2 (休假中)。
+         3. 暫不更新 MemberProfile.IsSeller，待後台審核通過後再更新。
+
+  [ ] 4. 建立 FrontStoreController (Api)
+         位置：ISpanShop.MVC 專案 -> Controllers -> Api -> FrontStoreController.cs
+         實作：
+         POST /api/front/store/apply  -> [Authorize] 接收 DTO 並呼叫 ApplyStoreAsync。
+         GET /api/front/store/status -> [Authorize] 回傳該會員目前的申請進度。
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+▌Phase 3：前端 — 介面與導航邏輯
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  [ ] 5. 定義 Store 相關型別與 API 呼叫
+         位置：src/types/store.ts, src/api/store.ts
+         說明：建立對應後端 DTO 的型別，並實作 axios 呼叫。
+
+  [ ] 6. 建立 SellerApplyView.vue (申請頁面)
+         位置：src/views/member/SellerApplyView.vue
+         說明：使用 Element Plus 製作申請表單。包含賣場名稱、描述與提交按鈕。
+
+  [ ] 7. 實作 MyStoreView.vue 進入邏輯 (入口控管)
+         位置：src/views/member/MyStoreView.vue
+         說明：在頁面掛載時 (onMounted) 檢查申請狀態：
+         - NotApplied -> 顯示申請按鈕或導向 SellerApplyView。
+         - Pending    -> 顯示「申請審核中」提示訊息。
+         - Approved   -> 進入賣家管理介面 (儀表板)。
+         - Rejected   -> 顯示駁回訊息並允許修正後重新申請。

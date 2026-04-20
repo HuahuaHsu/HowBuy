@@ -3,7 +3,7 @@
     <div class="top-bar">
       <div class="top-bar-inner">
         <div class="top-left">
-          <a href="#" @click.prevent="router.push('/seller')">賣家中心</a>
+          <a href="#" @click.prevent="router.push('/member/mystore')">賣家中心</a>
           <span class="divider">|</span>
           <span class="welcome">🎉 全站滿千免運中</span>
         </div>
