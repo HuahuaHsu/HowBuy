@@ -631,7 +631,7 @@ function handleAddToCart(): void {
     quantity: quantity.value,
     specLabel,
     storeId: p.store?.id ?? 0,
-    storeName: p.store?.name ?? "未知商店",
+    storeName: p.storeName,
   })
   ElMessage.success('已加入購物車')
 }
@@ -644,7 +644,28 @@ function handleBuyNow(): void {
   }
 
   // 狀態 C：正常執行購買流程
-  ElMessage.info('即將前往結帳')
+  const p = safeProduct.value
+  const variant = selectedVariant.value
+  const image = activeImageUrl.value || p.images[0]?.url || ''
+  const price = variant ? variant.price : p.priceRange.min
+  const variantId = variant?.id ?? null
+  const specLabel = variant
+    ? Object.entries(variant.specValues).map(([k, v]) => `${k}: ${v}`).join('、')
+    : ''
+
+  cartStore.addItem({
+    productId: p.id,
+    variantId,
+    name: p.name,
+    image,
+    price,
+    quantity: quantity.value,
+    specLabel,
+    storeId: p.store?.id ?? 0,
+    storeName: p.storeName,
+  })
+
+  router.push('/cart')
 }
 
 function handleViewStore(): void {
