@@ -98,7 +98,7 @@ const handleConfirmReceipt = async () => {
 };
 
 const handleRefund = () => {
-  router.push(`/member/orders/${props.orderId}?action=refund`);
+  router.push(`/member/orders/${props.orderId}/refund`);
 };
 
 const handleRefundDetail = () => {

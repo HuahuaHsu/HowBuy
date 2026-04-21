@@ -19,5 +19,5 @@ export const confirmReceiptApi = (id: number) => {
 };
 
 export const requestRefundApi = (id: number, data: any) => {
-  return axios.post(`/api/front/orders/${id}/refund`, data);
+  return axios.post(`/api/front/orders/${id}/return`, data);
 };

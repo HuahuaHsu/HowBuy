@@ -1,6 +1,7 @@
 using System;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using ISpanShop.Models.DTOs.Orders;
 using ISpanShop.Services.Orders;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -84,6 +85,24 @@ namespace ISpanShop.MVC.Controllers.Api
             }
 
             return Ok(new { message = "訂單已完成" });
+        }
+
+        [HttpPost("{id}/return")]
+        public async Task<IActionResult> RequestReturn(long id, [FromBody] FrontReturnRequestDto dto)
+        {
+            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdStr) || !int.TryParse(userIdStr, out int userId))
+            {
+                return Unauthorized();
+            }
+
+            var success = await _orderService.RequestReturnAsync(id, userId, dto);
+            if (!success)
+            {
+                return BadRequest(new { message = "無法發起退貨申請（可能狀態不符或非本人訂單）" });
+            }
+
+            return Ok(new { message = "退貨申請已送出，請等待賣家處理" });
         }
     }
 }

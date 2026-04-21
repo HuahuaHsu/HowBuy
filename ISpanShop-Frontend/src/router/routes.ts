@@ -65,6 +65,11 @@ export const routes: RouteRecordRaw[] = [
             component: () => import('../views/member/OrderDetailView.vue'),
           },
           {
+            path: 'orders/:id/refund',
+            name: 'member-order-refund',
+            component: () => import('../views/member/RefundView.vue'),
+          },
+          {
             path: 'settings',
             name: 'member-settings',
             component: () => import('../views/member/SettingsView.vue'),

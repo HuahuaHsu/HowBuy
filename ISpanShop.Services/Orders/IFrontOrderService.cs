@@ -10,5 +10,6 @@ namespace ISpanShop.Services.Orders
         Task<FrontOrderDetailDto> GetOrderDetailAsync(long orderId, int memberId);
         Task<bool> CancelOrderAsync(long orderId, int memberId);
         Task<bool> ConfirmReceiptAsync(long orderId, int memberId);
+        Task<bool> RequestReturnAsync(long orderId, int memberId, FrontReturnRequestDto dto);
     }
 }
