@@ -11,9 +11,9 @@ namespace ISpanShop.Services
     public class NewebPayService
     {
         // 藍新測試帳號（官方提供，正式上線請換成自己的）
-        private const string MerchantID = "MS151740924"; // 這是藍新官方提供的測試 ID 範例，請確認你的 ID
-        private const string HashKey = "m0GIn6VjL0zE8yJ1hA6IuU8Hw3hRz8Jm"; // 測試用的 Key
-        private const string HashIV = "fD3rY6uG8jI1kO3p"; // 測試用的 IV
+        private const string MerchantID = "MS158831095"; // 這是藍新官方提供的測試 ID 範例，請確認你的 ID
+        private const string HashKey = "FmmCbKDf1ayNmzSv9dpcWjRhBFZW9qMD"; // 測試用的 Key
+        private const string HashIV = "CMct9Pw0iPfYVWcP"; // 測試用的 IV
 
         public string GenerateMerchantTradeNo(Order order)
         {
