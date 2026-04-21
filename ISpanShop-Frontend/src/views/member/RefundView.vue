@@ -204,8 +204,9 @@ const handleSubmit = async () => {
     }
 
     // 2. 送出退貨申請
+    const typeLabel = form.type === 'ReturnAndRefund' ? '退貨退款' : (form.type === 'RefundOnly' ? '僅退款' : form.type);
     const payload = {
-      reasonCategory: `[${form.type}] ${form.reasonCategory}`,
+      reasonCategory: `[${typeLabel}] ${form.reasonCategory}`,
       reasonDescription: form.reasonDescription,
       items: selectedItems.value.map(id => ({
         orderDetailId: id,

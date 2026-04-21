@@ -2,8 +2,8 @@
   <div class="order-actions">
     <!-- 狀態 0: 待付款 -->
     <template v-if="status === 0">
-      <el-button @click="handleCancel" :loading="loading" size="default">取消訂單</el-button>
       <el-button type="primary" size="default">立即付款</el-button>
+      <el-button @click="handleCancel" :loading="loading" size="default">取消訂單</el-button>
     </template>
 
     <!-- 狀態 1: 待出貨 -->
@@ -13,8 +13,8 @@
 
     <!-- 狀態 2: 運送中 -->
     <template v-if="status === 2">
-      <el-button @click="handleRefund" :loading="loading" size="default">申請退貨/退款</el-button>
       <el-button type="primary" @click="handleConfirmReceipt" :loading="loading" size="default">確認收貨</el-button>
+      <el-button @click="handleRefund" :loading="loading" size="default">申請退貨/退款</el-button>
     </template>
 
     <!-- 狀態 3: 已完成 -->
