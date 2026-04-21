@@ -73,9 +73,44 @@
               <span class="order-time">下單時間: {{ formatDate(order.createdAt) }}</span>
             </div>
             <div class="footer-right">
-              <el-button v-if="order.status === 3" type="primary" plain size="default">再次購買</el-button>
-              <el-button @click="goToDetail(order.id)" size="default" class="detail-btn">查看訂單詳情</el-button>
-              <el-button v-if="order.status === 0" type="primary" size="default">立即付款</el-button>
+              <!-- 狀態 0: 待付款 -->
+              <template v-if="order.status === 0">
+                <el-button @click="handleCancel(order.id)" size="default">取消訂單</el-button>
+                <el-button type="primary" size="default">立即付款</el-button>
+              </template>
+
+              <!-- 狀態 1: 待出貨 -->
+              <template v-if="order.status === 1">
+                <el-button @click="handleRefund(order.id)" size="default">申請退款</el-button>
+                <el-button @click="goToDetail(order.id)" size="default" class="detail-btn">查看詳情</el-button>
+              </template>
+
+              <!-- 狀態 2: 運送中 -->
+              <template v-if="order.status === 2">
+                <el-button @click="handleRefund(order.id)" size="default">申請退貨/退款</el-button>
+                <el-button type="primary" @click="handleConfirmReceipt(order.id)" size="default">確認收貨</el-button>
+              </template>
+
+              <!-- 狀態 3: 已完成 -->
+              <template v-if="order.status === 3">
+                <el-button type="primary" plain size="default">再次購買</el-button>
+                <el-button @click="handleRefund(order.id)" size="default">申請退貨/退款</el-button>
+              </template>
+
+              <!-- 狀態 4: 已取消 -->
+              <template v-if="order.status === 4">
+                <el-button type="primary" plain size="default">再次購買</el-button>
+              </template>
+
+              <!-- 狀態 5: 退貨/款中 -->
+              <template v-if="order.status === 5">
+                <el-button size="default" @click="goToDetail(order.id)">查看退款進度</el-button>
+              </template>
+
+              <!-- 預設按鈕 (如果不在上述狀態，至少可以看詳情) -->
+              <el-button v-if="![0, 1].includes(order.status)" @click="goToDetail(order.id)" size="default" class="detail-btn">
+                {{ order.status === 5 ? '詳情' : '查看訂單詳情' }}
+              </el-button>
             </div>
           </div>
         </div>
@@ -88,9 +123,9 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { Search } from '@element-plus/icons-vue';
-import { getMyOrdersApi } from '@/api/order';
+import { getMyOrdersApi, cancelOrderApi, confirmReceiptApi } from '@/api/order';
 import type { OrderListItem } from '@/types/order';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 
 const router = useRouter();
 const loading = ref(false);
@@ -109,6 +144,55 @@ const fetchOrders = async () => {
   } finally {
     loading.value = false;
   }
+};
+
+// ── 動作處理 ──
+
+const handleCancel = async (id: number) => {
+  try {
+    await ElMessageBox.confirm('確定要取消這筆訂單嗎？', '提示', {
+      confirmButtonText: '確定取消',
+      cancelButtonText: '再想想',
+      type: 'warning'
+    });
+    
+    loading.value = true;
+    // await cancelOrderApi(id); // TODO: 等後端實作
+    ElMessage.success('訂單已取消');
+    await fetchOrders();
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('操作失敗');
+    }
+  } finally {
+    loading.value = false;
+  }
+};
+
+const handleConfirmReceipt = async (id: number) => {
+  try {
+    await ElMessageBox.confirm('確認已收到商品且無誤嗎？確認後訂單將轉為已完成。', '確認收貨', {
+      confirmButtonText: '確認收貨',
+      cancelButtonText: '取消',
+      type: 'success'
+    });
+    
+    loading.value = true;
+    // await confirmReceiptApi(id); // TODO: 等後端實作
+    ElMessage.success('訂單已完成，感謝您的購物！');
+    await fetchOrders();
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('操作失敗');
+    }
+  } finally {
+    loading.value = false;
+  }
+};
+
+const handleRefund = (id: number) => {
+  // 導向退款頁面或開啟 Modal
+  router.push(`/member/orders/${id}?action=refund`);
 };
 
 const filteredOrders = computed(() => {

@@ -8,3 +8,16 @@ export const getMyOrdersApi = () => {
 export const getOrderDetailApi = (id: number) => {
   return axios.get<OrderDetail>(`/api/front/orders/${id}`);
 };
+
+// ── 訂單操作 ──
+export const cancelOrderApi = (id: number) => {
+  return axios.post(`/api/front/orders/${id}/cancel`);
+};
+
+export const confirmReceiptApi = (id: number) => {
+  return axios.post(`/api/front/orders/${id}/confirm-receipt`);
+};
+
+export const requestRefundApi = (id: number, data: any) => {
+  return axios.post(`/api/front/orders/${id}/refund`, data);
+};
