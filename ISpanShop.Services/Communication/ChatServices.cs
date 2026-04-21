@@ -19,6 +19,9 @@ public interface IChatService
 
     // 取得對話清單
     Task<List<ISpanShop.Models.DTOs.Common.ChatSessionDto>> GetChatSessionsAsync(int userId);
+
+    // 標記訊息為已讀
+    Task MarkMessagesAsReadAsync(int senderId, int receiverId);
 }
 
 // 2. 實作
@@ -31,6 +34,11 @@ public class ChatService : IChatService
     {
         _chatRepo = chatRepo;
         _wordRepo = wordRepo;
+    }
+
+    public async Task MarkMessagesAsReadAsync(int senderId, int receiverId)
+    {
+        await _chatRepo.MarkAsReadAsync(senderId, receiverId);
     }
 
     public async Task<List<ChatMessage>> GetChatHistoryAsync(int user1Id, int user2Id)

@@ -26,11 +26,13 @@ export function useChat() {
 
     // 監聽接收訊息
     connection.value.on('ReceiveMessage', (senderId: number, content: string, type: number) => {
+      console.log('SignalR ReceiveMessage:', { senderId, content });
       messages.value.push({
         senderId,
-        receiverId: 0, 
+        receiverId: authStore.memberInfo.memberId, 
         content,
         type,
+        isRead: false, // 初始化已讀狀態
         sentAt: new Date().toISOString()
       } as any);
       fetchSessions();
