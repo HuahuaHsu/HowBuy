@@ -42,7 +42,7 @@ namespace ISpanShop.Services.Stores
             return stores;
         }
 
-        public (int Total, int Verified, int Blocked) GetStoreStats()
+        public (int Verified, int Pending, int Rejected, int Blocked) GetStoreStats()
         {
             return _storeRepository.GetStoreStats();
         }

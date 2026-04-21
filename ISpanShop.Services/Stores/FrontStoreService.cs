@@ -98,25 +98,48 @@ namespace ISpanShop.Services.Stores
         public async Task<bool> ApplyStoreAsync(int userId, StoreApplyRequestDto dto)
         {
             // 1. 檢查是否已有賣場
-            var existingStore = await _context.Stores.AnyAsync(s => s.UserId == userId);
-            if (existingStore)
+            var existingStore = await _context.Stores.FirstOrDefaultAsync(s => s.UserId == userId);
+            
+            if (existingStore != null)
             {
-                throw new Exception("您已經申請過或已擁有賣場");
+                // 如果已經審核通過，禁止重新申請
+                if (existingStore.IsVerified == true)
+                {
+                    throw new Exception("您已經擁有賣場，無需重複申請");
+                }
+
+                // 如果正在審核中，提示耐心等候
+                if (existingStore.IsVerified == null)
+                {
+                    throw new Exception("您的申請正在審核中，請耐心等候");
+                }
+
+                // 如果是被駁回 (IsVerified == false)，則允許覆蓋舊資料並重置為待審核 (null)
+                existingStore.StoreName = dto.StoreName;
+                existingStore.Description = dto.Description;
+                existingStore.LogoUrl = dto.LogoUrl;
+                existingStore.IsVerified = null; // 重置為待審核
+                existingStore.StoreStatus = 2;   // 重置為休假中
+                existingStore.CreatedAt = DateTime.Now; // 更新申請時間
+
+                _context.Stores.Update(existingStore);
+            }
+            else
+            {
+                // 2. 建立新賣場 (第一次申請)
+                var newStore = new Store
+                {
+                    UserId = userId,
+                    StoreName = dto.StoreName,
+                    Description = dto.Description,
+                    LogoUrl = dto.LogoUrl,
+                    IsVerified = null, // 待審核狀態
+                    StoreStatus = 2,    // 預設休假中
+                    CreatedAt = DateTime.Now
+                };
+                _context.Stores.Add(newStore);
             }
 
-            // 2. 建立新賣場
-            var newStore = new Store
-            {
-                UserId = userId,
-                StoreName = dto.StoreName,
-                Description = dto.Description,
-                LogoUrl = dto.LogoUrl,
-                IsVerified = null, // 待審核狀態，資料庫已改為支援 NULL
-                StoreStatus = 2,    // 預設休假中 (1:營業, 2:休假, 3:停權)
-                CreatedAt = DateTime.Now
-            };
-
-            _context.Stores.Add(newStore);
             return await _context.SaveChangesAsync() > 0;
         }
 
