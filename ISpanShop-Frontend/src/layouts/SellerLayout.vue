@@ -21,7 +21,7 @@
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item command="storefront">
-                <el-icon><House /></el-icon> 回到前台
+                <el-icon><House /></el-icon> 回到首頁
               </el-dropdown-item>
               <el-dropdown-item command="logout" divided>
                 <el-icon><SwitchButton /></el-icon> 登出
