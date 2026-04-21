@@ -42,10 +42,6 @@
               <span class="status-text" :class="getStatusClass(order.status)">
                 {{ order.statusName }}
               </span>
-              <template v-if="order.status === 3">
-                <el-divider direction="vertical" />
-                <span class="status-subtext">已完成</span>
-              </template>
             </div>
           </div>
 
