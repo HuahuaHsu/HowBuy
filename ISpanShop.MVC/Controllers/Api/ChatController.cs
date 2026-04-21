@@ -48,26 +48,32 @@ namespace ISpanShop.MVC.Controllers.Api
         [HttpGet("sessions")]
         public async Task<IActionResult> GetSessions()
         {
-            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
+                         ?? User.FindFirst("sub")?.Value;
+            
             if (int.TryParse(userIdStr, out int userId))
             {
                 var sessions = await _chatService.GetChatSessionsAsync(userId);
                 return Ok(sessions);
             }
-            return Unauthorized();
+            
+            return Unauthorized(new { message = "無法識別使用者身份" });
         }
 
         // 取得特定對象的對話紀錄
         [HttpGet("history/{otherUserId}")]
         public async Task<IActionResult> GetHistory(int otherUserId)
         {
-            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
+                         ?? User.FindFirst("sub")?.Value;
+            
             if (int.TryParse(userIdStr, out int userId))
             {
                 var history = await _chatService.GetChatHistoryAsync(userId, otherUserId);
                 return Ok(history);
             }
-            return Unauthorized();
+            
+            return Unauthorized(new { message = "無法識別使用者身份" });
         }
     }
 }

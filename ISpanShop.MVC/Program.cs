@@ -99,7 +99,8 @@ namespace ISpanShop.MVC
                         ValidateIssuerSigningKey = true,
                         ValidIssuer = jwtSettings["Issuer"],
                         ValidAudience = jwtSettings["Audience"],
-                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"]!))
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"]!)),
+                        ClockSkew = TimeSpan.Zero // 減少時間誤差導致的 401
                     };
 
                     options.Events = new JwtBearerEvents
@@ -107,10 +108,33 @@ namespace ISpanShop.MVC
                         OnMessageReceived = context =>
                         {
                             var accessToken = context.Request.Query["access_token"];
+                            if (string.IsNullOrEmpty(accessToken))
+                            {
+                                accessToken = context.Request.Query["token"];
+                            }
+
                             var path = context.HttpContext.Request.Path;
-                            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/chatHub"))
+                            if (!string.IsNullOrEmpty(accessToken) && (path.StartsWithSegments("/chatHub") || path.StartsWithSegments("/api/chat")))
                             {
                                 context.Token = accessToken;
+                            }
+                            return Task.CompletedTask;
+                        },
+                        OnAuthenticationFailed = context =>
+                        {
+                            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                            logger.LogWarning($"Authentication failed: {context.Exception.Message}");
+                            return Task.CompletedTask;
+                        },
+                        OnChallenge = context =>
+                        {
+                            // 避免 API 請求被導向登入頁面，而是回傳 401
+                            if (context.Request.Path.StartsWithSegments("/api"))
+                            {
+                                context.HandleResponse();
+                                context.Response.StatusCode = 401;
+                                context.Response.ContentType = "application/json";
+                                return context.Response.WriteAsync("{\"message\":\"未授權，請先登入\"}");
                             }
                             return Task.CompletedTask;
                         }
