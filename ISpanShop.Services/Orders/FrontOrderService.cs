@@ -58,6 +58,8 @@ namespace ISpanShop.Services.Orders
                 CompletedAt = o.CompletedAt,
                 TotalAmount = o.TotalAmount,
                 ShippingFee = o.ShippingFee,
+                PointDiscount = o.PointDiscount,
+                DiscountAmount = o.DiscountAmount,
                 FinalAmount = o.FinalAmount,
                 Status = (OrderStatus)(o.Status ?? 0),
                 StatusName = GetStatusName(o.Status),

@@ -412,13 +412,13 @@ function handleAddToCart() {
 }
 
 function handleBuyNow(): void {
-  // 狀態 B：有規格但還沒選完
+  // 1. 檢查規格是否已選
   if (hasSpecs.value && !allSpecsSelected.value) {
     ElMessage.warning('請選擇規格')
     return
   }
 
-  // 狀態 C：正常執行購買流程
+  // 2. 準備商品資訊
   const p = safeProduct.value
   const variant = selectedVariant.value
   const image = activeImageUrl.value || p.images[0]?.url || ''
@@ -428,7 +428,7 @@ function handleBuyNow(): void {
     ? Object.entries(variant.specValues).map(([k, v]) => `${k}: ${v}`).join('、')
     : ''
 
-  cartStore.addItem({
+  const checkoutItem = {
     productId: p.id,
     variantId,
     name: p.name,
@@ -438,9 +438,12 @@ function handleBuyNow(): void {
     specLabel,
     storeId: p.store?.id ?? 0,
     storeName: p.storeName,
-  })
+  }
 
-  router.push('/cart')
+  // 3. 設定結帳商品（覆蓋購物車內容進行立即結帳）並導向結帳頁
+  cartStore.setItems([checkoutItem])
+  ElMessage.success('正在為您準備結帳...')
+  router.push('/checkout')
 }
 
 function handleViewStore() {

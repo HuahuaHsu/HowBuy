@@ -1,15 +1,22 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElLoading } from 'element-plus'
 import { useCartStore } from '@/stores/cart'
 import { useAuthStore } from '@/stores/auth'
 import { checkoutApi, type CheckoutRequest } from '@/api/checkout'
 import { getMemberProfile } from '@/api/member'
+import { getOrderDetailApi } from '@/api/order' // 新增
 
 const router = useRouter()
+const route = useRoute() // 新增
 const cartStore = useCartStore()
 const authStore = useAuthStore()
+
+// 模式判定
+const existingOrderId = computed(() => route.query.orderId ? Number(route.query.orderId) : null)
+const isPaymentMode = computed(() => existingOrderId.value !== null)
+const existingOrderData = ref<any>(null)
 
 // 表單資料
 const recipient = ref({
@@ -27,7 +34,13 @@ const walletBalance = ref(0)
 const showCouponModal = ref(false)
 
 // 計算金額
-const subtotal = computed(() => cartStore.totalPrice)
+const subtotal = computed(() => {
+  if (isPaymentMode.value && existingOrderData.value) {
+    return existingOrderData.value.totalAmount
+  }
+  return cartStore.totalPrice
+})
+
 const shippingFee = ref(60)
 
 const selectedCoupon = computed(() => 
@@ -35,6 +48,10 @@ const selectedCoupon = computed(() =>
 )
 
 const couponDiscount = computed(() => {
+  if (isPaymentMode.value && existingOrderData.value) {
+    const d = existingOrderData.value
+    return d.discountAmount ?? d.DiscountAmount ?? 0
+  }
   if (!selectedCoupon.value) return 0
   const c = selectedCoupon.value
   if (c.couponType === 1) return c.discountValue
@@ -47,17 +64,45 @@ const couponDiscount = computed(() => {
 })
 
 const pointDiscount = computed(() => {
+  if (isPaymentMode.value && existingOrderData.value) {
+    const d = existingOrderData.value
+    return d.pointDiscount ?? d.PointDiscount ?? 0
+  }
   if (!usePoints.value) return 0
   const remaining = subtotal.value - couponDiscount.value
   return Math.min(walletBalance.value, remaining)
 })
 
-const finalAmount = computed(() => 
-  subtotal.value + shippingFee.value - couponDiscount.value - pointDiscount.value
-)
+const finalAmount = computed(() => {
+  if (isPaymentMode.value && existingOrderData.value) {
+    return existingOrderData.value.finalAmount
+  }
+  return subtotal.value + shippingFee.value - couponDiscount.value - pointDiscount.value
+})
 
 // 初始化
 onMounted(async () => {
+  // 如果是支付模式，優先抓取訂單詳情
+  if (isPaymentMode.value) {
+    try {
+      const res = await getOrderDetailApi(existingOrderId.value!)
+      existingOrderData.value = res.data
+      
+      // 鎖定收件資訊
+      recipient.value.name = res.data.recipientName
+      recipient.value.phone = res.data.recipientPhone
+      recipient.value.address = res.data.recipientAddress
+      shippingFee.value = res.data.shippingFee || 0
+      
+      // 在支付模式下，不需要加載優惠券與錢包餘額（因為已經抵扣過了）
+      return
+    } catch (err) {
+      ElMessage.error('無法載入訂單資訊')
+      router.push('/member/orders')
+      return
+    }
+  }
+
   if (cartStore.items.length === 0) {
     router.push('/cart')
     return
@@ -137,6 +182,18 @@ function selectCoupon(id: number | null) {
 
 // 提交訂單
 async function handleSubmit() {
+  // 支付模式：直接導向支付頁面
+  if (isPaymentMode.value && existingOrderData.value) {
+    const backendBase = import.meta.env.VITE_API_BASE_URL || 'https://localhost:7125'
+    // 根據選擇的支付方式決定跳轉路徑
+    const controller = paymentMethod.value === 'NewebPay' ? 'PaymentNewebPay' : 'Payment'
+    const targetUrl = `${backendBase.replace(/\/$/, '')}/${controller}/Pay?orderNumber=${existingOrderData.value.orderNumber}`
+    
+    ElMessage.success('正在導向支付頁面...')
+    window.location.href = targetUrl
+    return
+  }
+
   if (!recipient.value.name || !recipient.value.phone || !recipient.value.address) {
     ElMessage.warning('請填寫完整的收件資訊')
     return
@@ -192,20 +249,20 @@ function formatPrice(val: number) {
 <template>
   <div class="checkout-page">
     <div class="checkout-container">
-      <h1 class="page-title">結帳</h1>
+      <h1 class="page-title">{{ isPaymentMode ? '訂單支付' : '結帳' }}</h1>
 
       <!-- 收件資訊 -->
       <el-card class="section-card">
         <template #header><div class="card-header">📍 收件資訊</div></template>
         <el-form label-width="80px">
           <el-form-item label="收件人">
-            <el-input v-model="recipient.name" placeholder="請輸入姓名" />
+            <el-input v-model="recipient.name" :disabled="isPaymentMode" placeholder="請輸入姓名" />
           </el-form-item>
           <el-form-item label="電話">
-            <el-input v-model="recipient.phone" placeholder="請輸入電話" />
+            <el-input v-model="recipient.phone" :disabled="isPaymentMode" placeholder="請輸入電話" />
           </el-form-item>
           <el-form-item label="地址">
-            <el-input v-model="recipient.address" placeholder="請輸入詳細地址" />
+            <el-input v-model="recipient.address" :disabled="isPaymentMode" placeholder="請輸入詳細地址" />
           </el-form-item>
         </el-form>
       </el-card>
@@ -222,18 +279,33 @@ function formatPrice(val: number) {
       <!-- 商品清單 -->
       <el-card class="section-card">
         <template #header><div class="card-header">🛒 訂單商品</div></template>
-        <div v-for="item in cartStore.items" :key="item.productId" class="item-row">
-          <el-image :src="item.image" class="item-img" />
+        <div v-for="item in (isPaymentMode ? existingOrderData?.items : cartStore.items)" :key="item.productId" class="item-row">
+          <el-image :src="isPaymentMode ? item.coverImage : item.image" class="item-img" />
           <div class="item-info">
-            <div class="item-name">{{ item.name }}</div>
+            <div class="item-name">{{ isPaymentMode ? item.productName : item.name }}</div>
             <div class="item-price">NT$ {{ formatPrice(item.price) }} x {{ item.quantity }}</div>
           </div>
           <div class="item-total">NT$ {{ formatPrice(item.price * item.quantity) }}</div>
         </div>
       </el-card>
 
-      <!-- 折抵選項 -->
-      <el-card class="section-card">
+      <!-- 折抵選項 (支付模式) -->
+      <el-card class="section-card" v-if="isPaymentMode && (pointDiscount > 0 || couponDiscount > 0)">
+        <template #header><div class="card-header">🧧 原始訂單折抵資訊</div></template>
+        
+        <div class="discount-row" v-if="couponDiscount > 0">
+          <div class="label">優惠券折抵</div>
+          <div class="value discount">- NT$ {{ formatPrice(couponDiscount) }}</div>
+        </div>
+
+        <div class="discount-row" v-if="pointDiscount > 0">
+          <div class="label">點數/蝦幣折抵</div>
+          <div class="value discount">- NT$ {{ formatPrice(pointDiscount) }}</div>
+        </div>
+      </el-card>
+
+      <!-- 折抵選項 (一般結帳模式) -->
+      <el-card class="section-card" v-if="!isPaymentMode">
         <template #header><div class="card-header">🧧 優惠與折抵</div></template>
         
         <div class="discount-row" @click="showCouponModal = true">
@@ -265,20 +337,23 @@ function formatPrice(val: number) {
           <span>運費</span>
           <span>NT$ {{ formatPrice(shippingFee) }}</span>
         </div>
+        
+        <!-- 顯示折扣資訊 -->
         <div v-if="couponDiscount > 0" class="summary-row discount">
           <span>優惠券折抵</span>
           <span>- NT$ {{ formatPrice(couponDiscount) }}</span>
         </div>
         <div v-if="pointDiscount > 0" class="summary-row discount">
-          <span>蝦幣折抵</span>
+          <span>點數/蝦幣折抵</span>
           <span>- NT$ {{ formatPrice(pointDiscount) }}</span>
         </div>
+
         <div class="summary-row final">
-          <span>訂單總計</span>
+          <span>{{ isPaymentMode ? '應付總計' : '訂單總計' }}</span>
           <span class="price">NT$ {{ formatPrice(finalAmount) }}</span>
         </div>
         <el-button type="primary" size="large" class="submit-btn" @click="handleSubmit">
-          下單
+          {{ isPaymentMode ? '立即付款' : '下單' }}
         </el-button>
       </div>
     </div>

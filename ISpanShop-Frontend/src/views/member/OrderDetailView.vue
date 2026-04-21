@@ -88,6 +88,7 @@
       <div class="actions-card" v-if="order">
         <OrderActionButtons 
           :order-id="order.id" 
+          :order-number="order.orderNumber"
           :status="order.status" 
           :is-detail="true"
           @refresh="fetchOrderDetail"

@@ -75,6 +75,7 @@
             <div class="footer-right">
               <OrderActionButtons 
                 :order-id="order.id" 
+                :order-number="order.orderNumber"
                 :status="order.status" 
                 @refresh="fetchOrders"
               />
@@ -141,13 +142,6 @@ const handleTabChange = () => {
 
 const goToDetail = (id: number) => {
   router.push(`/member/orders/${id}`);
-};
-
-const handlePay = (orderNumber: string) => {
-  const backendBase = import.meta.env.VITE_API_BASE_URL || 'https://localhost:7125';
-  const targetUrl = `${backendBase.replace(/\/$/, '')}/PaymentNewebPay/Pay?orderNumber=${orderNumber}`;
-  console.log('Redirecting to Payment:', targetUrl);
-  window.location.href = targetUrl;
 };
 
 const formatPrice = (price: number) => {

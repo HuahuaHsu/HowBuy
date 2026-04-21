@@ -73,10 +73,14 @@ export const useCartStore = defineStore('cart', () => {
     items.value = []
   }
 
+  function setItems(newItems: CartItem[]): void {
+    items.value = newItems
+  }
+
   // 持久化到 localStorage
   watch(items, (val) => {
     localStorage.setItem(CART_KEY, JSON.stringify(val))
   }, { deep: true })
 
-  return { items, totalCount, totalQuantity, totalPrice, addItem, removeItem, updateQty, clearCart }
-})
+  return { items, totalCount, totalQuantity, totalPrice, addItem, removeItem, updateQty, clearCart, setItems }
+  })
