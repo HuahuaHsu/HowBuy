@@ -41,6 +41,24 @@ export const updateMemberProfile = (id: number, data: UpdateMemberProfileDto) =>
   return axios.put<{ message: string }>(`/api/front/profile/${id}`, data);
 };
 
+/**
+ * 上傳大頭貼
+ */
+export const uploadAvatar = (file: File) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  return axios.post<{ url: string }>('/api/front/upload/avatar', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  });
+};
+
+/**
+ * 變更密碼
+ */
+export const changePassword = (data: ChangePasswordRequest) => {
+  return axios.put<{ message: string }>('/api/front/member/password', data);
+};
+
 /** 點數紀錄 DTO */
 export interface PointHistory {
   id: number;

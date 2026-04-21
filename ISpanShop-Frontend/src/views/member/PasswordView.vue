@@ -110,13 +110,13 @@ const handleSubmit = async () => {
       try {
         submitting.value = true
         
-        const { message } = await changePassword({
-          oldPassword: passwordForm.oldPassword,
+        const response = await changePassword({
+          currentPassword: passwordForm.oldPassword,
           newPassword: passwordForm.newPassword,
           confirmPassword: passwordForm.confirmPassword
         })
 
-        ElMessage.success(message || '密碼修改成功，請重新登入')
+        ElMessage.success(response.data.message || '密碼修改成功，請重新登入')
         
         // 成功後清除 Token 並強制登出
         authStore.logout()
