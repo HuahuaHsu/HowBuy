@@ -19,7 +19,7 @@
         
         <div class="product-list">
           <div v-for="item in order?.items" :key="item.id" class="product-item">
-            <el-checkbox v-model="selectedItems" :label="item.id" @change="handleItemChange(item)">
+            <el-checkbox v-model="selectedItems" :label="item.id" @change="handleItemChange">
               <div class="item-content">
                 <el-image :src="item.coverImage" class="item-img" fit="cover" />
                 <div class="item-info">
@@ -83,6 +83,7 @@
               :limit="3"
               :on-change="handleUploadChange"
               :on-remove="handleRemove"
+              :file-list="form.images"
             >
               <el-icon><Plus /></el-icon>
             </el-upload>
@@ -108,8 +109,8 @@
 import { ref, onMounted, computed, reactive } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ArrowLeft, Plus } from '@element-plus/icons-vue';
-import { getOrderDetailApi, requestRefundApi } from '@/api/order';
-import type { OrderDetail, OrderItem } from '@/types/order';
+import { getOrderDetailApi, requestRefundApi, uploadImagesApi } from '@/api/order';
+import type { OrderDetail } from '@/types/order';
 import { ElMessage } from 'element-plus';
 
 const route = useRoute();
@@ -148,12 +149,12 @@ const fetchOrder = async () => {
   }
 };
 
-const handleCheckAllChange = (val: boolean) => {
+const handleCheckAllChange = (val: any) => {
   selectedItems.value = val ? order.value?.items.map(i => i.id) || [] : [];
   isIndeterminate.value = false;
 };
 
-const handleItemChange = (item: OrderItem) => {
+const handleItemChange = () => {
   const count = selectedItems.value.length;
   const total = order.value?.items.length || 0;
   checkAll.value = count === total;
@@ -175,19 +176,34 @@ const isFormValid = computed(() => {
   return selectedItems.value.length > 0 && form.type && form.reasonCategory;
 });
 
-const handleUploadChange = (file: any) => {
-  form.images.push(file);
+const handleUploadChange = (file: any, fileList: any[]) => {
+  form.images = fileList;
 };
 
-const handleRemove = (file: any) => {
-  const index = form.images.indexOf(file);
-  if (index !== -1) form.images.splice(index, 1);
+const handleRemove = (file: any, fileList: any[]) => {
+  form.images = fileList;
 };
 
 const handleSubmit = async () => {
   const id = Number(route.params.id);
   loading.value = true;
   try {
+    let uploadedUrls: string[] = [];
+
+    // 1. 如果有圖片，先上傳
+    if (form.images.length > 0) {
+      const formData = new FormData();
+      form.images.forEach(img => {
+        if (img.raw) {
+          formData.append('files', img.raw);
+        }
+      });
+      
+      const res = await uploadImagesApi(formData);
+      uploadedUrls = res.data.urls;
+    }
+
+    // 2. 送出退貨申請
     const payload = {
       reasonCategory: `[${form.type}] ${form.reasonCategory}`,
       reasonDescription: form.reasonDescription,
@@ -195,13 +211,14 @@ const handleSubmit = async () => {
         orderDetailId: id,
         quantity: returnQuantities[id]
       })),
-      imageUrls: [] // TODO: 這裡應該要先上傳圖片到後端拿到 URL
+      imageUrls: uploadedUrls
     };
     
     await requestRefundApi(id, payload);
     ElMessage.success('退貨申請已送出');
     router.push('/member/orders');
   } catch (error: any) {
+    console.error('Submit error:', error);
     ElMessage.error(error.response?.data?.message || '申請失敗');
   } finally {
     loading.value = false;
@@ -247,6 +264,10 @@ onMounted(fetchOrder);
   }
 }
 
+.product-list {
+  padding: 10px 0;
+}
+
 .product-item {
   padding: 15px 0;
   border-bottom: 1px solid #f0f0f0;
@@ -256,10 +277,11 @@ onMounted(fetchOrder);
     height: auto;
     width: 100%;
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     
     .el-checkbox__label {
       flex: 1;
+      padding-left: 0;
     }
   }
 
@@ -273,10 +295,12 @@ onMounted(fetchOrder);
       height: 60px;
       border-radius: 4px;
       flex-shrink: 0;
+      border: 1px solid #eee;
     }
 
     .item-info {
-      .name { font-size: 14px; color: #333; margin-bottom: 4px; line-height: 1.4; }
+      flex: 1;
+      .name { font-size: 14px; color: #333; margin-bottom: 4px; line-height: 1.4; white-space: normal; }
       .variant { font-size: 12px; color: #999; margin-bottom: 8px; }
       .price-qty {
         display: flex;
@@ -289,7 +313,7 @@ onMounted(fetchOrder);
 
   .qty-selector {
     margin-top: 10px;
-    margin-left: 100px;
+    margin-left: 95px;
     display: flex;
     align-items: center;
     gap: 15px;

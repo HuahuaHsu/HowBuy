@@ -21,3 +21,11 @@ export const confirmReceiptApi = (id: number) => {
 export const requestRefundApi = (id: number, data: any) => {
   return axios.post(`/api/front/orders/${id}/return`, data);
 };
+
+export const uploadImagesApi = (formData: FormData) => {
+  return axios.post('/api/upload', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
+};
