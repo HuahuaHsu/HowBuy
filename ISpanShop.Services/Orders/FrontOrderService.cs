@@ -76,7 +76,18 @@ namespace ISpanShop.Services.Orders
                     CoverImage = GetFinalImage(od),
                     Price = od.Price ?? 0,
                     Quantity = od.Quantity
-                }).ToList()
+                }).ToList(),
+                
+                // 抓取最新的一筆退貨申請作為資訊展示
+                ReturnInfo = o.ReturnRequests.OrderByDescending(r => r.CreatedAt).Select(r => new FrontReturnDetailDto
+                {
+                    ReasonCategory = r.ReasonCategory,
+                    ReasonDescription = r.ReasonDescription,
+                    RefundAmount = r.RefundAmount,
+                    Status = r.Status,
+                    CreatedAt = r.CreatedAt,
+                    ImageUrls = r.ReturnRequestImages.Select(img => img.ImageUrl).ToList()
+                }).FirstOrDefault()
             };
         }
 

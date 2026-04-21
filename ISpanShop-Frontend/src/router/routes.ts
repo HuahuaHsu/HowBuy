@@ -70,6 +70,11 @@ export const routes: RouteRecordRaw[] = [
             component: () => import('../views/member/RefundView.vue'),
           },
           {
+            path: 'orders/:id/refund/detail',
+            name: 'member-order-refund-detail',
+            component: () => import('../views/member/RefundDetailView.vue'),
+          },
+          {
             path: 'settings',
             name: 'member-settings',
             component: () => import('../views/member/SettingsView.vue'),

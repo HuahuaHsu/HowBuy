@@ -106,7 +106,7 @@ const handleRefund = () => {
 };
 
 const handleRefundDetail = () => {
-  router.push(`/member/orders/${props.orderId}`);
+  router.push(`/member/orders/${props.orderId}/refund/detail`);
 };
 
 const handleRebuy = () => {
