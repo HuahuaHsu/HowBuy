@@ -11,13 +11,6 @@
             <span class="order-no">訂單編號. {{ order?.orderNumber }}</span>
             <el-divider direction="vertical" />
             <span class="status-text">{{ order?.statusName }}</span>
-            <el-divider direction="vertical" v-if="order" />
-            <OrderActionButtons 
-              v-if="order"
-              :order-id="order.id" 
-              :status="order.status" 
-              @refresh="fetchOrderDetail"
-            />
           </div>
         </div>
         
@@ -89,6 +82,15 @@
             <span class="value">線上支付</span>
           </div>
         </div>
+      </div>
+
+      <!-- 底部動作按鈕區 (獨立區塊) -->
+      <div class="actions-card" v-if="order">
+        <OrderActionButtons 
+          :order-id="order.id" 
+          :status="order.status" 
+          @refresh="fetchOrderDetail"
+        />
       </div>
     </div>
   </div>
@@ -331,6 +333,17 @@ onMounted(() => {
       }
     }
   }
+} /* 這裡正確閉合 items-card */
+
+/* 底部動作按鈕區 (獨立區塊) */
+.actions-card {
+  background: #fff;
+  padding: 20px;
+  margin-top: 12px; /* 拉大間距，確保有感 */
+  border-radius: 2px;
+  box-shadow: 0 1px 1px 0 rgba(0,0,0,.05);
+  display: flex;
+  justify-content: flex-end;
 }
 
 @media (max-width: 768px) {
