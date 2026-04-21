@@ -87,6 +87,8 @@ public partial class ISpanShopDBContext : DbContext
 
     public virtual DbSet<User> Users { get; set; }
 
+    public virtual DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Address>(entity =>
@@ -399,6 +401,7 @@ public partial class ISpanShopDBContext : DbContext
 
             entity.HasIndex(e => e.UserId, "UQ_MemberProfiles_UserId").IsUnique();
 
+            entity.Property(e => e.AvatarUrl).HasMaxLength(500);
             entity.Property(e => e.EmailNotification).HasDefaultValue(true);
             entity.Property(e => e.FullName).HasMaxLength(50);
             entity.Property(e => e.PhoneNumber)
@@ -809,7 +812,8 @@ public partial class ISpanShopDBContext : DbContext
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
-            entity.Property(e => e.IsVerified).HasDefaultValue(false);
+            entity.Property(e => e.IsVerified);
+            entity.Property(e => e.LogoUrl).HasMaxLength(500);
             entity.Property(e => e.StoreName)
                 .IsRequired()
                 .HasMaxLength(50);
