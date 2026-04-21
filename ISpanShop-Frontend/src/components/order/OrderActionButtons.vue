@@ -30,7 +30,7 @@
 
     <!-- 狀態 5: 退貨/款中 -->
     <template v-if="status === 5 && isDetail">
-      <el-button size="default" @click="handleRefundDetail">查看退款進度</el-button>
+      <el-button size="default" @click="handleRefundDetail">查看退貨/款詳情</el-button>
     </template>
   </div>
 </template>
