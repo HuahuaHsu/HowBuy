@@ -51,6 +51,8 @@ public partial class ISpanShopDBContext : DbContext
 
     public virtual DbSet<OrderReview> OrderReviews { get; set; }
 
+    public virtual DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
+
     public virtual DbSet<PaymentLog> PaymentLogs { get; set; }
 
     public virtual DbSet<Permission> Permissions { get; set; }
@@ -86,8 +88,6 @@ public partial class ISpanShopDBContext : DbContext
     public virtual DbSet<SupportTicket> SupportTickets { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
-
-    public virtual DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -528,6 +528,14 @@ public partial class ISpanShopDBContext : DbContext
                 .HasConstraintName("FK_OrderReviews_Users");
         });
 
+        modelBuilder.Entity<PasswordResetToken>(entity =>
+        {
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())");
+            entity.Property(e => e.Token)
+                .IsRequired()
+                .HasMaxLength(100);
+        });
+
         modelBuilder.Entity<PaymentLog>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__PaymentL__3214EC07B245D3C6");
@@ -812,7 +820,7 @@ public partial class ISpanShopDBContext : DbContext
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
-            entity.Property(e => e.IsVerified);
+            entity.Property(e => e.IsVerified).HasDefaultValue(false);
             entity.Property(e => e.LogoUrl).HasMaxLength(500);
             entity.Property(e => e.StoreName)
                 .IsRequired()

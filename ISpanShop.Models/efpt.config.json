@@ -107,6 +107,10 @@
          "ObjectType": 0
       },
       {
+         "Name": "[dbo].[PasswordResetTokens]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[dbo].[PaymentLogs]",
          "ObjectType": 0
       },

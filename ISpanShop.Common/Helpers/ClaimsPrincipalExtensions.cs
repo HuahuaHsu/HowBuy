@@ -45,17 +45,5 @@ namespace ISpanShop.Common.Helpers
                 c.Value == "1");
         }
 
-        /// <summary>
-        /// 取得目前登入者的 UserId
-        /// </summary>
-        public static int? GetUserId(this ClaimsPrincipal user)
-        {
-            var claim = user?.FindFirst(ClaimTypes.NameIdentifier);
-            if (claim != null && int.TryParse(claim.Value, out int userId))
-            {
-                return userId;
-            }
-            return null;
-        }
     }
 }
