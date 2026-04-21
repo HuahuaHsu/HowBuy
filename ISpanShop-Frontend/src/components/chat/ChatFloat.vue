@@ -316,10 +316,20 @@ watch(() => messages.value.length, () => scrollToBottom());
 .close-btn { cursor: pointer; color: #94a3b8; font-size: 20px; }
 
 .chat-body { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
-.message-item { max-width: 70%; display: flex; flex-direction: column; }
+.message-item { max-width: 85%; display: flex; flex-direction: column; align-items: flex-start; }
 .message-item.is-me { align-self: flex-end; align-items: flex-end; }
 
-.message-content { padding: 10px 14px; border-radius: 8px; font-size: 14px; background: white; box-shadow: 0 1px 2px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; position: relative; }
+.message-content { 
+  padding: 8px 12px; 
+  border-radius: 8px; 
+  font-size: 14px; 
+  background: white; 
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05); 
+  border: 1px solid #e2e8f0; 
+  position: relative; 
+  word-break: break-all;
+  display: inline-block; /* 讓寬度隨內容縮放 */
+}
 .is-me .message-content { background: #EE4D2D; color: white; border-color: #EE4D2D; }
 
 .chat-img { max-width: 200px; max-height: 200px; border-radius: 4px; cursor: pointer; }
