@@ -111,8 +111,8 @@ namespace ISpanShop.Services.Stores
                 StoreName = dto.StoreName,
                 Description = dto.Description,
                 LogoUrl = dto.LogoUrl,
-                IsVerified = null, // 待審核
-                StoreStatus = 2,    // 休假中
+                IsVerified = null, // 待審核狀態，資料庫已改為支援 NULL
+                StoreStatus = 2,    // 預設休假中 (1:營業, 2:休假, 3:停權)
                 CreatedAt = DateTime.Now
             };
 

@@ -216,6 +216,7 @@
                                     <option value="all" selected="@(Model.VerifyStatus == "all")">所有狀態</option>
                                     <option value="verified" selected="@(Model.VerifyStatus == "verified")">已審核</option>
                                     <option value="unverified" selected="@(Model.VerifyStatus == "unverified")">待審核</option>
+                                    <option value="rejected" selected="@(Model.VerifyStatus == "rejected")">審核駁回</option>
                                 </select>
                             </div>
                             <div class="col-md-3">
@@ -330,7 +331,8 @@
                                             @if (isBlocked) {
                                                 @* 黑名單時不顯示審核資訊 *@
                                             } else {
-                                                @if (store.IsVerified) { <span class="badge badge-soft bg-label-success" style="width:fit-content">已審核</span> }
+                                                @if (store.IsVerified == true) { <span class="badge badge-soft bg-label-success" style="width:fit-content">已審核</span> }
+                                                else if (store.IsVerified == false) { <span class="badge badge-soft bg-label-danger" style="width:fit-content">審核退回</span> }
                                                 else { <span class="badge badge-soft bg-label-warning" style="width:fit-content">待審核</span> }
                                             }
                                             

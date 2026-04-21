@@ -114,7 +114,8 @@ namespace ISpanShop.Repositories.Stores
 								StoreName = reader.GetString("StoreName"),
 								Description = reader.IsDBNull("Description")
 					? null : reader.GetString("Description"),
-								IsVerified = reader.GetBoolean("IsVerified"),
+								IsVerified = reader.IsDBNull("IsVerified") 
+                    ? (bool?)null : reader.GetBoolean("IsVerified"),
 								IsBlacklisted = reader.GetBoolean("IsBlacklisted"),
 								StoreStatus = Convert.ToInt32(reader["StoreStatus"]), 
 								CreatedAt = reader.IsDBNull("CreatedAt")
@@ -197,7 +198,8 @@ namespace ISpanShop.Repositories.Stores
                                 StoreName = reader.GetString("StoreName"),
                                 Description = reader.IsDBNull("Description")
                          ? null : reader.GetString("Description"),
-                                IsVerified = reader.GetBoolean("IsVerified"),
+                                IsVerified = reader.IsDBNull("IsVerified") 
+                    ? (bool?)null : reader.GetBoolean("IsVerified"),
                                 IsBlacklisted = reader.GetBoolean("IsBlacklisted"),
                                 StoreStatus = Convert.ToInt32(reader["StoreStatus"]),
                                 CreatedAt = reader.IsDBNull("CreatedAt")
@@ -264,7 +266,24 @@ namespace ISpanShop.Repositories.Stores
 
 		public bool ToggleBlacklist(int userId, bool isBlacklisted)
 		{
-			throw new NotImplementedException();
+			var connectionString = _context.Database.GetDbConnection().ConnectionString;
+
+			using (var conn = new SqlConnection(connectionString))
+			{
+				string sql = @"
+                    UPDATE Users
+                    SET    IsBlacklisted = @IsBlacklisted,
+                           UpdatedAt = GETDATE()
+                    WHERE  Id = @UserId";
+
+				using (var cmd = new SqlCommand(sql, conn))
+				{
+					cmd.Parameters.AddWithValue("@IsBlacklisted", isBlacklisted);
+					cmd.Parameters.AddWithValue("@UserId", userId);
+					conn.Open();
+					return cmd.ExecuteNonQuery() > 0;
+				}
+			}
 		}
 	}
 }

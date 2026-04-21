@@ -1,38 +1,40 @@
 <template>
-  <div class="seller-apply-container">
-    <!-- 1. 審核中狀態 -->
-    <el-card v-if="status === 'Pending'" class="status-card">
-      <el-result
-        icon="info"
-        title="申請審核中"
-        sub-title="您的賣場申請已提交，管理員正在審核中，請耐心等候。"
-      >
-        <template #extra>
-          <div class="status-actions">
-            <el-button type="primary" @click="router.push('/member/mystore')">查看賣場狀態</el-button>
-            <el-button @click="router.push('/')">回首頁</el-button>
+  <div class="seller-apply-container" v-loading="initialLoading">
+    <template v-if="!initialLoading">
+      <!-- 1. 審核中狀態 -->
+      <el-card v-if="status === 'Pending'" class="status-card">
+        <el-result
+          icon="info"
+          title="申請審核中"
+          sub-title="您的賣場申請已提交，管理員正在審核中，請耐心等候。"
+        >
+          <template #extra>
+            <div class="status-actions">
+              <el-button type="primary" @click="router.push('/member/mystore')">查看賣場狀態</el-button>
+              <el-button @click="router.push('/')">回首頁</el-button>
+            </div>
+          </template>
+        </el-result>
+      </el-card>
+
+      <!-- 2. 申請表單 (未申請或已駁回) -->
+      <el-card v-else-if="status === 'NotApplied' || status === 'Rejected'" class="apply-card">
+        <template #header>
+          <div class="card-header">
+            <span>{{ status === 'Rejected' ? '重新申請成為賣家' : '申請成為賣家' }}</span>
           </div>
         </template>
-      </el-result>
-    </el-card>
 
-    <!-- 2. 申請表單 (未申請或已駁回) -->
-    <el-card v-else class="apply-card">
-      <template #header>
-        <div class="card-header">
-          <span>{{ status === 'Rejected' ? '重新申請成為賣家' : '申請成為賣家' }}</span>
+        <div v-if="status === 'Rejected'" class="reject-alert">
+          <el-alert
+            title="先前的申請已被駁回"
+            type="error"
+            description="請根據管理員的建議修改資料後再次提交。"
+            show-icon
+            :closable="false"
+          />
         </div>
-      </template>
-
-      <div v-if="status === 'Rejected'" class="reject-alert">
-        <el-alert
-          title="先前的申請已被駁回"
-          type="error"
-          description="請根據管理員的建議修改資料後再次提交。"
-          show-icon
-          :closable="false"
-        />
-      </div>
+        <!-- ... 其餘表單內容 ... -->
 
       <el-form
         ref="formRef"
@@ -78,8 +80,10 @@
         </div>
       </el-form>
     </el-card>
+    </template>
   </div>
 </template>
+
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
@@ -93,6 +97,7 @@ import type { StoreStatus } from '@/types/store'
 const router = useRouter()
 const formRef = ref<FormInstance>()
 const submitting = ref(false)
+const initialLoading = ref(true)
 const status = ref<StoreStatus | ''>('')
 const baseUrl = import.meta.env.VITE_API_BASE_URL || 'https://localhost:7125'
 
@@ -113,23 +118,26 @@ const rules = reactive<FormRules>({
 })
 
 const checkStatus = async () => {
+  initialLoading.value = true
   try {
     const res = await getStoreStatusApi()
     status.value = res.data.status
-    
+
     // 如果已經是賣家，直接去數據中心
     if (status.value === 'Approved') {
-      router.replace('/member/mystore')
+      router.replace('/seller')
     }
   } catch (error) {
     console.error('檢查狀態失敗', error)
+  } finally {
+    initialLoading.value = false
   }
 }
 
 const handleLogoChange = async (uploadFile: UploadFile) => {
   const file = uploadFile.raw
   if (!file) return
-  
+
   if (file.size / 1024 / 1024 > 2) {
     ElMessage.error('圖片大小不能超過 2MB!')
     return
@@ -146,7 +154,7 @@ const handleLogoChange = async (uploadFile: UploadFile) => {
 
 const handleSubmit = async () => {
   if (!formRef.value) return
-  
+
   await formRef.value.validate(async (valid) => {
     if (valid) {
       try {

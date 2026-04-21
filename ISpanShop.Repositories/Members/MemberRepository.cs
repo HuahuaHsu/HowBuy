@@ -184,7 +184,18 @@ namespace ISpanShop.Repositories.Members.Implementations
 
 		public void UpdateIsSeller(int userId, bool isVerified)
 		{
-			throw new NotImplementedException();
+			var connectionString = _context.Database.GetDbConnection().ConnectionString;
+			using (var conn = new Microsoft.Data.SqlClient.SqlConnection(connectionString))
+			{
+				string sql = "UPDATE MemberProfiles SET IsSeller = @IsSeller WHERE UserId = @UserId";
+				using (var cmd = new Microsoft.Data.SqlClient.SqlCommand(sql, conn))
+				{
+					cmd.Parameters.AddWithValue("@IsSeller", isVerified);
+					cmd.Parameters.AddWithValue("@UserId", userId);
+					conn.Open();
+					cmd.ExecuteNonQuery();
+				}
+			}
 		}
 	}
 }
