@@ -8,5 +8,7 @@ namespace ISpanShop.Services.Orders
     {
         Task<List<FrontOrderListDto>> GetMemberOrdersAsync(int memberId);
         Task<FrontOrderDetailDto> GetOrderDetailAsync(long orderId, int memberId);
+        Task<bool> CancelOrderAsync(long orderId, int memberId);
+        Task<bool> ConfirmReceiptAsync(long orderId, int memberId);
     }
 }

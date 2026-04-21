@@ -87,8 +87,8 @@
 
               <!-- 狀態 2: 運送中 -->
               <template v-if="order.status === 2">
-                <el-button @click="handleRefund(order.id)" size="default">申請退貨/退款</el-button>
                 <el-button type="primary" @click="handleConfirmReceipt(order.id)" size="default">確認收貨</el-button>
+                <el-button @click="handleRefund(order.id)" size="default">申請退貨/退款</el-button>
               </template>
 
               <!-- 狀態 3: 已完成 -->
@@ -157,12 +157,13 @@ const handleCancel = async (id: number) => {
     });
     
     loading.value = true;
-    // await cancelOrderApi(id); // TODO: 等後端實作
+    await cancelOrderApi(id);
     ElMessage.success('訂單已取消');
     await fetchOrders();
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('操作失敗');
+      const msg = (error as any).response?.data?.message || '操作失敗';
+      ElMessage.error(msg);
     }
   } finally {
     loading.value = false;
@@ -178,12 +179,13 @@ const handleConfirmReceipt = async (id: number) => {
     });
     
     loading.value = true;
-    // await confirmReceiptApi(id); // TODO: 等後端實作
+    await confirmReceiptApi(id);
     ElMessage.success('訂單已完成，感謝您的購物！');
     await fetchOrders();
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('操作失敗');
+      const msg = (error as any).response?.data?.message || '操作失敗';
+      ElMessage.error(msg);
     }
   } finally {
     loading.value = false;

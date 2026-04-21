@@ -80,6 +80,30 @@ namespace ISpanShop.Services.Orders
             };
         }
 
+        public async Task<bool> CancelOrderAsync(long orderId, int memberId)
+        {
+            var o = await _orderRepository.GetOrderByIdAsync(orderId);
+            if (o == null || o.UserId != memberId) return false;
+
+            // 只有待付款(0)或待出貨(1)可以取消
+            if (o.Status != 0 && o.Status != 1) return false;
+
+            await _orderRepository.UpdateStatusAsync(orderId, 4); // 4 = 已取消
+            return true;
+        }
+
+        public async Task<bool> ConfirmReceiptAsync(long orderId, int memberId)
+        {
+            var o = await _orderRepository.GetOrderByIdAsync(orderId);
+            if (o == null || o.UserId != memberId) return false;
+
+            // 只有運送中(2)可以確認收貨
+            if (o.Status != 2) return false;
+
+            await _orderRepository.UpdateStatusAsync(orderId, 3); // 3 = 已完成
+            return true;
+        }
+
         private string GetFinalImage(OrderDetail od)
         {
             if (od == null) return null;
