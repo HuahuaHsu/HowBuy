@@ -187,6 +187,7 @@ namespace ISpanShop.MVC
             // 聊聊系統
             builder.Services.AddScoped<IChatRepository, ChatRepository>();
             builder.Services.AddScoped<IChatService, ChatService>();
+            builder.Services.AddScoped<IBotService, MockBotService>(); // 機器人服務
             builder.Services.AddSingleton<IUserIdProvider, NameUserIdProvider>();
             builder.Services.AddSignalR();
 

@@ -9,15 +9,15 @@ namespace ISpanShop.MVC.Hubs
     [Authorize(AuthenticationSchemes = "FrontendJwt")]
     public class ChatHub : Hub
     {
-        private readonly IChatService _chatService;
+        private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<ChatHub> _logger;
         
         // 暫時記錄 fuen50 的 ID，用於模擬賣家
         private static string _simulatedSellerId = null;
 
-        public ChatHub(IChatService chatService, ILogger<ChatHub> logger)
+        public ChatHub(IServiceScopeFactory scopeFactory, ILogger<ChatHub> logger)
         {
-            _chatService = chatService;
+            _scopeFactory = scopeFactory;
             _logger = logger;
         }
 
@@ -28,47 +28,80 @@ namespace ISpanShop.MVC.Hubs
             
             if (int.TryParse(senderIdStr, out int senderId))
             {
-                // --- 核心模擬邏輯：將買家訊息導向 fuen50 ---
-                int finalReceiverId = receiverId;
-                
-                // 如果 fuen50 已經上線，且目前的接收者不是 fuen49 本人
-                // 我們就將接收者強制改為 fuen50，這樣訊息就會存入 fuen50 的名下
-                if (!string.IsNullOrEmpty(_simulatedSellerId) && int.TryParse(_simulatedSellerId, out int sellerId))
+                using (var scope = _scopeFactory.CreateScope())
                 {
-                    // 如果我是買家 (senderId != sellerId)，就把訊息傳給 sellerId
-                    if (senderId != sellerId)
+                    var chatService = scope.ServiceProvider.GetRequiredService<IChatService>();
+                    var botService = scope.ServiceProvider.GetRequiredService<IBotService>();
+
+                    // --- 核心模擬邏輯：將買家訊息導向 fuen50 ---
+                    int finalReceiverId = receiverId;
+                    bool isBuyerSending = false;
+                    
+                    if (!string.IsNullOrEmpty(_simulatedSellerId) && int.TryParse(_simulatedSellerId, out int sellerId))
                     {
-                        finalReceiverId = sellerId;
+                        if (senderId != sellerId)
+                        {
+                            finalReceiverId = sellerId;
+                            isBuyerSending = true;
+                        }
+                    }
+
+                    // 1. 執行正規的發送流程 (存入資料庫)
+                    await chatService.SendMessageAsync(senderId, finalReceiverId, content, type);
+
+                    // 2. 傳送給接收者
+                    await Clients.User(finalReceiverId.ToString()).SendAsync("ReceiveMessage", senderId, content, type);
+                    
+                    // 3. 也傳送給發送者本人
+                    await Clients.Caller.SendAsync("ReceiveMessage", senderId, content, type);
+
+                    // --- 機器人自動回覆邏輯 ---
+                    if (isBuyerSending && type == 0) 
+                    {
+                        // 使用全新的 Scope 處理非同步回覆，避免 Service 被回收
+                        _ = Task.Run(async () => {
+                            try {
+                                await Task.Delay(1500);
+                                using (var botScope = _scopeFactory.CreateScope())
+                                {
+                                    var innerChatService = botScope.ServiceProvider.GetRequiredService<IChatService>();
+                                    var innerBotService = botScope.ServiceProvider.GetRequiredService<IBotService>();
+
+                                    string botReply = await innerBotService.GetResponseAsync(content);
+                                    
+                                    // 機器人以賣家 (finalReceiverId) 的身分回覆
+                                    await innerChatService.SendMessageAsync(finalReceiverId, senderId, botReply, 0);
+                                    
+                                    // 透過 SignalR 發送
+                                    await Clients.User(senderId.ToString()).SendAsync("ReceiveMessage", finalReceiverId, botReply, 0);
+                                    await Clients.User(finalReceiverId.ToString()).SendAsync("ReceiveMessage", finalReceiverId, botReply, 0);
+                                }
+                            }
+                            catch (System.Exception ex) {
+                                _logger.LogError(ex, "Bot Auto-Reply Error");
+                            }
+                        });
                     }
                 }
-
-                // 1. 執行正規的發送流程 (存入資料庫)
-                await _chatService.SendMessageAsync(senderId, finalReceiverId, content, type);
-
-                // 2. 傳送給接收者
-                await Clients.User(finalReceiverId.ToString()).SendAsync("ReceiveMessage", senderId, content, type);
-                
-                // 3. 也傳送給發送者本人 (讓自己的畫面出現訊息泡泡)
-                await Clients.Caller.SendAsync("ReceiveMessage", senderId, content, type);
-
-                _logger.LogInformation($"ChatHub: Message sent from {senderId} to {finalReceiverId} (Simulation Directed).");
             }
         }
 
         public override async Task OnConnectedAsync()
         {
             var userId = Context.UserIdentifier;
+            // 檢查所有 Claims 以確保抓到帳號名稱
+            var userName = Context.User?.Identity?.Name 
+                         ?? Context.User?.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value;
             
-            // 偵測是否為 fuen50 登入 (這需要從 User.Identity.Name 判斷)
-            var userName = Context.User?.Identity?.Name;
-            _logger.LogInformation($"ChatHub: User {userName} (ID: {userId}) connected.");
+            _logger.LogInformation($"ChatHub: Connection from User {userName} (ID: {userId})");
 
-            // 我們在此暫時假設所有登入的使用者，如果他進入了對話列表，且我們想測試賣家
-            // 只要他在右邊視窗連線，我們就記錄他的 ID 作為接收目標
-            // 您可以透過 Console 看一下 ID 是多少
-            
-            // 暫時讓最後一個連上線的人 (非買家本人) 成為模擬賣家
-            if (userId != null) 
+            // 如果帳號包含 fuen50，就鎖定為賣家
+            if (!string.IsNullOrEmpty(userName) && userName.ToLower().Contains("fuen50"))
+            {
+                _simulatedSellerId = userId;
+                _logger.LogInformation($"[Simulation] Seller Identified: {userName} (ID: {userId})");
+            }
+            else if (string.IsNullOrEmpty(_simulatedSellerId) && !string.IsNullOrEmpty(userName) && !userName.Contains("fuen49"))
             {
                 _simulatedSellerId = userId;
             }
