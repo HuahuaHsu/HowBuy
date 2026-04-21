@@ -93,9 +93,10 @@ export interface ProductListItem {
 /** 對應後端 ProductListResponseDto */
 export interface ProductListResponse {
   items: ProductListItem[]
-  total: number
   page: number
   pageSize: number
+  totalCount: number
+  totalPages: number
 }
 
 /** 統一 API 回傳包裝 */
