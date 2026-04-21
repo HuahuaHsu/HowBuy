@@ -1,14 +1,9 @@
 <template>
-  <div class="my-store-container">
+  <div class="sales-report-container">
     <div class="page-header">
-      <div class="header-left">
-        <el-button @click="router.back()" circle icon="ArrowLeft" />
-        <h2 class="title">賣場數據中心</h2>
-      </div>
-      <div class="header-right">
-        <el-button type="primary" @click="goToSellerAdmin">
-          <el-icon><Monitor /></el-icon> 前往賣家管理後台
-        </el-button>
+      <h2 class="title">銷售報表</h2>
+      <div class="header-actions">
+        <el-tag type="info">數據更新時間：{{ lastUpdateTime }}</el-tag>
       </div>
     </div>
 
@@ -98,18 +93,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { ArrowLeft, Money, Document, Goods, Warning, Monitor } from '@element-plus/icons-vue';
+import { ref, onMounted, computed } from 'vue';
+import { Money, Document, Goods, Warning } from '@element-plus/icons-vue';
 import { getSellerDashboardApi } from '@/api/store';
 import type { SellerDashboardData } from '@/types/store';
 import { ElMessage } from 'element-plus';
 import VueApexCharts from 'vue3-apexcharts';
 
 const apexchart = VueApexCharts;
-const router = useRouter();
 const loading = ref(false);
 const data = ref<SellerDashboardData | null>(null);
+
+const lastUpdateTime = computed(() => {
+  return new Date().toLocaleString();
+});
 
 const chartOptions = ref({
   chart: {
@@ -152,61 +149,56 @@ const formatPrice = (price: number) => {
   return new Intl.NumberFormat('zh-TW').format(price);
 };
 
-const goToSellerAdmin = () => {
-  // 導向外部賣家管理系統，或內部另一個 SPA 路由
-  // 這裡假設是 /seller
-  router.push('/seller');
-};
-
 onMounted(() => {
   fetchDashboardData();
 });
 </script>
 
 <style scoped lang="scss">
-.my-store-container {
-  padding: 10px;
+.sales-report-container {
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
   
-  .header-left {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    .title { margin: 0; font-size: 1.5rem; }
+  .title { 
+    margin: 0; 
+    font-size: 22px; 
+    font-weight: 700;
+    color: #1e293b;
   }
 }
 
 .kpi-row {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .kpi-card {
-  display: flex;
-  align-items: center;
-  padding: 10px;
-  margin-bottom: 15px;
+  border: 1px solid #e8eaf0;
+  border-radius: 12px;
+  margin-bottom: 16px;
 
   :deep(.el-card__body) {
     display: flex;
     align-items: center;
     gap: 20px;
-    width: 100%;
+    padding: 24px;
   }
 
   .kpi-icon {
-    width: 50px;
-    height: 50px;
-    border-radius: 10px;
+    width: 52px;
+    height: 52px;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 24px;
+    flex-shrink: 0;
     
     &.revenue { background-color: #fff1f0; color: #ff4d4f; }
     &.orders { background-color: #e6f7ff; color: #1890ff; }
@@ -215,8 +207,8 @@ onMounted(() => {
   }
 
   .kpi-info {
-    .kpi-label { font-size: 14px; color: #8c8c8c; margin-bottom: 4px; }
-    .kpi-value { font-size: 20px; font-weight: bold; color: #262626; }
+    .kpi-label { font-size: 13px; color: #64748b; margin-bottom: 4px; }
+    .kpi-value { font-size: 24px; font-weight: bold; color: #1e293b; }
     .warning-text { color: #faad14; }
   }
 }
@@ -224,13 +216,15 @@ onMounted(() => {
 .main-row {
   .chart-card, .top-products-card {
     height: 100%;
-    margin-bottom: 20px;
+    margin-bottom: 24px;
+    border: 1px solid #e8eaf0;
+    border-radius: 12px;
   }
 }
 
 .card-header {
   font-weight: bold;
-  color: #262626;
+  color: #1e293b;
 }
 
 .chart-wrapper {

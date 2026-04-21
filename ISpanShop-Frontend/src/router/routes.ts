@@ -80,11 +80,6 @@ export const routes: RouteRecordRaw[] = [
             component: () => import('../views/member/MemberCouponsView.vue'),
           },
           {
-            path: 'mystore',
-            name: 'member-mystore',
-            component: () => import('../views/member/MyStoreView.vue'),
-          },
-          {
             path: '/member/support',
             name: 'member-support',
             component: () => import('../views/member/SupportTicketsView.vue'),
@@ -141,7 +136,7 @@ export const routes: RouteRecordRaw[] = [
       { path: 'returns',            name: 'SellerReturns',    component: () => import('../views/seller/TodoView.vue') },
       { path: 'promotions',         name: 'SellerPromotions', component: () => import('../views/seller/TodoView.vue') },
       { path: 'coupons',            name: 'SellerCoupons',    component: () => import('../views/seller/TodoView.vue') },
-      { path: 'analytics/sales',    name: 'SellerSales',      component: () => import('../views/seller/TodoView.vue') },
+      { path: 'analytics/sales',    name: 'SellerSales',      component: () => import('../views/seller/SalesReportView.vue') },
       { path: 'analytics/traffic',  name: 'SellerTraffic',    component: () => import('../views/seller/TodoView.vue') },
       { path: 'chat',               name: 'SellerChat',       component: () => import('../views/seller/TodoView.vue') },
     ],
