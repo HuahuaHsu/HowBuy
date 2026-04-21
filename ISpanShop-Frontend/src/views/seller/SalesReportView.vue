@@ -1,9 +1,9 @@
 <template>
-  <div class="my-store-container">
+  <div class="sales-report-container">
     <div class="page-header">
-      <div class="header-left">
-        <el-button @click="router.back()" circle icon="ArrowLeft" />
-        <h2 class="title">賣場狀態檢查</h2>
+      <h2 class="title">銷售報表</h2>
+      <div class="header-actions">
+        <el-tag type="info">數據更新時間：{{ lastUpdateTime }}</el-tag>
       </div>
     </div>
 
@@ -46,20 +46,44 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { ArrowLeft } from '@element-plus/icons-vue';
-import { getStoreStatusApi } from '@/api/store';
-import { useAuthStore } from '@/stores/auth';
-import type { StoreStatus } from '@/types/store';
+import { ref, onMounted, computed } from 'vue';
+import { Money, Document, Goods, Warning } from '@element-plus/icons-vue';
+import { getSellerDashboardApi } from '@/api/store';
+import type { SellerDashboardData } from '@/types/store';
 import { ElMessage } from 'element-plus';
 
-const router = useRouter();
-const authStore = useAuthStore();
+const apexchart = VueApexCharts;
 const loading = ref(false);
 const status = ref<StoreStatus | ''>('');
 
-const checkStatus = async () => {
+const lastUpdateTime = computed(() => {
+  return new Date().toLocaleString();
+});
+
+const chartOptions = ref({
+  chart: {
+    id: 'sales-trend',
+    toolbar: { show: false }
+  },
+  xaxis: {
+    categories: [] as string[]
+  },
+  colors: ['#ee4d2d'],
+  stroke: {
+    curve: 'smooth',
+    width: 3
+  },
+  markers: {
+    size: 4
+  },
+  yaxis: {
+    labels: {
+      formatter: (val: number) => `$${val.toLocaleString()}`
+    }
+  }
+});
+
+const fetchDashboardData = async () => {
   loading.value = true;
   try {
     const res = await getStoreStatusApi();
@@ -85,40 +109,89 @@ const checkStatus = async () => {
   }
 };
 
+const formatPrice = (price: number) => {
+  return new Intl.NumberFormat('zh-TW').format(price);
+};
+
 onMounted(() => {
   checkStatus();
 });
 </script>
 
 <style scoped lang="scss">
-.my-store-container {
-  padding: 20px;
+.sales-report-container {
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .page-header {
-  margin-bottom: 30px;
-  .header-left {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  
+  .title { 
+    margin: 0; 
+    font-size: 22px; 
+    font-weight: 700;
+    color: #1e293b;
+  }
+}
+
+.kpi-row {
+  margin-bottom: 24px;
+}
+
+.kpi-card {
+  border: 1px solid #e8eaf0;
+  border-radius: 12px;
+  margin-bottom: 16px;
+
+  :deep(.el-card__body) {
     display: flex;
     align-items: center;
-    gap: 15px;
-    .title { margin: 0; font-size: 1.25rem; font-weight: 600; }
+    gap: 20px;
+    padding: 24px;
+  }
+
+  .kpi-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    flex-shrink: 0;
+    
+    &.revenue { background-color: #fff1f0; color: #ff4d4f; }
+    &.orders { background-color: #e6f7ff; color: #1890ff; }
+    &.products { background-color: #f6ffed; color: #52c41a; }
+    &.warning { background-color: #fffbe6; color: #faad14; }
+  }
+
+  .kpi-info {
+    .kpi-label { font-size: 13px; color: #64748b; margin-bottom: 4px; }
+    .kpi-value { font-size: 24px; font-weight: bold; color: #1e293b; }
+    .warning-text { color: #faad14; }
   }
 }
 
-.status-content {
-  min-height: 450px;
-  background: #fff;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.main-row {
+  .chart-card, .top-products-card {
+    height: 100%;
+    margin-bottom: 24px;
+    border: 1px solid #e8eaf0;
+    border-radius: 12px;
+  }
 }
 
-.status-box {
-  text-align: center;
-  .status-tip {
-    color: #8c8c8c;
-    margin-bottom: 20px;
-  }
+.card-header {
+  font-weight: bold;
+  color: #1e293b;
+}
+
+.chart-wrapper {
+  padding: 10px 0;
 }
 </style>
