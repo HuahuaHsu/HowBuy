@@ -1,8 +1,10 @@
 ﻿using ISpanShop.Models.DTOs.Products;
 using ISpanShop.Models.DTOs.Inventories;
+using ISpanShop.Models.EfModels;
 using ISpanShop.Services.Products;
 using ISpanShop.Services.Inventories;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ISpanShop.MVC.Controllers.Api.Products
@@ -15,10 +17,15 @@ namespace ISpanShop.MVC.Controllers.Api.Products
     public class SellerProductsApiController : ControllerBase
     {
         private readonly IProductService _productService;
+        private readonly IWebHostEnvironment _env;
 
-        public SellerProductsApiController(IProductService productService)
+        private static readonly string[] _allowedImageExts = { ".jpg", ".jpeg", ".png", ".webp" };
+        private const long MaxImageSize = 5 * 1024 * 1024; // 5 MB
+
+        public SellerProductsApiController(IProductService productService, IWebHostEnvironment env)
         {
             _productService = productService;
+            _env = env;
         }
 
         // ──────────────────────────────────────────────────────────
@@ -114,7 +121,7 @@ namespace ISpanShop.MVC.Controllers.Api.Products
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public IActionResult CreateProduct([FromForm] CreateProductRequest request)
+        public async Task<IActionResult> CreateProduct([FromForm] CreateProductRequest request)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -130,18 +137,61 @@ namespace ISpanShop.MVC.Controllers.Api.Products
             {
                 StoreId            = storeId,  // 使用 JWT 中的 StoreId，忽略前端傳入的值
                 CategoryId         = request.CategoryId,
-                BrandId            = request.BrandId ?? 0,
+                BrandId            = request.BrandId,  // null = 未指定品牌，不可用 ?? 0（0 非合法 BrandId）
                 Name               = request.Name,
                 Description        = request.Description,
                 VideoUrl           = request.VideoUrl,
                 SpecDefinitionJson = request.SpecDefinitionJson ?? "[]",
-                UploadImages       = request.Images ?? new List<Microsoft.AspNetCore.Http.IFormFile>(),
-                MainImageIndex     = request.MainImageIndex,
                 Variants           = new List<ProductVariantCreateDto>()
             };
 
-            _productService.CreateProduct(dto);
-            return StatusCode(StatusCodes.Status201Created, new { message = "商品建立成功，等待審核" });
+            var productId = _productService.CreateProduct(dto);
+
+            // 儲存圖片：存檔到 wwwroot/uploads/products/，再寫入 ProductImages 表
+            if (request.Images != null && request.Images.Count > 0)
+            {
+                var uploadDir = Path.Combine(_env.WebRootPath, "uploads", "products");
+                Directory.CreateDirectory(uploadDir);
+
+                var productImages = new List<ProductImage>();
+                int sortOrder = 0;
+
+                for (int i = 0; i < request.Images.Count; i++)
+                {
+                    var file = request.Images[i];
+                    if (file == null || file.Length == 0) continue;
+
+                    var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+                    if (!_allowedImageExts.Contains(ext)) continue;
+                    if (file.Length > MaxImageSize) continue;
+
+                    var fileName = $"{Guid.NewGuid()}{ext}";
+                    var filePath = Path.Combine(uploadDir, fileName);
+                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await file.CopyToAsync(stream);
+                    }
+
+                    productImages.Add(new ProductImage
+                    {
+                        ProductId = productId,
+                        ImageUrl  = $"/uploads/products/{fileName}",
+                        IsMain    = (i == request.MainImageIndex),
+                        SortOrder = sortOrder++
+                    });
+                }
+
+                if (productImages.Count > 0)
+                {
+                    // 確保至少有一張主圖
+                    if (!productImages.Any(img => img.IsMain == true))
+                        productImages[0].IsMain = true;
+
+                    _productService.AddProductImages(productId, productImages);
+                }
+            }
+
+            return StatusCode(StatusCodes.Status201Created, new { success = true, data = new { productId }, message = "商品建立成功，等待審核" });
         }
 
         // ──────────────────────────────────────────────────────────
@@ -248,7 +298,9 @@ namespace ISpanShop.MVC.Controllers.Api.Products
             CreatedAt    = dto.CreatedAt,
             TotalStock   = dto.TotalStock,
             TotalSales   = dto.TotalSales,
-            ViewCount    = dto.ViewCount
+            ViewCount    = dto.ViewCount,
+            RejectReason = dto.RejectReason,
+            ReviewStatus = dto.ReviewStatus
         };
 
         private static ProductDetailResponse MapToDetail(ProductDetailDto dto) => new()

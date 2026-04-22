@@ -295,8 +295,15 @@
                         :show-file-list="false"
                         :auto-upload="false"
                         accept="image/*"
+                        :on-change="(file: UploadFile) => handleOptionImageChange(specIndex, optIndex, file)"
                       >
-                        <el-icon class="upload-icon"><Picture /></el-icon>
+                        <img
+                          v-if="option.imagePreview"
+                          :src="option.imagePreview"
+                          class="option-image-preview"
+                          :alt="option.name"
+                        />
+                        <el-icon v-else class="upload-icon"><Picture /></el-icon>
                       </el-upload>
                       <el-input
                         v-model="option.name"
@@ -365,7 +372,7 @@
                   </div>
 
                   <!-- 表格 -->
-                  <el-table :data="variants" border style="width: 100%">
+                  <el-table :data="variantData" border style="width: 100%">
                     <el-table-column
                       v-if="form.specs.length > 0"
                       :label="form.specs[0]?.name || '規格一'"
@@ -564,10 +571,10 @@
       <div class="actions-wrapper">
         <el-button @click="handleCancel">取消</el-button>
         <el-button :loading="saving" @click="handleSubmit(false)">
-          儲存並下架
+          儲存草稿
         </el-button>
         <el-button type="primary" :loading="saving" @click="handleSubmit(true)">
-          儲存並上架
+          儲存並送審
         </el-button>
       </div>
     </div>
@@ -584,9 +591,10 @@
 import { ref, reactive, computed, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import type { FormInstance, FormRules, UploadUserFile, UploadProps } from 'element-plus'
+import type { FormInstance, FormRules, UploadUserFile, UploadProps, UploadFile } from 'element-plus'
 import { Plus, CircleCheck, CircleClose, ArrowRight, Picture, Close, Delete } from '@element-plus/icons-vue'
 import { fetchBrands } from '@/api/brand'
+import { createSellerProduct, addSellerProductVariant } from '@/api/product'
 import type { Brand } from '@/types/brand'
 import { getCategoryAttributes, type CategoryAttribute } from '@/api/categoryAttribute'
 import CategoryPicker from '@/components/seller/CategoryPicker.vue'
@@ -603,6 +611,7 @@ const tabs = [
 interface SpecOption {
   name: string
   image: File | null
+  imagePreview: string | null
 }
 
 interface Spec {
@@ -661,6 +670,8 @@ const batchPrice = ref<number | null>(null)
 const batchStock = ref<number | null>(null)
 const batchSku = ref<string>('')
 
+const variantData = ref<Variant[]>([])
+
 const form = reactive<ProductForm>({
   name: '',
   categoryId: null,
@@ -685,25 +696,29 @@ const form = reactive<ProductForm>({
   specs: [
     {
       name: '',
-      options: [{ name: '', image: null }],
+      options: [{ name: '', image: null, imagePreview: null }],
     },
   ],
   minPurchase: 1,
   isOnShelf: true,
 })
 
-const rules: FormRules = {
+const rules = computed<FormRules>(() => ({
   name: [
     { required: true, message: '請輸入商品名稱', trigger: 'blur' },
     { min: 5, max: 100, message: '商品名稱需介於 5~100 字', trigger: 'blur' },
   ],
   categoryId: [{ required: true, message: '請選擇分類', trigger: 'change' }],
-  price: [
-    { required: true, message: '請輸入售價', trigger: 'blur' },
-    { type: 'number', min: 1, message: '售價至少為 1', trigger: 'blur' },
-  ],
-  stock: [{ required: true, message: '請輸入庫存', trigger: 'blur' }],
-}
+  ...(specsEnabled.value
+    ? {}
+    : {
+        price: [
+          { required: true, message: '請輸入售價', trigger: 'blur' },
+          { type: 'number', min: 1, message: '售價至少為 1', trigger: 'blur' },
+        ],
+        stock: [{ required: true, message: '請輸入庫存', trigger: 'blur' }],
+      }),
+}))
 
 const attributesCompletionCount = computed(() => {
   if (categoryAttributes.value.length === 0) {
@@ -824,6 +839,14 @@ const variants = computed<Variant[]>(() => {
   return result
 })
 
+// Sync variant spec combinations → editable variantData, preserving user-entered price/stock/sku
+watch(variants, (newVariants) => {
+  variantData.value = newVariants.map(nv => {
+    const existing = variantData.value.find(v => v.spec1 === nv.spec1 && v.spec2 === nv.spec2)
+    return existing ?? { ...nv }
+  })
+}, { immediate: true })
+
 async function loadBrands(): Promise<void> {
   try {
     const res = await fetchBrands()
@@ -931,11 +954,33 @@ function handleAddDescriptionImage(): void {
   ElMessage.info('TODO: 實作描述圖片上傳功能')
 }
 
+function handleOptionImageChange(specIndex: number, optIndex: number, file: UploadFile): void {
+  const raw = file.raw
+  if (!raw) return
+  const validTypes = ['image/jpeg', 'image/png', 'image/webp']
+  if (!validTypes.includes(raw.type)) {
+    ElMessage.error('只支援 JPG、PNG、WEBP 格式')
+    return
+  }
+  if (raw.size > 2 * 1024 * 1024) {
+    ElMessage.error('圖片大小不能超過 2MB')
+    return
+  }
+  const option = form.specs[specIndex]?.options[optIndex]
+  if (!option) return
+  option.image = raw
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    option.imagePreview = e.target?.result as string ?? null
+  }
+  reader.readAsDataURL(raw)
+}
+
 function addSpec(): void {
   if (form.specs.length < 2) {
     form.specs.push({
       name: '',
-      options: [{ name: '', image: null }],
+      options: [{ name: '', image: null, imagePreview: null }],
     })
   }
 }
@@ -945,7 +990,7 @@ function removeSpec(index: number): void {
 }
 
 function addSpecOption(specIndex: number): void {
-  form.specs[specIndex].options.push({ name: '', image: null })
+  form.specs[specIndex].options.push({ name: '', image: null, imagePreview: null })
 }
 
 function removeSpecOption(specIndex: number, optionIndex: number): void {
@@ -955,7 +1000,7 @@ function removeSpecOption(specIndex: number, optionIndex: number): void {
 }
 
 function applyBatch(): void {
-  variants.value.forEach((variant) => {
+  variantData.value.forEach((variant) => {
     if (batchPrice.value !== null) variant.price = batchPrice.value
     if (batchStock.value !== null) variant.stock = batchStock.value
     if (batchSku.value) variant.sku = batchSku.value
@@ -973,33 +1018,87 @@ function getBrandName(brandId: number): string {
 }
 
 async function handleSubmit(publishNow: boolean): Promise<void> {
-  const valid = await formRef.value?.validate().catch(() => false)
-  if (!valid) return
-
-  form.isOnShelf = publishNow
+  // 草稿模式：只驗證商品名稱（最低要求）
+  // 送審模式：全欄位驗證
+  if (publishNow) {
+    const valid = await formRef.value?.validate().catch(() => false)
+    if (!valid) {
+      ElMessage.warning('請填寫所有必填欄位（商品名稱、分類' + (specsEnabled.value ? '' : '、價格、庫存') + '）')
+      return
+    }
+  } else {
+    // 草稿至少要有名稱
+    if (!form.name || form.name.length < 1) {
+      ElMessage.warning('請輸入商品名稱才能儲存草稿')
+      return
+    }
+  }
 
   saving.value = true
   try {
-    const payload = {
-      name: form.name,
-      categoryId: form.categoryId,
-      attributes: form.attributes,
-      description: form.description,
-      price: specsEnabled.value ? null : form.price,
-      stock: specsEnabled.value ? null : form.stock,
-      minPurchase: form.minPurchase,
-      isOnShelf: form.isOnShelf,
-      images: form.images,
-      specs: specsEnabled.value ? form.specs : null,
-      variants: specsEnabled.value ? variants.value : null,
+    // 組裝 multipart/form-data（後端 [Consumes("multipart/form-data")]）
+    const fd = new FormData()
+    fd.append('Name', form.name)
+    fd.append('Description', form.description)
+    if (form.categoryId !== null) fd.append('CategoryId', String(form.categoryId))
+    if (form.attributes.brandId !== null) fd.append('BrandId', String(form.attributes.brandId))
+
+    console.log('送出資料:', {
+      Name: form.name,
+      CategoryId: form.categoryId,
+      BrandId: form.attributes.brandId ?? '(未選擇，不傳送)',
+      Description: form.description,
+      SpecDefinitionJson: form.specs.map(s => s.name),
+      ImageCount: form.images.filter(i => i.raw).length,
+    })
+
+    // 規格定義 JSON：[{"name":"顏色"},{"name":"尺寸"}]
+    if (specsEnabled.value && form.specs.length > 0) {
+      const specDef = form.specs.map(s => ({ name: s.name }))
+      fd.append('SpecDefinitionJson', JSON.stringify(specDef))
     }
 
-    // TODO: 實際呼叫後端 API
-    // await createProduct(payload)
-    ElMessage.success(`商品${publishNow ? '上架' : '下架'}成功（待串接後端）`)
-    
+    // 圖片（UploadUserFile 的 raw 就是 File）
+    let mainIdx = 0
+    form.images.forEach((img, idx) => {
+      if (img.raw) {
+        fd.append('Images', img.raw)
+        if (img.raw === form.images[0]?.raw) mainIdx = idx
+      }
+    })
+    fd.append('MainImageIndex', String(mainIdx))
+
+    const res = await createSellerProduct(fd)
+    if (!res.success) {
+      ElMessage.error(res.message || '儲存失敗')
+      return
+    }
+
+    const newProductId = res.data?.productId
+
+    // 如果有規格，依次建立 variants
+    if (specsEnabled.value && newProductId && variantData.value.length > 0) {
+      const specNames = form.specs.map(s => s.name)
+      for (const v of variantData.value) {
+        // 組成 specValueJson：{"顏色":"紅色","尺寸":"L"}
+        const specValueMap: Record<string, string> = {}
+        if (specNames[0] && v.spec1) specValueMap[specNames[0]] = v.spec1
+        if (specNames[1] && v.spec2) specValueMap[specNames[1]] = v.spec2
+
+        await addSellerProductVariant(newProductId, {
+          skuCode: v.sku || '',
+          variantName: Object.values(specValueMap).join('/'),
+          specValueJson: JSON.stringify(specValueMap),
+          price: v.price ?? 0,
+          stock: v.stock,
+        })
+      }
+    }
+
+    ElMessage.success(publishNow ? '商品已提交審核，請等待管理員審核' : '草稿已儲存')
     void router.push('/seller/products')
   } catch (error) {
+    console.error('儲存失敗:', error)
     ElMessage.error('儲存失敗，請稍後再試')
   } finally {
     saving.value = false
@@ -1414,6 +1513,13 @@ function handleCancel(): void {
 .option-image-upload {
   width: 40px;
   height: 40px;
+}
+
+.option-image-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 4px;
 }
 
 .option-image-upload :deep(.el-upload) {

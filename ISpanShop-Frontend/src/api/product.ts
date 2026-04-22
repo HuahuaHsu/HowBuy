@@ -69,10 +69,38 @@ export async function fetchSellerProducts(
 
 /**
  * 新增賣家商品
- * POST /api/seller/products
+ * POST /api/seller/products  (multipart/form-data)
  * 不需要前端傳 StoreId，後端從 JWT token 解析
  */
-export async function createSellerProduct(data: unknown): Promise<ApiResponse<unknown>> {
-  const response = await request.post<ApiResponse<unknown>>('/api/seller/products', data)
+export async function createSellerProduct(
+  data: FormData,
+): Promise<ApiResponse<{ productId: number }>> {
+  const response = await request.post<ApiResponse<{ productId: number }>>(
+    '/api/seller/products',
+    data,
+    { headers: { 'Content-Type': 'multipart/form-data' } },
+  )
+  return response.data
+}
+
+/**
+ * 為商品新增規格變體
+ * POST /api/seller/products/{productId}/variants
+ */
+export async function addSellerProductVariant(
+  productId: number,
+  data: {
+    skuCode: string
+    variantName: string
+    specValueJson: string
+    price: number
+    stock: number
+    safetyStock?: number
+  },
+): Promise<ApiResponse<unknown>> {
+  const response = await request.post<ApiResponse<unknown>>(
+    `/api/seller/products/${productId}/variants`,
+    data,
+  )
   return response.data
 }

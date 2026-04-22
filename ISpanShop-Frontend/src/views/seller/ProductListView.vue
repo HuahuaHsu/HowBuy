@@ -183,6 +183,11 @@
               <!-- 商品資訊 -->
               <div class="card-body">
                 <p class="card-name">{{ product.name }}</p>
+                <!-- 退回原因橫幅 -->
+                <div v-if="product.status === 'rejected' && product.rejectReason" class="reject-banner">
+                  <el-icon :size="13"><WarningFilled /></el-icon>
+                  <span>退回原因：{{ product.rejectReason }}</span>
+                </div>
                 <div class="card-price">NT$ {{ getProductPrice(product) }}</div>
                 <div class="card-stock">
                   商品數量：
@@ -203,9 +208,11 @@
               <div class="card-footer">
                 <button
                   class="card-action-btn edit-btn"
+                  :class="{ 'resubmit-btn': product.status === 'rejected' }"
                   @click="router.push(`/seller/products/${product.id}/edit`)"
                 >
-                  <el-icon :size="13"><Edit /></el-icon> 編輯
+                  <el-icon :size="13"><Edit /></el-icon>
+                  {{ product.status === 'rejected' ? '重新編輯' : '編輯' }}
                 </button>
                 <el-dropdown
                   trigger="click"
@@ -272,6 +279,10 @@
                   <div class="table-info">
                     <div class="table-name">{{ row.name }}</div>
                     <div class="table-id">ID: {{ row.id }}</div>
+                    <div v-if="row.status === 'rejected' && row.rejectReason" class="table-reject-reason">
+                      <el-icon :size="12"><WarningFilled /></el-icon>
+                      {{ row.rejectReason }}
+                    </div>
                   </div>
                 </div>
               </template>
@@ -313,10 +324,13 @@
             <el-table-column label="操作" width="160" align="center" fixed="right">
               <template #default="{ row }">
                 <el-button
-                  text type="primary" size="small"
+                  text
+                  :type="row.status === 'rejected' ? 'warning' : 'primary'"
+                  size="small"
                   @click="router.push(`/seller/products/${row.id}/edit`)"
                 >
-                  <el-icon><Edit /></el-icon> 編輯
+                  <el-icon><Edit /></el-icon>
+                  {{ row.status === 'rejected' ? '重新編輯' : '編輯' }}
                 </el-button>
                 <el-popconfirm
                   title="確定要刪除這個商品嗎？"
@@ -457,8 +471,8 @@ function getProductPrice(product: SellerProduct): string {
 }
 
 // ── 型別定義 ──────────────────────────────────────────────────────
-type ProductStatus = 'on' | 'off' | 'deleted' | 'review' | 'draft'
-type TabKey = 'all' | 'on' | 'deleted' | 'review' | 'draft'
+type ProductStatus = 'on' | 'off' | 'deleted' | 'review' | 'rejected' | 'draft'
+type TabKey = 'all' | 'on' | 'deleted' | 'review' | 'rejected' | 'draft'
 type SubTabKey = 'all' | 'restock' | 'optimize'
 type SortField = 'minPrice' | 'createdAt'
 type SortDir = 'asc' | 'desc' | null
@@ -468,7 +482,7 @@ function mapStatusToKey(status: number): ProductStatus {
   switch (status) {
     case 1: return 'on'
     case 2: return 'review'
-    case 3: return 'deleted'
+    case 3: return 'rejected'  // 審核退回
     default: return 'draft'
   }
 }
@@ -482,6 +496,8 @@ interface SellerProduct extends Omit<SellerProductListItem, 'status'> {
   status: ProductStatus
   lowStockAlert: boolean
   lowStockThreshold: number
+  rejectReason: string | null
+  reviewStatus: number
 }
 
 // ── State ─────────────────────────────────────────────────────────
@@ -522,11 +538,12 @@ const deleteTargetProduct = ref<SellerProduct | null>(null)
 
 // ── 常數 ─────────────────────────────────────────────────────────
 const level1Tabs: Array<{ key: TabKey; label: string }> = [
-  { key: 'all',     label: '全部' },
-  { key: 'on',      label: '架上商品' },
-  { key: 'deleted', label: '違規/刪除' },
-  { key: 'review',  label: '審核中' },
-  { key: 'draft',   label: '未上架/尚未刊登' },
+  { key: 'all',      label: '全部' },
+  { key: 'on',       label: '架上商品' },
+  { key: 'rejected', label: '已退回' },
+  { key: 'review',   label: '審核中' },
+  { key: 'draft',    label: '未上架/尚未刊登' },
+  { key: 'deleted',  label: '違規/刪除' },
 ]
 
 const sortOptions: Array<{ field: string; label: string }> = [
@@ -602,7 +619,7 @@ const pagedProducts = computed<SellerProduct[]>(() => {
 
 /** 各 Tab 計數 */
 const tabCounts = computed<Record<TabKey, number>>(() => {
-  const c: Record<string, number> = { all: 0, on: 0, deleted: 0, review: 0, draft: 0 }
+  const c: Record<string, number> = { all: 0, on: 0, deleted: 0, review: 0, rejected: 0, draft: 0 }
   allProducts.value.forEach((p) => {
     c['all'] = (c['all'] ?? 0) + 1
     const prev = c[p.status]
@@ -644,6 +661,8 @@ async function loadProducts(): Promise<void> {
         status: mapStatusToKey(status),
         lowStockAlert: false,
         lowStockThreshold: 5,
+        rejectReason: p.rejectReason ?? null,
+        reviewStatus: p.reviewStatus ?? 0,
       }
     })
   } catch (err) {
@@ -771,7 +790,7 @@ function saveStockAlert(): void {
 
 // ── Helpers ───────────────────────────────────────────────────────
 const STATUS_LABEL: Record<ProductStatus, string> = {
-  on: '架上', off: '下架', deleted: '已刪除', review: '審核中', draft: '草稿',
+  on: '架上', off: '下架', deleted: '已刪除', review: '審核中', rejected: '已退回', draft: '草稿',
 }
 function statusLabel(status: ProductStatus): string {
   return STATUS_LABEL[status] ?? status
@@ -958,13 +977,37 @@ function statusLabel(status: ProductStatus): string {
   font-weight: 600;
   pointer-events: none;
 }
-.badge-on      { background: #dcfce7; color: #16a34a; }
-.badge-off     { background: #f1f5f9; color: #64748b; }
-.badge-deleted { background: #fee2e2; color: #dc2626; }
-.badge-review  { background: #fef3c7; color: #d97706; }
-.badge-draft   { background: #f1f5f9; color: #64748b; }
+.badge-on       { background: #dcfce7; color: #16a34a; }
+.badge-off      { background: #f1f5f9; color: #64748b; }
+.badge-deleted  { background: #fee2e2; color: #dc2626; }
+.badge-review   { background: #fef3c7; color: #d97706; }
+.badge-rejected { background: #ffe4e6; color: #e11d48; }
+.badge-draft    { background: #f1f5f9; color: #64748b; }
 
 .card-body { padding: 8px 10px; flex: 1; }
+
+/* 退回原因橫幅 */
+.reject-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  background: #fff1f2;
+  border: 1px solid #fecdd3;
+  border-radius: 4px;
+  padding: 5px 8px;
+  font-size: 11px;
+  color: #e11d48;
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+.reject-banner .el-icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* 重新編輯按鈕 — 橘色強調 */
+.resubmit-btn { color: #ee4d2d !important; font-weight: 600; }
+.resubmit-btn:hover { background: #fff7ed !important; }
 
 .card-name {
   font-size: 13px;
@@ -1042,6 +1085,18 @@ function statusLabel(status: ProductStatus): string {
   max-width: 180px;
 }
 .table-id { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+.table-reject-reason {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  color: #e11d48;
+  margin-top: 3px;
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 /* ─ 分頁 ─────────────────────────────────────────────────────────── */
 .pagination-wrapper {

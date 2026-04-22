@@ -108,9 +108,13 @@ namespace ISpanShop.Models.DTOs.Products
         public string   StatusText   { get; set; } = string.Empty;
         public string?  MainImageUrl { get; set; }
         public DateTime? CreatedAt   { get; set; }
-        public int      TotalStock   { get; set; }
-        public int?     TotalSales   { get; set; }
-        public int?     ViewCount    { get; set; }
+        public int      TotalStock    { get; set; }
+        public int?     TotalSales    { get; set; }
+        public int?     ViewCount     { get; set; }
+        /// <summary>審核退回原因（status=3 時才有值）</summary>
+        public string?  RejectReason  { get; set; }
+        /// <summary>審核狀態：0=待審核 1=通過 2=退回 3=重新送審</summary>
+        public int      ReviewStatus  { get; set; }
     }
 
     /// <summary>商品詳情（含規格列表）</summary>

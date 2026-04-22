@@ -29,7 +29,7 @@ namespace ISpanShop.Services.Products
         /// <summary>
         /// 建立新商品
         /// </summary>
-        public void CreateProduct(ProductCreateDto dto)
+        public int CreateProduct(ProductCreateDto dto)
         {
             var product = new ISpanShop.Models.EfModels.Product
             {
@@ -65,6 +65,7 @@ namespace ISpanShop.Services.Products
             }
 
             _productRepository.AddProduct(product);
+            return product.Id;
         }
 
         /// <summary>
@@ -691,6 +692,12 @@ namespace ISpanShop.Services.Products
         {
             limit = Math.Clamp(limit, 1, 20);
             return await _productRepository.GetHotKeywordsAsync(limit);
+        }
+
+        /// <inheritdoc/>
+        public void AddProductImages(int productId, IEnumerable<ISpanShop.Models.EfModels.ProductImage> images)
+        {
+            _productRepository.AddProductImages(productId, images);
         }
     }
 }

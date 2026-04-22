@@ -1176,5 +1176,16 @@ namespace ISpanShop.Repositories.Products
                 .Select(p => p.Name.Length > 10 ? p.Name.Substring(0, 10) : p.Name)
                 .ToListAsync();
         }
+
+        /// <inheritdoc/>
+        public void AddProductImages(int productId, IEnumerable<ProductImage> images)
+        {
+            foreach (var img in images)
+            {
+                img.ProductId = productId;
+                _context.ProductImages.Add(img);
+            }
+            _context.SaveChanges();
+        }
     }
 }
