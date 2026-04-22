@@ -108,6 +108,13 @@ namespace ISpanShop.Services.Payments
 							if (firstProduct != null) effectiveStoreId = firstProduct.StoreId;
 						}
 
+						// 檢查賣場狀態
+						var store = await _context.Stores.AsNoTracking().FirstOrDefaultAsync(s => s.Id == effectiveStoreId);
+						if (store != null && store.StoreStatus == 2)
+						{
+							return (false, "該賣場目前休假中，暫時無法接受下單", null);
+						}
+
 						var order = new Order
 						{
 							OrderNumber = orderNumber,

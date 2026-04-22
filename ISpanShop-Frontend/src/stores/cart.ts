@@ -12,6 +12,7 @@ export interface CartItem {
   specLabel: string
   storeId: number
   storeName: string
+  storeStatus?: number
 }
 
 const CART_KEY = 'cart_items'

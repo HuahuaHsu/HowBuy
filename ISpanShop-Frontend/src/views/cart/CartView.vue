@@ -10,6 +10,11 @@ const cartStore = useCartStore()
 
 const isEmpty = computed(() => cartStore.items.length === 0)
 
+/** 檢查是否有休假中賣場的商品 */
+const hasVacationItems = computed(() => {
+  return cartStore.items.some(item => item.storeStatus === 2)
+})
+
 function increment(productId: number, variantId: number | null, current: number): void {
   cartStore.updateQty(productId, variantId, current + 1)
 }
@@ -41,6 +46,10 @@ function formatPrice(price: number): string {
 }
 
 function handleCheckout(): void {
+  if (hasVacationItems.value) {
+    ElMessage.error('購物車包含休假中賣場的商品，請先移除後再結帳')
+    return
+  }
   router.push('/checkout')
 }
 </script>
@@ -66,11 +75,22 @@ function handleCheckout(): void {
 
       <!-- 購物車清單 -->
       <template v-else>
+        <div v-if="hasVacationItems" class="vacation-warning">
+          <el-alert
+            title="部分賣場休假中"
+            type="warning"
+            description="購物車內有商品所屬賣場正在休假，請移除該商品後再進行結帳。"
+            show-icon
+            :closable="false"
+          />
+        </div>
+
         <div class="cart-list">
           <div
             v-for="item in cartStore.items"
             :key="`${item.productId}-${item.variantId}`"
             class="cart-item"
+            :class="{ 'is-vacation': item.storeStatus === 2 }"
           >
             <!-- 商品圖片 -->
             <el-image
@@ -89,7 +109,10 @@ function handleCheckout(): void {
               <div
                 class="item-name"
                 @click="router.push(`/product/${item.productId}`)"
-              >{{ item.name }}</div>
+              >
+                <el-tag v-if="item.storeStatus === 2" type="warning" size="small" effect="dark" class="mr-1">休假中</el-tag>
+                {{ item.name }}
+              </div>
               <div v-if="item.specLabel" class="item-spec">{{ item.specLabel }}</div>
               <div class="item-price">NT$ {{ formatPrice(item.price) }}</div>
             </div>
@@ -175,6 +198,9 @@ function handleCheckout(): void {
   border-radius: 8px;
   padding: 60px 20px;
 }
+.vacation-warning {
+  margin-bottom: 16px;
+}
 .cart-list {
   background: white;
   border-radius: 8px;
@@ -188,6 +214,16 @@ function handleCheckout(): void {
   padding: 16px 20px;
   border-bottom: 1px solid #f0f0f0;
   transition: background 0.2s;
+}
+.cart-item.is-vacation {
+  background-color: #fcfcfc;
+}
+.cart-item.is-vacation .item-image {
+  filter: grayscale(0.5);
+  opacity: 0.8;
+}
+.mr-1 {
+  margin-right: 4px;
 }
 .cart-item:last-child { border-bottom: none; }
 .cart-item:hover { background: #fafafa; }
