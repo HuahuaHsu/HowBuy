@@ -81,3 +81,39 @@ export const getWalletBalance = () => {
 export const getPointHistory = () => {
   return axios.get<PointHistory[]>('/api/member/point-history');
 };
+
+/**
+ * 取得所有收件地址
+ */
+export const getAddressList = () => {
+  return axios.get<AddressDto[]>('/api/member/addresses');
+};
+
+/**
+ * 新增收件地址
+ */
+export const createAddress = (data: CreateAddressDto) => {
+  return axios.post<AddressDto>('/api/member/addresses', data);
+};
+
+/**
+ * 更新收件地址
+ */
+export const updateAddress = (id: number, data: UpdateAddressDto) => {
+  return axios.put<{ message: string }>(`/api/member/addresses/${id}`, data);
+};
+
+/**
+ * 刪除收件地址
+ */
+export const deleteAddress = (id: number) => {
+  return axios.delete<{ message: string }>(`/api/member/addresses/${id}`);
+};
+
+/**
+ * 設定為預設地址
+ */
+export const setDefaultAddress = (id: number) => {
+  return axios.patch<{ message: string }>(`/api/member/addresses/${id}/default`);
+};
+
