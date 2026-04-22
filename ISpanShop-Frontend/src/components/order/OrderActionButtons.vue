@@ -19,8 +19,8 @@
 
     <!-- 狀態 3: 已完成 -->
     <template v-if="status === 3">
-      <el-button @click="handleRefund" :loading="loading" size="default">申請退貨/退款</el-button>
       <el-button type="primary" plain size="default" @click="handleRebuy">再次購買</el-button>
+      <el-button @click="handleRefund" :loading="loading" size="default">申請退貨/退款</el-button>
     </template>
 
     <!-- 狀態 4: 已取消 -->
@@ -133,5 +133,9 @@ const handleRebuy = () => {
   display: flex;
   gap: 10px;
   justify-content: flex-end;
+}
+
+:deep(.el-button + .el-button) {
+  margin-left: 0;
 }
 </style>

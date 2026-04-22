@@ -395,6 +395,11 @@ onMounted(() => {
       display: flex;
       gap: 10px;
 
+      :deep(.el-button + .el-button),
+      :deep(.order-actions + .el-button) {
+        margin-left: 0;
+      }
+
       .el-button {
         min-width: 120px;
         
