@@ -142,13 +142,13 @@ export const routes: RouteRecordRaw[] = [
     path: '/forgot-password',
     name: 'forgot-password',
     component: () => import('../views/auth/ForgotPasswordView.vue'),
-    meta: { requiresAuth: false, hideForAuth: true }
+    meta: { requiresAuth: false }
   },
   {
     path: '/reset-password',
     name: 'reset-password',
     component: () => import('../views/auth/ResetPasswordView.vue'),
-    meta: { requiresAuth: false, hideForAuth: true }
+    meta: { requiresAuth: false }
   },
 
   // ── 賣家中心（獨立 Layout，與前台完全分離） ──

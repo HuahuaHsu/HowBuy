@@ -140,6 +140,17 @@
               </div>
             </div>
 
+            <!-- 賣場休假提示 -->
+            <div v-if="safeProduct.store?.status === 2" class="pd-vacation-alert">
+              <el-alert
+                title="賣場休假中，暫時無法下單"
+                type="warning"
+                description="您可以將商品加入購物車，待賣場恢復營業後再行結帳。"
+                show-icon
+                :closable="false"
+              />
+            </div>
+
             <!-- 規格選擇器 -->
             <div v-if="safeProduct.specs.length > 0" class="pd-spec-selector">
               <div v-for="spec in safeProduct.specs" :key="spec.name" class="pd-spec-row">
@@ -188,9 +199,11 @@
               <el-button
                 type="primary"
                 class="btn-buy"
-                :disabled="isSoldOut"
+                :disabled="isSoldOut || safeProduct.store?.status === 2"
                 @click="handleBuyNow"
-              >直接購買</el-button>
+              >
+                {{ safeProduct.store?.status === 2 ? '賣場休假中' : '直接購買' }}
+              </el-button>
             </div>
           </div>
         </div>
@@ -422,6 +435,7 @@ function handleAddToCart() {
     specLabel: variant ? Object.entries(variant.specValues).map(([k, v]) => `${k}: ${v}`).join('、') : '',
     storeId: p.store?.id ?? 0,
     storeName: p.storeName,
+    storeStatus: p.store?.status ?? 1,
   })
   ElMessage.success('已加入購物車')
 }
@@ -520,6 +534,7 @@ watch(() => route.params.id, (newId) => {
 .pd-info { flex: 1; min-width: 0; }
 .pd-name { font-size: 22px; font-weight: 700; color: #1e293b; line-height: 1.4; margin: 0 0 12px; }
 .pd-rating-row { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid #f1f5f9; }
+.pd-vacation-alert { margin-bottom: 20px; }
 .pd-price-block { background: #fffbf8; border-radius: 4px; padding: 16px; margin-bottom: 20px; }
 .pd-price-main { font-size: 30px; font-weight: 700; color: #EE4D2D; line-height: 1; }
 .pd-discount-tag { background: #EE4D2D; color: #fff; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 2px; }

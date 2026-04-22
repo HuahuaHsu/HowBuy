@@ -149,7 +149,7 @@ const authStore = useAuthStore();
 const apexchart = VueApexCharts;
 
 const loading = ref(false);
-const status = ref<StoreStatus | ''>('');
+const dashboardData = ref<SellerDashboardData | null>(null);
 
 const lastUpdateTime = computed(() => {
   const d = new Date();
@@ -212,20 +212,17 @@ const checkStatus = async () => {
     } else {
       authStore.updateSellerStatus(false);
     }
-  } catch (error: any) {
+    }
     console.error('取得資料失敗', error);
     ElMessage.error('無法取得賣場數據');
+    ElMessage.error('無法取得賣場狀態');
   } finally {
     loading.value = false;
   }
 };
 
-const formatPrice = (price: number) => {
-  return new Intl.NumberFormat('zh-TW').format(price);
-};
-
 onMounted(() => {
-  checkStatus();
+  fetchDashboardData();
 });
 </script>
 
@@ -233,12 +230,12 @@ onMounted(() => {
 .sales-report-container {
   max-width: 1200px;
   margin: 0 auto;
+  padding: 20px;
 }
 
 .page-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   margin-bottom: 20px;
 }
 .page-title {
@@ -322,6 +319,7 @@ onMounted(() => {
 }
 
 .chart-wrapper {
+  padding: 10px 0;
   padding: 10px 0;
 }
 

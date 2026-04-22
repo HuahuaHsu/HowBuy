@@ -3,7 +3,7 @@
     <div class="top-bar">
       <div class="top-bar-inner">
         <div class="top-left">
-          <a href="#" @click.prevent="router.push('/member/mystore')">賣家中心</a>
+          <a href="#" @click.prevent="handleSellerCenterClick">賣家中心</a>
           <span class="divider">|</span>
           <span class="welcome">🎉 全站滿千免運中</span>
         </div>
@@ -258,6 +258,22 @@ function handleDropdownCommand(command: string) {
     authStore.logout()
     ElMessage.success('已登出')
     router.push('/')
+  }
+}
+
+/** 處理賣家中心點擊 */
+function handleSellerCenterClick() {
+  if (!authStore.isLoggedIn) {
+    authStore.openLoginDialog()
+    return
+  }
+  
+  // 優化：如果本地身分已經是賣家，直接去 /seller 避免 mystore 閃爍
+  // 如果不是，則去 mystore 進行即時檢查 (防止剛通過審核)
+  if (authStore.memberInfo.isSeller === true) {
+    router.push('/seller')
+  } else {
+    router.push('/member/mystore')
   }
 }
 
