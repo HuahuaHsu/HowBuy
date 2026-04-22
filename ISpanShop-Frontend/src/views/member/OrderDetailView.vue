@@ -317,7 +317,9 @@ onMounted(() => {
       margin-bottom: 12px;
       
       .label {
-        width: 150px;
+        min-width: 150px;
+        width: auto;
+        white-space: nowrap;
         text-align: right;
         color: rgba(0,0,0,.54);
         font-size: 14px;
