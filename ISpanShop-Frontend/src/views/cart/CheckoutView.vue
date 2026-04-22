@@ -234,7 +234,7 @@ function formatPrice(val: number) {
 
         <div class="discount-row">
           <div class="label">
-            蝦幣折抵
+            點數折抵
             <small class="hint">可用 {{ walletBalance }} 點</small>
           </div>
           <div class="value">
@@ -258,7 +258,7 @@ function formatPrice(val: number) {
           <span>- NT$ {{ formatPrice(couponDiscount) }}</span>
         </div>
         <div v-if="pointDiscount > 0" class="summary-row discount">
-          <span>蝦幣折抵</span>
+          <span>點數折抵</span>
           <span>- NT$ {{ formatPrice(pointDiscount) }}</span>
         </div>
         <div class="summary-row final">
