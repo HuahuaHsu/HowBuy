@@ -38,7 +38,7 @@ const subtotal = computed(() => {
   if (isPaymentMode.value && existingOrderData.value) {
     return existingOrderData.value.totalAmount
   }
-  return cartStore.totalPrice
+  return cartStore.selectedPrice
 })
 
 const shippingFee = ref(60)
@@ -103,7 +103,7 @@ onMounted(async () => {
     }
   }
 
-  if (cartStore.items.length === 0) {
+  if (cartStore.selectedItems.length === 0) {
     router.push('/cart')
     return
   }
@@ -112,9 +112,9 @@ onMounted(async () => {
     const memberId = authStore.memberInfo?.memberId || 0
     const [couponsRes, walletRes, profileRes] = await Promise.all([
       checkoutApi.getAvailableCoupons(
-        cartStore.items[0].storeId,
+        cartStore.selectedItems[0].storeId,
         subtotal.value,
-        cartStore.items.map(i => i.productId)
+        cartStore.selectedItems.map(i => i.productId)
       ),
       checkoutApi.getWalletBalance(),
       memberId ? getMemberProfile(memberId) : Promise.resolve({ data: null })
@@ -204,10 +204,10 @@ async function handleSubmit() {
   try {
     const payload: CheckoutRequest = {
       userId: authStore.memberInfo?.memberId || 0,
-      storeId: cartStore.items[0].storeId,
+      storeId: cartStore.selectedItems[0].storeId,
       usePoints: usePoints.value,
       couponId: selectedCouponId.value,
-      items: cartStore.items.map(i => ({
+      items: cartStore.selectedItems.map(i => ({
         productId: i.productId,
         variantId: i.variantId || 0,
         unitPrice: i.price,
@@ -226,7 +226,7 @@ async function handleSubmit() {
     
     if (res.data.success) {
       ElMessage.success('訂單已建立')
-      cartStore.clearCart()
+      cartStore.clearSelectedItems()
 
       // 修正：跳轉至後端 Payment 控制器
       const backendBase = import.meta.env.VITE_API_BASE_URL || 'https://localhost:7125'
@@ -279,7 +279,7 @@ function formatPrice(val: number) {
       <!-- 商品清單 -->
       <el-card class="section-card">
         <template #header><div class="card-header">🛒 訂單商品</div></template>
-        <div v-for="item in (isPaymentMode ? existingOrderData?.items : cartStore.items)" :key="item.productId" class="item-row">
+        <div v-for="item in (isPaymentMode ? existingOrderData?.items : cartStore.selectedItems)" :key="item.productId" class="item-row">
           <el-image :src="isPaymentMode ? item.coverImage : item.image" class="item-img" />
           <div class="item-info">
             <div class="item-name">{{ isPaymentMode ? item.productName : item.name }}</div>
