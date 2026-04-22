@@ -142,7 +142,7 @@ namespace ISpanShop.Services.Orders
 					// 2. 退還優惠券
 					if (order.CouponId.HasValue)
 					{
-						await _couponService.ReleaseUsedCouponAsync(order.Id);
+						await _couponService.ReturnCouponAsync(order.Id);
 					}
 				}
 			}
