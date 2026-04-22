@@ -1165,5 +1165,16 @@ namespace ISpanShop.Repositories.Products
                 })
                 .ToListAsync();
         }
+
+        /// <inheritdoc/>
+        public async Task<List<string>> GetHotKeywordsAsync(int limit)
+        {
+            return await _context.Products
+                .Where(p => p.Status == 1 && p.IsDeleted == false)
+                .OrderByDescending(p => p.ViewCount)
+                .Take(limit)
+                .Select(p => p.Name.Length > 10 ? p.Name.Substring(0, 10) : p.Name)
+                .ToListAsync();
+        }
     }
 }

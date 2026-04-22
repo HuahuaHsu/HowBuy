@@ -685,5 +685,12 @@ namespace ISpanShop.Services.Products
             limit = Math.Clamp(limit, 1, 50);
             return await _productRepository.GetRelatedProductsAsync(productId, categoryId, limit);
         }
+
+        /// <inheritdoc/>
+        public async Task<List<string>> GetHotKeywordsAsync(int limit = 8)
+        {
+            limit = Math.Clamp(limit, 1, 20);
+            return await _productRepository.GetHotKeywordsAsync(limit);
+        }
     }
 }

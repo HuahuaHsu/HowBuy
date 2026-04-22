@@ -97,3 +97,4 @@ Product
 | GET | `/api/promotions/active`  | `Controllers/Api/Promotions/PromotionApiController`   | 前台進行中活動（AllowAnonymous）；支援 type / limit |
 | GET | `/api/products/{id}`      | `Controllers/Api/Products/ProductsApiController`      | 前台商品詳情（AllowAnonymous）；含規格/圖片/品牌/商店/分類路徑/評分 |
 | GET | `/api/products/{id}/related` | `Controllers/Api/Products/ProductsApiController`   | 前台相關商品（AllowAnonymous）；同子分類依銷量排序，支援 limit |
+| GET | `/api/hot-keywords`       | `Controllers/Api/Products/ProductsApiController`      | 前台熱搜關鍵字（AllowAnonymous）；取瀏覽次數最高的前 8 筆上架商品名稱（超過 10 字截斷）|
