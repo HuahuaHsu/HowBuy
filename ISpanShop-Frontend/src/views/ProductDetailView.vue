@@ -440,10 +440,10 @@ function handleBuyNow(): void {
     storeName: p.storeName,
   }
 
-  // 3. 設定結帳商品（覆蓋購物車內容進行立即結帳）並導向結帳頁
-  cartStore.setItems([checkoutItem])
+  // 3. 存入臨時結帳資訊 (SessionStorage) 並導向結帳頁，不影響購物車
+  sessionStorage.setItem('TEMP_CHECKOUT_DATA', JSON.stringify([checkoutItem]))
   ElMessage.success('正在為您準備結帳...')
-  router.push('/checkout')
+  router.push('/checkout?type=direct')
 }
 
 function handleViewStore() {
