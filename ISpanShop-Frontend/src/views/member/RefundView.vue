@@ -202,9 +202,11 @@ const totalRefundAmount = computed(() => {
     return sum;
   }, 0);
 
-  // 如果全選，直接退 finalAmount (包含運費、扣除折抵等最終實付金額)
-  if (checkAll.value || (order.value.items.length === selectedItems.value.length && 
-      selectedItems.value.every(id => returnQuantities[id] === order.value?.items.find(i => i.id === id)?.quantity))) {
+  // 如果全選且所有數量皆等於購買數量，直接退 finalAmount (包含運費、扣除折抵等最終實付金額)
+  const isFullReturn = order.value.items.length === selectedItems.value.length && 
+      selectedItems.value.every(id => returnQuantities[id] === order.value?.items.find(i => i.id === id)?.quantity);
+
+  if (isFullReturn) {
     return order.value.finalAmount;
   }
 
