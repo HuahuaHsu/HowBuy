@@ -123,6 +123,7 @@ namespace ISpanShop.Models.DTOs.Products
         public string?  RejectReason  { get; set; }
         /// <summary>審核狀態：0=待審核 1=通過 2=退回 3=重新送審</summary>
         public int      ReviewStatus  { get; set; }
+        public bool     IsDeleted     { get; set; }
     }
 
     /// <summary>商品詳情（含規格列表）</summary>

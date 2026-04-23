@@ -97,7 +97,8 @@ namespace ISpanShop.Services.Products
                 MainImageUrl = p.ProductImages
                     ?.FirstOrDefault(img => img.IsMain == true)?.ImageUrl
                     ?? p.ProductImages?.FirstOrDefault()?.ImageUrl
-                    ?? "https://via.placeholder.com/400x400?text=No+Image"
+                    ?? "https://via.placeholder.com/400x400?text=No+Image",
+                IsDeleted    = p.IsDeleted == true
             }).ToList();
             return PagedResult<ProductListDto>.Create(dtos, totalCount, criteria.PageNumber, criteria.PageSize);
         }

@@ -160,6 +160,7 @@
               v-for="product in pagedProducts"
               :key="product.id"
               class="product-card"
+              :class="{ 'product-card-deleted': product.isDeleted }"
             >
               <!-- 圖片 -->
               <div class="card-img-wrap">
@@ -206,38 +207,69 @@
 
               <!-- 操作列 -->
               <div class="card-footer">
-                <button
-                  class="card-action-btn edit-btn"
-                  :class="{ 'resubmit-btn': product.status === 'rejected' }"
-                  @click="router.push(`/seller/products/${product.id}/edit`)"
-                >
-                  <el-icon :size="13"><Edit /></el-icon>
-                  {{ product.status === 'rejected' ? '重新編輯' : '編輯' }}
-                </button>
-                <el-dropdown
-                  trigger="click"
-                  @command="(cmd: string) => handleCardCommand(cmd, product)"
-                >
-                  <button class="card-action-btn more-btn">
-                    <el-icon :size="15"><MoreFilled /></el-icon>
+                <template v-if="product.isDeleted">
+                  <span class="deleted-footer-label">
+                    <el-icon :size="12"><Delete /></el-icon>
+                    已刪除
+                  </span>
+                </template>
+                <template v-else>
+                  <button
+                    class="card-action-btn edit-btn"
+                    :class="{ 'resubmit-btn': product.status === 'rejected' }"
+                    @click="router.push(`/seller/products/${product.id}/edit`)"
+                  >
+                    <el-icon :size="13"><Edit /></el-icon>
+                    {{ product.status === 'rejected' ? '重新編輯' : '編輯' }}
                   </button>
-                  <template #dropdown>
-                    <el-dropdown-menu>
-                      <el-dropdown-item command="copy">複製</el-dropdown-item>
-                      <el-dropdown-item command="preview">即時預覽</el-dropdown-item>
-                      <el-dropdown-item 
-                        v-if="product.status === 'on' || product.status === 'off'"
-                        command="shelf"
-                      >
-                        {{ product.status === 'on' ? '下架' : '上架' }}
-                      </el-dropdown-item>
-                      <el-dropdown-item command="stock">低庫存提醒</el-dropdown-item>
-                      <el-dropdown-item command="delete" divided>
-                        <span class="text-danger">刪除</span>
-                      </el-dropdown-item>
-                    </el-dropdown-menu>
-                  </template>
-                </el-dropdown>
+                  <el-dropdown
+                    trigger="click"
+                    @command="(cmd: string) => handleCardCommand(cmd, product)"
+                  >
+                    <button class="card-action-btn more-btn">
+                      <el-icon :size="15"><MoreFilled /></el-icon>
+                    </button>
+                    <template #dropdown>
+                      <el-dropdown-menu>
+                        <!-- 複製：所有狀態都可以 -->
+                        <el-dropdown-item command="copy">複製</el-dropdown-item>
+
+                        <!-- 即時預覽：已上架、未上架、審核中可預覽 -->
+                        <el-dropdown-item
+                          v-if="product.status === 'on' || product.status === 'draft' || product.status === 'review'"
+                          command="preview"
+                        >
+                          即時預覽
+                        </el-dropdown-item>
+
+                        <!-- 上架/下架：只有已上架和未上架可以切換 -->
+                        <el-dropdown-item
+                          v-if="product.status === 'on' || product.status === 'draft'"
+                          command="shelf"
+                        >
+                          {{ product.status === 'on' ? '下架' : '上架' }}
+                        </el-dropdown-item>
+
+                        <!-- 低庫存提醒：已上架和未上架可設定 -->
+                        <el-dropdown-item
+                          v-if="product.status === 'on' || product.status === 'draft'"
+                          command="stock"
+                        >
+                          低庫存提醒
+                        </el-dropdown-item>
+
+                        <!-- 刪除：只有未上架和已退回可刪除 -->
+                        <el-dropdown-item
+                          v-if="product.status === 'draft' || product.status === 'rejected'"
+                          command="delete"
+                          divided
+                        >
+                          <span class="text-danger">刪除</span>
+                        </el-dropdown-item>
+                      </el-dropdown-menu>
+                    </template>
+                  </el-dropdown>
+                </template>
               </div>
             </div>
           </div>
@@ -326,27 +358,30 @@
 
             <el-table-column label="操作" width="160" align="center" fixed="right">
               <template #default="{ row }">
-                <el-button
-                  text
-                  :type="row.status === 'rejected' ? 'warning' : 'primary'"
-                  size="small"
-                  @click="router.push(`/seller/products/${row.id}/edit`)"
-                >
-                  <el-icon><Edit /></el-icon>
-                  {{ row.status === 'rejected' ? '重新編輯' : '編輯' }}
-                </el-button>
-                <el-popconfirm
-                  title="確定要刪除這個商品嗎？"
-                  confirm-button-text="確定"
-                  cancel-button-text="取消"
-                  @confirm="handleDelete(row.id)"
-                >
-                  <template #reference>
-                    <el-button text type="danger" size="small">
-                      <el-icon><Delete /></el-icon>
-                    </el-button>
-                  </template>
-                </el-popconfirm>
+                <template v-if="!row.isDeleted">
+                  <el-button
+                    text
+                    :type="row.status === 'rejected' ? 'warning' : 'primary'"
+                    size="small"
+                    @click="router.push(`/seller/products/${row.id}/edit`)"
+                  >
+                    <el-icon><Edit /></el-icon>
+                    {{ row.status === 'rejected' ? '重新編輯' : '編輯' }}
+                  </el-button>
+                  <el-popconfirm
+                    title="確定要刪除這個商品嗎？"
+                    confirm-button-text="確定"
+                    cancel-button-text="取消"
+                    @confirm="handleDeleteProduct(row)"
+                  >
+                    <template #reference>
+                      <el-button text type="danger" size="small">
+                        <el-icon><Delete /></el-icon>
+                      </el-button>
+                    </template>
+                  </el-popconfirm>
+                </template>
+                <el-tag v-else type="danger" size="small">已刪除</el-tag>
               </template>
             </el-table-column>
           </el-table>
@@ -420,22 +455,6 @@
         <el-button type="primary" @click="saveStockAlert">儲存</el-button>
       </template>
     </el-dialog>
-
-    <!-- ── 刪除確認 Dialog（卡片更多選單觸發）── -->
-    <el-dialog v-model="deleteDialogVisible" title="確認刪除" width="400px">
-      <div class="delete-dialog-body">
-        <el-icon :size="48" color="#ef4444"><WarningFilled /></el-icon>
-        <p>
-          確定要刪除商品<br />
-          「{{ deleteTargetProduct?.name }}」嗎？<br />
-          <span class="hint-text">此操作無法復原。</span>
-        </p>
-      </div>
-      <template #footer>
-        <el-button @click="deleteDialogVisible = false">取消</el-button>
-        <el-button type="danger" @click="confirmDelete">確定刪除</el-button>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
@@ -448,7 +467,7 @@ import {
   ArrowDown, ArrowUp, DCaret, CaretTop, CaretBottom,
   MoreFilled, WarningFilled, View, ShoppingCart, Goods,
 } from '@element-plus/icons-vue'
-import { fetchSellerProducts, updateProductStatus } from '@/api/product'
+import { fetchSellerProducts, updateProductStatus, deleteSellerProduct } from '@/api/product'
 import { fetchMainCategories } from '@/api/category'
 import type { SellerProductListItem } from '@/types/product'
 import type { Category } from '@/types/category'
@@ -497,6 +516,7 @@ function mapStatusToKey(status: number): ProductStatus {
  */
 interface SellerProduct extends Omit<SellerProductListItem, 'status'> {
   status: ProductStatus
+  isDeleted: boolean
   lowStockAlert: boolean
   lowStockThreshold: number
   rejectReason: string | null
@@ -534,10 +554,6 @@ const pagination = reactive({ page: 1, pageSize: 20 })
 const stockDialogVisible = ref<boolean>(false)
 const stockDialogProduct = ref<SellerProduct | null>(null)
 const stockForm = reactive({ threshold: 0, enabled: false })
-
-// Dialog — 刪除
-const deleteDialogVisible = ref<boolean>(false)
-const deleteTargetProduct = ref<SellerProduct | null>(null)
 
 // ── 常數 ─────────────────────────────────────────────────────────
 const level1Tabs: Array<{ key: TabKey; label: string }> = [
@@ -655,13 +671,17 @@ async function loadProducts(): Promise<void> {
 
     if (res.items.length > 0) {
       console.log('第一筆商品:', res.items[0])
+      console.log('isDeleted 欄位:', res.items[0]?.isDeleted)
     }
 
     allProducts.value = res.items.map((p): SellerProduct => {
       const { status, ...rest } = p
+      const isDeleted = p.isDeleted ?? false
       return {
         ...rest,
-        status: mapStatusToKey(status),
+        status: isDeleted ? 'deleted' : mapStatusToKey(status),
+        statusText: isDeleted ? '已刪除' : p.statusText,
+        isDeleted,
         lowStockAlert: false,
         lowStockThreshold: 5,
         rejectReason: p.rejectReason ?? null,
@@ -721,7 +741,7 @@ function getSortIcon(field: SortField): object {
 }
 
 // ── 卡片更多選單 ──────────────────────────────────────────────────
-function handleCardCommand(cmd: string, product: SellerProduct): void {
+async function handleCardCommand(cmd: string, product: SellerProduct): Promise<void> {
   switch (cmd) {
     case 'copy':
       // TODO: 呼叫 POST /api/seller/products/{id}/copy 複製商品
@@ -732,15 +752,40 @@ function handleCardCommand(cmd: string, product: SellerProduct): void {
       window.open(`/product/${product.id}`, '_blank')
       break
     case 'shelf':
-      handleToggleShelf(product)
+      await handleToggleShelf(product)
       break
     case 'stock':
       openStockDialog(product)
       break
     case 'delete':
-      deleteTargetProduct.value = product
-      deleteDialogVisible.value = true
+      await handleDeleteProduct(product)
       break
+  }
+}
+
+// ── 刪除商品 ──────────────────────────────────────────────────────
+async function handleDeleteProduct(product: SellerProduct): Promise<void> {
+  try {
+    await ElMessageBox.confirm(
+      '確定要刪除此商品嗎？刪除後可在「違規/刪除」中查看',
+      '刪除確認',
+      {
+        confirmButtonText: '確定刪除',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    )
+    
+    await deleteSellerProduct(product.id)
+    ElMessage.success('商品已刪除')
+    
+    // 重新載入列表
+    await loadProducts()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('刪除商品失敗:', error)
+      ElMessage.error('刪除失敗，請稍後再試')
+    }
   }
 }
 
@@ -782,21 +827,6 @@ async function handleToggleShelf(product: SellerProduct): Promise<void> {
   }
 }
 
-// ── 刪除 ──────────────────────────────────────────────────────────
-function handleDelete(id: number): void {
-  // TODO: 呼叫 DELETE /api/seller/products/{id}
-  console.log('[TODO] DELETE /api/seller/products/' + id)
-  allProducts.value = allProducts.value.filter((p) => p.id !== id)
-  ElMessage.success('商品已刪除（TODO: 串接後端）')
-}
-
-function confirmDelete(): void {
-  if (!deleteTargetProduct.value) return
-  handleDelete(deleteTargetProduct.value.id)
-  deleteDialogVisible.value = false
-  deleteTargetProduct.value = null
-}
-
 // ── 低庫存 Dialog ─────────────────────────────────────────────────
 function openStockDialog(product: SellerProduct): void {
   stockDialogProduct.value = product
@@ -831,6 +861,7 @@ function getStatusTagType(status: ProductStatus): 'success' | 'warning' | 'dange
     case 'on': return 'success'
     case 'review': return 'warning'
     case 'rejected': return 'danger'
+    case 'deleted': return 'danger'
     default: return 'info'
   }
 }
@@ -992,6 +1023,22 @@ function getStatusTagType(status: ProductStatus): 'success' | 'warning' | 'dange
   transform: translateY(-2px);
   border-color: #ee4d2d;
 }
+.product-card-deleted {
+  opacity: 0.55;
+  filter: grayscale(40%);
+}
+.product-card-deleted:hover {
+  box-shadow: none;
+  transform: none;
+  border-color: #e8eaf0;
+}
+.product-card-deleted .card-img-wrap::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.12);
+  pointer-events: none;
+}
 
 .card-img-wrap {
   position: relative;
@@ -1100,6 +1147,14 @@ function getStatusTagType(status: ProductStatus): 'success' | 'warning' | 'dange
 .edit-btn:hover { color: #ee4d2d; background: #fff7ed; }
 .more-btn { color: #94a3b8; }
 .more-btn:hover { color: #ee4d2d; background: #fff7ed; }
+.deleted-footer-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #dc2626;
+  padding: 4px 6px;
+}
 
 /* ─ 列表模式 ─────────────────────────────────────────────────────── */
 .table-product-cell {

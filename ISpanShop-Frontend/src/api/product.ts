@@ -159,3 +159,17 @@ export async function updateProductImages(
   )
   return response.data
 }
+
+/**
+ * 刪除商品（軟刪除）
+ * DELETE /api/seller/products/{id}
+ */
+export async function deleteSellerProduct(
+  id: number,
+): Promise<ApiResponse<unknown>> {
+  const response = await request.delete<ApiResponse<unknown>>(
+    `/api/seller/products/${id}`,
+  )
+  return response.data
+}
+

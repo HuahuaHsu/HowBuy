@@ -65,7 +65,8 @@ namespace ISpanShop.MVC.Controllers.Api.Products
                 Status           = status,
                 SortOrder        = sortBy ?? "date_desc",
                 PageNumber       = page,
-                PageSize         = pageSize
+                PageSize         = pageSize,
+                IncludeDeleted   = true  // 賣家需要看到已刪除的商品（違規/刪除 tab）
             };
 
             var result = _productService.GetProductsPaged(criteria);
@@ -455,7 +456,8 @@ namespace ISpanShop.MVC.Controllers.Api.Products
             TotalSales   = dto.TotalSales,
             ViewCount    = dto.ViewCount,
             RejectReason = dto.RejectReason,
-            ReviewStatus = dto.ReviewStatus
+            ReviewStatus = dto.ReviewStatus,
+            IsDeleted    = dto.IsDeleted
         };
 
         private static ProductDetailResponse MapToDetail(ProductDetailDto dto) => new()

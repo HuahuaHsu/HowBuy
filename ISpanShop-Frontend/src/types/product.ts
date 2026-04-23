@@ -124,6 +124,7 @@ export interface SellerProductListItem {
   createdAt: string | null
   rejectReason: string | null
   reviewStatus: number
+  isDeleted?: boolean
   // TODO: 以下欄位後端尚未回傳，補上後移除 nullable
   viewCount: number | null
   totalSales: number | null

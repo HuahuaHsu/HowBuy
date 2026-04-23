@@ -180,8 +180,10 @@ namespace ISpanShop.Repositories.Products
                 .Include(p => p.Brand)
                 .Include(p => p.ProductImages)
                 .Include(p => p.ProductVariants)
-                .Where(p => p.IsDeleted != true)
                 .AsQueryable();
+
+            if (!criteria.IncludeDeleted)
+                query = query.Where(p => p.IsDeleted != true);
 
             if (criteria.CategoryId.HasValue)
                 query = query.Where(p => p.CategoryId == criteria.CategoryId.Value);
