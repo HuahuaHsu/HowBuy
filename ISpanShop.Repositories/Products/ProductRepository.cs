@@ -207,7 +207,9 @@ namespace ISpanShop.Repositories.Products
 
             if (criteria.Status.HasValue)
                 query = query.Where(p => p.Status == criteria.Status.Value);
-            else
+            else if (!criteria.StoreId.HasValue)
+                // 只在「平台商品總覽」時過濾：已退回商品只在審核中心的近期退回紀錄顯示
+                // 但賣家查詢自己的商品時（有 StoreId），不過濾任何狀態，讓賣家看到所有商品
                 query = query.Where(p => p.Status != 2 && p.Status != 3);
 
             if (criteria.StartDate.HasValue)
@@ -374,9 +376,12 @@ namespace ISpanShop.Repositories.Products
                 var statusByte = (byte)criteria.Status.Value;
                 query = query.Where(p => p.Status == statusByte);
             }
-            else
-                // 已退回商品只在審核中心的近期退回紀錄顯示，不出現在商品總覽
+            else if (!criteria.StoreId.HasValue)
+            {
+                // 只在「平台商品總覽」時過濾：已退回商品只在審核中心的近期退回紀錄顯示
+                // 但賣家查詢自己的商品時（有 StoreId），不過濾任何狀態，讓賣家看到所有商品
                 query = query.Where(p => p.Status != 2 && p.Status != 3);
+            }
 
             if (criteria.StartDate.HasValue)
                 query = query.Where(p => p.CreatedAt >= criteria.StartDate.Value);

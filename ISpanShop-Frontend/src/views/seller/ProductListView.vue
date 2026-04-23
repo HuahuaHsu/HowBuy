@@ -315,7 +315,7 @@
 
             <el-table-column label="狀態" width="90" align="center">
               <template #default="{ row }">
-                <el-tag :type="row.status === 'on' ? 'success' : 'info'" size="small">
+                <el-tag :type="getStatusTagType(row.status)" size="small">
                   {{ row.statusText }}
                 </el-tag>
               </template>
@@ -794,6 +794,15 @@ const STATUS_LABEL: Record<ProductStatus, string> = {
 }
 function statusLabel(status: ProductStatus): string {
   return STATUS_LABEL[status] ?? status
+}
+
+function getStatusTagType(status: ProductStatus): 'success' | 'warning' | 'danger' | 'info' {
+  switch (status) {
+    case 'on': return 'success'
+    case 'review': return 'warning'
+    case 'rejected': return 'danger'
+    default: return 'info'
+  }
 }
 </script>
 

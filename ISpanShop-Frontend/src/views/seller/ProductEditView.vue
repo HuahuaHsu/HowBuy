@@ -4,7 +4,7 @@
     <el-breadcrumb separator=">">
       <el-breadcrumb-item :to="{ path: '/' }">首頁</el-breadcrumb-item>
       <el-breadcrumb-item :to="{ path: '/seller/products' }">我的商品</el-breadcrumb-item>
-      <el-breadcrumb-item>新增商品</el-breadcrumb-item>
+      <el-breadcrumb-item>{{ pageTitle }}</el-breadcrumb-item>
     </el-breadcrumb>
 
     <!-- 三欄布局 -->
@@ -47,7 +47,7 @@
       </aside>
 
       <!-- 中間:主表單 -->
-      <main class="main-content">
+      <main class="main-content" v-loading="loading">
         <!-- Tab 導航 -->
         <div class="tab-nav">
           <div
@@ -98,6 +98,7 @@
                 placeholder="品牌名稱 + 商品類型 + 重要功能(材質/顏色/尺寸/規格)"
                 maxlength="60"
               />
+              <div class="form-hint">商品名稱需介於 5~60 字</div>
             </el-form-item>
 
             <!-- 類別選擇 -->
@@ -241,10 +242,58 @@
           <section id="section-sales" class="form-section">
             <h2 class="section-title">銷售資訊</h2>
 
+            <!-- 無規格時的價格/數量 -->
+            <el-row v-if="!specsEnabled" :gutter="16">
+              <el-col :span="12">
+                <el-form-item prop="price">
+                  <template #label>
+                    <span class="required-label">* 價格</span>
+                  </template>
+                  <el-input-number
+                    v-model="form.price"
+                    placeholder="NT$"
+                    :min="1"
+                    :max="9999999"
+                    controls-position="right"
+                    style="width: 100%"
+                  />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item prop="stock">
+                  <template #label>
+                    <span class="required-label">* 商品數量</span>
+                  </template>
+                  <el-input-number
+                    v-model="form.stock"
+                    :min="0"
+                    :max="99999"
+                    controls-position="right"
+                    style="width: 100%"
+                  />
+                </el-form-item>
+              </el-col>
+            </el-row>
+
+            <!-- 最低購買數量 -->
+            <el-form-item prop="minPurchase">
+              <template #label>
+                <span class="required-label">* 最低購買數量</span>
+              </template>
+              <el-input-number
+                v-model="form.minPurchase"
+                :min="1"
+                :max="999"
+                controls-position="right"
+                style="width: 200px"
+              />
+              <div class="form-hint">最低購買數量是指買家一次至少購買的商品數量。請注意,若庫存少於最低購買數量,買家將無法下單購買。</div>
+            </el-form-item>
+
             <!-- 規格設定 -->
             <el-form-item>
               <template #label>
-                <span class="required-label">* 規格</span>
+                <span>規格</span>
               </template>
 
               <!-- 開啟規格按鈕 -->
@@ -421,54 +470,6 @@
                 </div>
               </div>
             </el-form-item>
-
-            <!-- 無規格時的價格/數量 -->
-            <el-row v-if="!specsEnabled" :gutter="16">
-              <el-col :span="12">
-                <el-form-item prop="price">
-                  <template #label>
-                    <span class="required-label">* 價格</span>
-                  </template>
-                  <el-input-number
-                    v-model="form.price"
-                    placeholder="NT$"
-                    :min="1"
-                    :max="9999999"
-                    controls-position="right"
-                    style="width: 100%"
-                  />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item prop="stock">
-                  <template #label>
-                    <span class="required-label">* 商品數量</span>
-                  </template>
-                  <el-input-number
-                    v-model="form.stock"
-                    :min="0"
-                    :max="99999"
-                    controls-position="right"
-                    style="width: 100%"
-                  />
-                </el-form-item>
-              </el-col>
-            </el-row>
-
-            <!-- 最低購買數量 -->
-            <el-form-item prop="minPurchase">
-              <template #label>
-                <span class="required-label">* 最低購買數量</span>
-              </template>
-              <el-input-number
-                v-model="form.minPurchase"
-                :min="1"
-                :max="999"
-                controls-position="right"
-                style="width: 200px"
-              />
-              <div class="form-hint">最低購買數量是指買家一次至少購買的商品數量</div>
-            </el-form-item>
           </section>
         </el-form>
       </main>
@@ -571,10 +572,10 @@
       <div class="actions-wrapper">
         <el-button @click="handleCancel">取消</el-button>
         <el-button :loading="saving" @click="handleSubmit(false)">
-          儲存草稿
+          {{ isEditMode ? '儲存' : '儲存草稿' }}
         </el-button>
         <el-button type="primary" :loading="saving" @click="handleSubmit(true)">
-          儲存並送審
+          {{ isEditMode ? '儲存並重新送審' : '儲存並送審' }}
         </el-button>
       </div>
     </div>
@@ -588,18 +589,24 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch, nextTick } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, reactive, computed, watch, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules, UploadUserFile, UploadProps, UploadFile } from 'element-plus'
 import { Plus, CircleCheck, CircleClose, ArrowRight, Picture, Close, Delete } from '@element-plus/icons-vue'
 import { fetchBrands } from '@/api/brand'
-import { createSellerProduct, addSellerProductVariant } from '@/api/product'
+import { createSellerProduct, addSellerProductVariant, getSellerProductDetail, updateSellerProduct } from '@/api/product'
 import type { Brand } from '@/types/brand'
 import { getCategoryAttributes, type CategoryAttribute } from '@/api/categoryAttribute'
 import CategoryPicker from '@/components/seller/CategoryPicker.vue'
 
 const router = useRouter()
+const route = useRoute()
+
+// 編輯模式判斷
+const productId = computed(() => route.params.id ? Number(route.params.id) : null)
+const isEditMode = computed(() => !!productId.value)
+const pageTitle = computed(() => isEditMode.value ? '編輯商品' : '新增商品')
 
 const tabs = [
   { id: 'section-basic', label: '基本資訊' },
@@ -657,6 +664,7 @@ interface ProductForm {
 
 const formRef = ref<FormInstance>()
 const saving = ref<boolean>(false)
+const loading = ref<boolean>(false)
 const brands = ref<Brand[]>([])
 const categoryAttributes = ref<CategoryAttribute[]>([])
 const loadingAttributes = ref<boolean>(false)
@@ -706,17 +714,25 @@ const form = reactive<ProductForm>({
 const rules = computed<FormRules>(() => ({
   name: [
     { required: true, message: '請輸入商品名稱', trigger: 'blur' },
-    { min: 5, max: 100, message: '商品名稱需介於 5~100 字', trigger: 'blur' },
+    { min: 5, message: '商品名稱至少需要 5 個字', trigger: 'blur' },
+    { max: 60, message: '商品名稱最多 60 個字', trigger: 'blur' },
   ],
   categoryId: [{ required: true, message: '請選擇分類', trigger: 'change' }],
+  minPurchase: [
+    { required: true, message: '請輸入最低購買數量', trigger: 'blur' },
+    { type: 'number', min: 1, message: '最低購買數量至少為 1', trigger: 'blur' },
+  ],
   ...(specsEnabled.value
     ? {}
     : {
         price: [
-          { required: true, message: '請輸入售價', trigger: 'blur' },
-          { type: 'number', min: 1, message: '售價至少為 1', trigger: 'blur' },
+          { required: true, message: '請輸入商品價格', trigger: 'blur' },
+          { type: 'number', min: 1, message: '商品價格至少為 1', trigger: 'blur' },
         ],
-        stock: [{ required: true, message: '請輸入庫存', trigger: 'blur' }],
+        stock: [
+          { required: true, message: '請輸入商品數量', trigger: 'blur' },
+          { type: 'number', min: 0, message: '商品數量不能小於 0', trigger: 'blur' },
+        ],
       }),
 }))
 
@@ -856,7 +872,87 @@ async function loadBrands(): Promise<void> {
   }
 }
 
-loadBrands()
+async function loadProductData(): Promise<void> {
+  if (!isEditMode.value || !productId.value) return
+  
+  loading.value = true
+  try {
+    const res = await getSellerProductDetail(productId.value)
+    const product = res.data
+    
+    console.log('載入商品資料:', product)
+    
+    // 基本資訊
+    form.name = product.name || ''
+    form.description = product.description || ''
+    form.categoryId = product.categoryId || null
+    
+    // 從 categoryPath 陣列組合分類路徑
+    if (product.categoryPath && product.categoryPath.length > 0) {
+      form.categoryPath = product.categoryPath.map(c => c.name).join(' > ')
+    }
+    
+    // 品牌
+    if (product.brand) {
+      form.attributes.brandId = product.brand.id
+    }
+    
+    // 價格和庫存（無規格時）
+    if (product.priceRange) {
+      form.price = product.priceRange.min || 0
+    }
+    form.stock = product.totalStock || 0
+    
+    // TODO: 從後端取得 minPurchase，目前後端可能沒回傳，暫時保持預設值 1
+    // form.minPurchase = product.minPurchase || 1
+    
+    // 圖片
+    if (product.images && product.images.length > 0) {
+      form.images = product.images.map((img, idx) => ({
+        uid: -(idx + 1), // 負數 uid 避免與新上傳的衝突
+        name: `image-${idx}`,
+        url: img.url,
+        status: 'success' as const,
+      }))
+    }
+    
+    // 規格和變體
+    if (product.variants && product.variants.length > 0 && product.specs && product.specs.length > 0) {
+      specsEnabled.value = true
+      
+      // 重建規格定義
+      form.specs = product.specs.map(spec => ({
+        name: spec.name,
+        options: spec.options.map(optName => ({
+          name: optName,
+          image: null,
+          imagePreview: null,
+        })),
+      }))
+      
+      // 重建變體資料
+      variantData.value = product.variants.map(v => ({
+        spec1: Object.values(v.specValues)[0] || '',
+        spec2: Object.values(v.specValues)[1] || null,
+        price: v.price || null,
+        stock: v.stock || 0,
+        sku: '', // TODO: 後端需要回傳 skuCode
+      }))
+    }
+    
+    ElMessage.success('商品資料載入成功')
+  } catch (error) {
+    console.error('載入商品資料失敗:', error)
+    ElMessage.error('載入商品資料失敗，請稍後再試')
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(async () => {
+  await loadBrands()
+  await loadProductData()
+})
 
 watch(
   () => form.categoryId,
@@ -1044,6 +1140,8 @@ async function handleSubmit(publishNow: boolean): Promise<void> {
     if (form.attributes.brandId !== null) fd.append('BrandId', String(form.attributes.brandId))
 
     console.log('送出資料:', {
+      Mode: isEditMode.value ? 'UPDATE' : 'CREATE',
+      ProductId: productId.value,
       Name: form.name,
       CategoryId: form.categoryId,
       BrandId: form.attributes.brandId ?? '(未選擇，不傳送)',
@@ -1059,6 +1157,8 @@ async function handleSubmit(publishNow: boolean): Promise<void> {
     }
 
     // 圖片（UploadUserFile 的 raw 就是 File）
+    // 編輯模式：只上傳新增的圖片（有 raw 的）
+    // 新增模式：上傳所有圖片
     let mainIdx = 0
     form.images.forEach((img, idx) => {
       if (img.raw) {
@@ -1066,18 +1166,32 @@ async function handleSubmit(publishNow: boolean): Promise<void> {
         if (img.raw === form.images[0]?.raw) mainIdx = idx
       }
     })
-    fd.append('MainImageIndex', String(mainIdx))
+    
+    // 如果有上傳圖片，設定主圖索引
+    if (form.images.some(img => img.raw)) {
+      fd.append('MainImageIndex', String(mainIdx))
+    }
 
-    const res = await createSellerProduct(fd)
+    let res: any
+    let targetProductId: number | null = null
+
+    if (isEditMode.value && productId.value) {
+      // 編輯模式：PUT /api/seller/products/{id}
+      res = await updateSellerProduct(productId.value, fd)
+      targetProductId = productId.value
+    } else {
+      // 新增模式：POST /api/seller/products
+      res = await createSellerProduct(fd)
+      targetProductId = res.data?.productId || null
+    }
+
     if (!res.success) {
       ElMessage.error(res.message || '儲存失敗')
       return
     }
 
-    const newProductId = res.data?.productId
-
-    // 如果有規格，依次建立 variants
-    if (specsEnabled.value && newProductId && variantData.value.length > 0) {
+    // 如果有規格，依次建立 variants（僅新增模式，編輯模式待後端實作）
+    if (!isEditMode.value && specsEnabled.value && targetProductId && variantData.value.length > 0) {
       const specNames = form.specs.map(s => s.name)
       for (const v of variantData.value) {
         // 組成 specValueJson：{"顏色":"紅色","尺寸":"L"}
@@ -1085,7 +1199,7 @@ async function handleSubmit(publishNow: boolean): Promise<void> {
         if (specNames[0] && v.spec1) specValueMap[specNames[0]] = v.spec1
         if (specNames[1] && v.spec2) specValueMap[specNames[1]] = v.spec2
 
-        await addSellerProductVariant(newProductId, {
+        await addSellerProductVariant(targetProductId, {
           skuCode: v.sku || '',
           variantName: Object.values(specValueMap).join('/'),
           specValueJson: JSON.stringify(specValueMap),
@@ -1095,7 +1209,10 @@ async function handleSubmit(publishNow: boolean): Promise<void> {
       }
     }
 
-    ElMessage.success(publishNow ? '商品已提交審核，請等待管理員審核' : '草稿已儲存')
+    const successMsg = isEditMode.value 
+      ? '商品已更新' 
+      : (publishNow ? '商品已提交審核，請等待管理員審核' : '草稿已儲存')
+    ElMessage.success(successMsg)
     void router.push('/seller/products')
   } catch (error) {
     console.error('儲存失敗:', error)
