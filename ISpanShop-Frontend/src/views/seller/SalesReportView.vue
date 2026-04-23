@@ -174,7 +174,7 @@ const chartOptions = ref({
   },
   colors: ['#ee4d2d'],
   stroke: {
-    curve: 'smooth',
+    curve: 'straight',
     width: 3
   },
   markers: {
