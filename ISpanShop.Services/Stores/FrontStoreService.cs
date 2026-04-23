@@ -101,7 +101,7 @@ namespace ISpanShop.Services.Stores
                     OrderId = o.Id,
                     OrderNumber = o.OrderNumber,
                     BuyerName = o.User.Account,
-                    ProductName = o.OrderDetails.FirstOrDefault().ProductName + (o.OrderDetails.Count > 1 ? " 等..." : ""),
+                    ProductName = o.OrderDetails.Select(od => od.ProductName).FirstOrDefault() ?? "未知商品",
                     Amount = o.FinalAmount,
                     Status = ((OrderStatus)o.Status).GetDisplayName(),
                     CreatedAt = o.CreatedAt.Value.ToString("yyyy/MM/dd HH:mm")
