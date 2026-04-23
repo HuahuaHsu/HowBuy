@@ -544,6 +544,13 @@ watch(() => route.params.id, (newId) => {
 .pd-spec-label { flex: 0 0 52px; font-size: 14px; font-weight: 600; color: #475569; padding-top: 6px; }
 .pd-spec-btn { padding: 5px 14px; border: 1.5px solid #e2e8f0; border-radius: 4px; background: #fff; font-size: 13px; color: #334155; cursor: pointer; }
 .pd-spec-btn.selected { border-color: #EE4D2D; color: #EE4D2D; background: #fff5f3; }
+.pd-spec-btn.unavailable {
+  background-color: #f5f5f5;
+  color: #bbb;
+  border-color: #e8e8e8;
+  cursor: not-allowed;
+  border-style: dashed;
+}
 .pd-quantity-row { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
 .pd-stock-hint { font-size: 13px; color: #94a3b8; }
 .pd-action-buttons { display: flex; gap: 12px; }
