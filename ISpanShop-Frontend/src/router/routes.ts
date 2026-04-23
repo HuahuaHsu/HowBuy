@@ -71,9 +71,9 @@ export const routes: RouteRecordRaw[] = [
             component: () => import('../views/member/PasswordView.vue'),
           },
           {
-            path: 'privacy',
-            name: 'member-privacy',
-            component: () => import('../views/member/PrivacyView.vue'),
+            path: 'level',
+            name: 'member-level',
+            component: () => import('../views/member/LevelView.vue'),
           },
           {
             path: 'orders',
