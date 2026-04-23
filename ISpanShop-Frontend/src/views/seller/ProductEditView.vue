@@ -62,9 +62,9 @@
         </div>
 
         <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
-          <!-- 退回原因提示 -->
+          <!-- 退回原因提示 (status=3) -->
           <el-alert
-            v-if="isEditMode && productData?.rejectReason"
+            v-if="isEditMode && productData?.status === 3 && productData?.rejectReason"
             type="error"
             :closable="false"
             show-icon
@@ -76,6 +76,17 @@
             <template #default>
               請根據退回原因修改商品資料後重新送審
             </template>
+          </el-alert>
+
+          <!-- 已上架提示 (status=1) -->
+          <el-alert
+            v-if="isEditMode && productData?.status === 1"
+            type="info"
+            :closable="false"
+            show-icon
+            style="margin-bottom: 20px;"
+          >
+            <template #title>編輯已上架商品，儲存後立即生效</template>
           </el-alert>
 
           <!-- 基本資訊 -->
@@ -587,12 +598,32 @@
     <div class="bottom-actions">
       <div class="actions-wrapper">
         <el-button @click="handleCancel">取消</el-button>
-        <el-button :loading="saving" @click="handleSubmit(false)">
-          {{ isEditMode ? '儲存' : '儲存草稿' }}
-        </el-button>
-        <el-button type="primary" :loading="saving" @click="handleSubmit(true)">
-          {{ isEditMode && productData?.status === 3 ? '修改完成，重新送審' : (isEditMode ? '儲存並重新送審' : '儲存並送審') }}
-        </el-button>
+
+        <!-- 已退回 (status=3)：只能重新送審 -->
+        <template v-if="isEditMode && productData?.status === 3">
+          <el-button type="primary" :loading="saving" @click="handleSubmit(true)">
+            修改完成，重新送審
+          </el-button>
+        </template>
+
+        <!-- 已上架 (status=1)：直接儲存，不走送審 -->
+        <template v-else-if="isEditMode && productData?.status === 1">
+          <el-button type="primary" :loading="saving" @click="handleSubmit(false)">
+            儲存修改
+          </el-button>
+        </template>
+
+        <!-- 未上架/其他編輯狀態 (status=0,2)：可儲存或送審 -->
+        <template v-else-if="isEditMode">
+          <el-button :loading="saving" @click="handleSubmit(false)">儲存</el-button>
+          <el-button type="primary" :loading="saving" @click="handleSubmit(true)">儲存並送審</el-button>
+        </template>
+
+        <!-- 新增商品 -->
+        <template v-else>
+          <el-button :loading="saving" @click="handleSubmit(false)">儲存草稿</el-button>
+          <el-button type="primary" :loading="saving" @click="handleSubmit(true)">儲存並送審</el-button>
+        </template>
       </div>
     </div>
 
@@ -1206,40 +1237,53 @@ async function handleSubmit(publishNow: boolean): Promise<void> {
       // 只有在圖片真正有變動時才呼叫圖片 API
       if (hasNewImages || hasRemovedImages) {
         const formData = new FormData()
-        
+        const existingImageUrls: string[] = []
+
         // 遍歷所有圖片
         for (const file of form.images) {
           if (file.raw) {
             // 新上傳的圖片
             formData.append('images', file.raw)
           } else if (file.url) {
-            // 舊圖片的 URL，需要轉成相對路徑（跟資料庫格式一致）
+            // 舊圖片的 URL，取相對路徑（跟資料庫格式一致）
             let imageUrl = file.url
             try {
-              // 如果是完整 URL，只取路徑部分
-              const url = new URL(imageUrl)
-              imageUrl = url.pathname  // 例如：/uploads/products/xxx.jpg
+              const parsedUrl = new URL(imageUrl)
+              imageUrl = parsedUrl.pathname  // 例如：/uploads/products/xxx.jpg
             } catch {
               // 已經是相對路徑，不需要轉換
             }
+            existingImageUrls.push(imageUrl)
             formData.append('existingImages', imageUrl)
           }
         }
-        
-        console.log('更新商品圖片:', {
+
+        // 印出實際送出的 URL，確認格式與後端 DB 儲存格式一致
+        console.log('[圖片更新] existingImages 送出的 URL:', existingImageUrls)
+        console.log('[圖片更新] 統計:', {
           newImages: newFiles.length,
-          existingImages: form.images.filter(f => !f.raw).length,
+          existingImages: existingImageUrls.length,
           totalImages: form.images.length,
           originalCount: originalImageCount.value,
         })
-        
+
         await updateProductImages(productId.value, formData)
       } else {
         console.log('圖片無變動，跳過圖片更新 API')
       }
       
       // 3. 更新成功訊息並跳轉
-      const successMsg = publishNow ? '商品已更新並重新送審' : '商品已更新'
+      const origStatus = productData.value?.status
+      let successMsg: string
+      if (origStatus === 3 && publishNow) {
+        successMsg = '商品已重新送審，請等待管理員審核'
+      } else if (origStatus === 1) {
+        successMsg = '商品資料已更新'
+      } else if (publishNow) {
+        successMsg = '商品已提交審核，請等待管理員審核'
+      } else {
+        successMsg = '商品已儲存'
+      }
       ElMessage.success(successMsg)
       void router.push('/seller/products')
     } else {

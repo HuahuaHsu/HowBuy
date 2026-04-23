@@ -226,6 +226,10 @@ namespace ISpanShop.MVC.Controllers.Api.Products
                 return StatusCode(StatusCodes.Status403Forbidden, new { message = "無權修改此商品" });
             }
 
+            // 待審核商品不允許編輯
+            if (existing.Status == 2)
+                return BadRequest(new { success = false, message = "商品審核中，無法編輯" });
+
             var dto = new ProductUpdateDto
             {
                 Id                 = id,
@@ -238,7 +242,8 @@ namespace ISpanShop.MVC.Controllers.Api.Products
             };
 
             _productService.UpdateProduct(dto);
-            return Ok(new { success = true, message = "商品更新成功，已重新送審" });
+            var message = existing.Status == 3 ? "商品更新成功，已重新送審" : "商品更新成功";
+            return Ok(new { success = true, message });
         }
 
         // ──────────────────────────────────────────────────────────

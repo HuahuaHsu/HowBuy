@@ -257,8 +257,7 @@ namespace ISpanShop.Repositories.Products
                 .FirstOrDefault(p => p.Id == dto.Id);
             if (product == null) return;
 
-            // 判斷是否為重新送審（之前被退回過）
-            bool isResubmission = product.ReviewStatus == 2; // ReviewStatus=2 表示已退回
+            var originalStatus = product.Status;
 
             product.Name               = dto.Name;
             product.Description        = dto.Description;
@@ -267,25 +266,16 @@ namespace ISpanShop.Repositories.Products
             product.SpecDefinitionJson = dto.SpecDefinitionJson;
             product.UpdatedAt          = DateTime.Now;
 
-            // 賣家更新商品後，重新送審
-            product.Status = 2; // 待審核
-
-            if (isResubmission)
+            if (originalStatus == 3) // 審核退回 → 重新送審
             {
-                // 重新送審：保留退回原因，但設為重新申請審核狀態
-                product.ReviewStatus = 3;    // 重新申請審核
-                product.ReApplyDate  = DateTime.Now; // 記錄重新申請時間
-                // 不清空 RejectReason，讓後台審核人員知道上次退回原因
+                product.Status       = 2;           // 待審核
+                product.ReviewStatus = 3;           // 重新申請審核
+                product.ReApplyDate  = DateTime.Now;
+                product.ReviewedBy   = null;
+                product.ReviewDate   = null;
+                // 保留 RejectReason，讓後台知道上次退回原因
             }
-            else
-            {
-                // 首次送審或一般更新
-                product.ReviewStatus = 0;    // 待審核
-                product.RejectReason = null; // 清空退回原因
-            }
-
-            product.ReviewedBy = null; // 清空審核人
-            product.ReviewDate = null; // 清空審核時間
+            // 已上架(1) 或未上架(0)：直接更新內容，狀態與審核記錄維持不變
 
             if (!string.IsNullOrWhiteSpace(dto.MainImageUrl))
             {

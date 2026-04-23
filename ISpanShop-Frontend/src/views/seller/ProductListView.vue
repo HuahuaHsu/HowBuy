@@ -778,9 +778,18 @@ async function handleDeleteProduct(product: SellerProduct): Promise<void> {
     
     await deleteSellerProduct(product.id)
     ElMessage.success('商品已刪除')
-    
-    // 重新載入列表
-    await loadProducts()
+
+    // 本地即時更新：直接標記為已刪除
+    // 不重新呼叫 API，因為後端可能過濾掉已刪除商品，導致商品從所有 tab 消失
+    const idx = allProducts.value.findIndex(p => p.id === product.id)
+    if (idx !== -1) {
+      allProducts.value[idx] = {
+        ...allProducts.value[idx],
+        isDeleted: true,
+        status: 'deleted',
+        statusText: '已刪除',
+      }
+    }
   } catch (error) {
     if (error !== 'cancel') {
       console.error('刪除商品失敗:', error)
