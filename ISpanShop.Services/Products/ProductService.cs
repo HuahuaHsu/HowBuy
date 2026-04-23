@@ -670,8 +670,8 @@ namespace ISpanShop.Services.Products
         {
             var product = await _productRepository.GetProductDetailAsync(id);
 
-            // 找不到、已刪除、或非上架狀態 → 回傳 null
-            if (product == null || product.Status != 1)
+            // 找不到、已刪除、非上架狀態、或賣家被停權 → 回傳 null
+            if (product == null || product.Status != 1 || product.Store?.StoreStatus == 3)
                 return (null, null, 0, 0);
 
             var (rating, reviewCount) = await _productRepository.GetProductRatingAsync(id);
