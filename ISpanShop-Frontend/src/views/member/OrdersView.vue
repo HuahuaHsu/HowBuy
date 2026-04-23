@@ -380,12 +380,6 @@ onMounted(() => {
         font-size: 24px;
         color: #ee4d2d;
         font-weight: 500;
-        
-        &::before {
-          content: '$';
-          font-size: 16px;
-          margin-right: 2px;
-        }
       }
     }
   }
