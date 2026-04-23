@@ -400,4 +400,5 @@ function statusTagType(status: string): 'success' | 'warning' | 'danger' | 'info
   white-space: nowrap !important;
   word-break: keep-all !important;
 }
+
 </style>

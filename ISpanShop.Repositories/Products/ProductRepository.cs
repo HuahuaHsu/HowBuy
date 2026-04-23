@@ -1000,7 +1000,7 @@ namespace ISpanShop.Repositories.Products
         {
             var query = _context.Products
                 .AsNoTracking()
-                .Where(p => p.IsDeleted != true && p.Status == 1 && p.Store.StoreStatus != 3)
+                .Where(p => p.IsDeleted != true && p.Status == 1 && p.Store.StoreStatus != 3 && p.Store.User.IsBlacklisted != true)
                 .AsQueryable();
 
             // ── 分類篩選 ───────────────────────────────────────────
@@ -1114,6 +1114,7 @@ namespace ISpanShop.Repositories.Products
                 .AsNoTracking()
                 .Include(p => p.Brand)
                 .Include(p => p.Store)
+                    .ThenInclude(s => s.User)
                 .Include(p => p.Category)
                     .ThenInclude(c => c.Parent)
                         .ThenInclude(c2 => c2!.Parent)

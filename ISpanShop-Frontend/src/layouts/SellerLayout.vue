@@ -134,6 +134,14 @@
 
       <!-- 主內容 -->
       <main class="seller-main" :style="{ marginLeft: isCollapsed ? '64px' : '220px' }">
+        <!-- 停權通知橫幅 -->
+        <div v-if="sellerStore.isBanned" class="ban-banner">
+          <el-icon class="ban-icon"><WarningFilled /></el-icon>
+          <div>
+            <div class="ban-title">您的賣場已被停權</div>
+            <div class="ban-desc">您的商品目前不會顯示在商城中。如有疑問，請聯繫平台客服。</div>
+          </div>
+        </div>
         <router-view />
       </main>
     </div>
@@ -141,20 +149,26 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
   ArrowDown, House, SwitchButton,
   DataAnalysis, Box, List, Plus, Document, RefreshLeft,
   PriceTag, StarFilled, Ticket, TrendCharts, Histogram, DataLine,
-  ChatDotRound, DArrowLeft, DArrowRight, Setting
+  ChatDotRound, DArrowLeft, DArrowRight, Setting, WarningFilled
 } from '@element-plus/icons-vue'
 import { useAuthStore } from '../stores/auth'
+import { useSellerStore } from '../stores/seller'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const sellerStore = useSellerStore()
+
+onMounted(() => {
+  void sellerStore.fetchBanStatus()
+})
 
 const isCollapsed = ref<boolean>(false)
 const activeMenu = computed<string>(() => route.path)
@@ -343,5 +357,32 @@ function handleCommand(command: string): void {
   padding: 24px;
   transition: margin-left 0.3s ease;
   overflow-x: hidden;
+}
+
+/* ── 停權橫幅 ── */
+.ban-banner {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  border-radius: 8px;
+  padding: 16px 24px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.ban-icon {
+  color: #ef4444;
+  font-size: 24px;
+  flex-shrink: 0;
+}
+.ban-title {
+  font-weight: 600;
+  color: #dc2626;
+  font-size: 16px;
+}
+.ban-desc {
+  color: #991b1b;
+  font-size: 14px;
+  margin-top: 4px;
 }
 </style>

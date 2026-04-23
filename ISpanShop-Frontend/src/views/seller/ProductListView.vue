@@ -184,6 +184,8 @@
               <!-- 商品資訊 -->
               <div class="card-body">
                 <p class="card-name">{{ product.name }}</p>
+                <!-- 停權隱藏標籤 -->
+                <el-tag v-if="sellerStore.isBanned" type="info" size="small" style="margin-bottom:4px">前台已隱藏</el-tag>
                 <!-- 退回原因橫幅 -->
                 <div v-if="product.status === 'rejected' && product.rejectReason" class="reject-banner">
                   <el-icon :size="13"><WarningFilled /></el-icon>
@@ -348,11 +350,13 @@
               </template>
             </el-table-column>
 
-            <el-table-column label="狀態" width="90" align="center">
+            <el-table-column label="狀態" width="130" align="center">
               <template #default="{ row }">
                 <el-tag :type="getStatusTagType(row.status)" size="small">
                   {{ row.statusText }}
                 </el-tag>
+                <br v-if="sellerStore.isBanned" />
+                <el-tag v-if="sellerStore.isBanned" type="info" size="small" style="margin-top:4px">前台已隱藏</el-tag>
               </template>
             </el-table-column>
 
@@ -469,10 +473,12 @@ import {
 } from '@element-plus/icons-vue'
 import { fetchSellerProducts, updateProductStatus, deleteSellerProduct } from '@/api/product'
 import { fetchMainCategories } from '@/api/category'
+import { useSellerStore } from '@/stores/seller'
 import type { SellerProductListItem } from '@/types/product'
 import type { Category } from '@/types/category'
 
 const router = useRouter()
+const sellerStore = useSellerStore()
 
 // ── 預設圖片 ──────────────────────────────────────────────────────
 const defaultProductImage = 'https://placehold.co/200x200/f5f5f5/999?text=No+Image'

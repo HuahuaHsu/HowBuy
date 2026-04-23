@@ -221,6 +221,22 @@ namespace ISpanShop.Services.Stores
             return store.IsVerified.Value ? "Approved" : "Rejected";
         }
 
+        public async Task<(string Status, bool IsBanned)> GetStoreStatusDetailAsync(int userId)
+        {
+            var store = await _context.Stores
+                .Include(s => s.User)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.UserId == userId);
+
+            string status;
+            if (store == null) status = "NotApplied";
+            else if (store.IsVerified == null) status = "Pending";
+            else status = store.IsVerified.Value ? "Approved" : "Rejected";
+
+            bool isBanned = (store?.User?.IsBlacklisted == true) || (store?.StoreStatus == 3);
+            return (status, isBanned);
+        }
+
         public async Task<UpdateStoreInfoRequestDto> GetStoreInfoAsync(int userId)
         {
             var store = await _context.Stores
