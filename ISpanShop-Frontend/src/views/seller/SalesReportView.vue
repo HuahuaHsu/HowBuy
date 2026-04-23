@@ -100,7 +100,7 @@
             <el-card class="chart-card" shadow="never">
               <template #header>
                 <div class="card-header">
-                  <span class="card-title">📈 銷售金額趨勢 (近 30 天)</span>
+                  <span class="card-title">📈 銷售金額趨勢 (近 7 天)</span>
                 </div>
               </template>
               <div class="chart-wrapper">
