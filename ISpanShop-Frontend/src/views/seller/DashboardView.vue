@@ -16,14 +16,17 @@
               </el-icon>
             </div>
             <div class="stat-content">
-              <div class="stat-value">{{ stat.value }}</div>
-              <div class="stat-label">{{ stat.label }}</div>
-              <div class="stat-change" :class="stat.changeType">
-                <el-icon :size="12">
-                  <component :is="stat.changeType === 'up' ? CaretTop : CaretBottom" />
-                </el-icon>
-                {{ stat.change }} 較上期
+              <div class="stat-main">
+                <div class="stat-value">{{ stat.value }}</div>
+                <div class="stat-change" :class="stat.changeType" v-if="stat.showChange">
+                  <el-icon :size="12" v-if="stat.changeType !== 'neutral'">
+                    <component :is="stat.changeType === 'up' ? CaretTop : CaretBottom" />
+                  </el-icon>
+                  <el-icon :size="12" v-else><Minus /></el-icon>
+                  {{ stat.change }}
+                </div>
               </div>
+              <div class="stat-label">{{ stat.label }}</div>
             </div>
           </div>
           <!-- TODO: 呼叫後端 GET /api/seller/dashboard/stats 取得真實數據 -->
@@ -167,17 +170,17 @@ const statCards = computed(() => {
     {
       label: '待處理訂單',
       value: kpis?.pendingOrders?.toString() || '0',
-      change: '0%',
-      changeType: 'neutral' as ChangeType,
+      showChange: false,
       icon: Document,
       iconBg: '#fff7ed',
       iconColor: '#ee4d2d',
     },
     {
-      label: '總訂單數',
-      value: kpis?.totalOrders?.toString() || '0',
-      change: '0%',
-      changeType: 'neutral' as ChangeType,
+      label: '近 7 天訂單數',
+      value: kpis?.ordersLast7Days?.toString() || '0',
+      showChange: true,
+      change: kpis?.ordersGrowthRate || '0%',
+      changeType: (kpis?.ordersGrowthType || 'neutral') as ChangeType,
       icon: List,
       iconBg: '#f0fdf4',
       iconColor: '#22c55e',
@@ -185,8 +188,7 @@ const statCards = computed(() => {
     {
       label: '低庫存警告',
       value: kpis?.lowStockCount?.toString() || '0',
-      change: '0%',
-      changeType: 'neutral' as ChangeType,
+      showChange: false,
       icon: WarningFilled,
       iconBg: '#fef9c3',
       iconColor: '#eab308',
@@ -194,14 +196,13 @@ const statCards = computed(() => {
     {
       label: '已上架商品',
       value: kpis?.totalProducts?.toString() || '0',
-      change: '0%',
-      changeType: 'neutral' as ChangeType,
+      showChange: false,
       icon: Box,
       iconBg: '#eff6ff',
       iconColor: '#3b82f6',
-    },
-  ]
-})
+    }
+    ]
+    })
 
 // 區塊 B 數據中心
 const analyticsMetrics = computed(() => {
@@ -269,15 +270,26 @@ function statusTagType(status: string): 'success' | 'warning' | 'danger' | 'info
   border: 1px solid #e8eaf0 !important;
   border-radius: 12px !important;
   margin-bottom: 16px;
+  height: 100px;
+  display: flex;
+  align-items: center;
+}
+:deep(.el-card__body) {
+  width: 100%;
 }
 .stat-inner {
   display: flex;
   align-items: center;
   gap: 16px;
 }
+.stat-main {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
 .stat-icon {
-  width: 52px;
-  height: 52px;
+  width: 48px;
+  height: 48px;
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -285,7 +297,7 @@ function statusTagType(status: string): 'success' | 'warning' | 'danger' | 'info
   flex-shrink: 0;
 }
 .stat-value {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 700;
   color: #1e293b;
   line-height: 1;
@@ -293,13 +305,14 @@ function statusTagType(status: string): 'success' | 'warning' | 'danger' | 'info
 .stat-label {
   font-size: 13px;
   color: #64748b;
-  margin: 4px 0;
+  margin-top: 6px;
 }
 .stat-change {
   font-size: 12px;
   display: flex;
   align-items: center;
   gap: 2px;
+  font-weight: 600;
 }
 .stat-change.up    { color: #22c55e; }
 .stat-change.down  { color: #ef4444; }

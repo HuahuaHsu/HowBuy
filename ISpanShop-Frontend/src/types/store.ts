@@ -21,6 +21,9 @@ export interface SellerDashboardData {
   kpis: {
     totalRevenue: number
     totalOrders: number
+    ordersLast7Days: number
+    ordersGrowthRate: string
+    ordersGrowthType: 'up' | 'down' | 'neutral'
     pendingOrders: number
     totalProducts: number
     lowStockCount: number

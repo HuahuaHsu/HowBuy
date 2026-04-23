@@ -32,6 +32,35 @@ namespace ISpanShop.Services.Stores
 
             var storeId = store.Id;
 
+            // 0. 計算對等週期訂單數 (近 7 天 vs 前一個 7 天)
+            var now = DateTime.Today.AddDays(1);
+            var last7DaysStart = DateTime.Today.AddDays(-6);
+            var prev7DaysStart = last7DaysStart.AddDays(-7);
+
+            var ordersLast7Days = await _context.Orders
+                .CountAsync(o => o.StoreId == storeId && o.CreatedAt >= last7DaysStart && o.CreatedAt < now);
+
+            var ordersPrev7Days = await _context.Orders
+                .CountAsync(o => o.StoreId == storeId && o.CreatedAt >= prev7DaysStart && o.CreatedAt < last7DaysStart);
+
+            string growthRateStr = "0%";
+            string growthType = "neutral";
+
+            if (ordersPrev7Days == 0)
+            {
+                if (ordersLast7Days > 0)
+                {
+                    growthRateStr = "100%";
+                    growthType = "up";
+                }
+            }
+            else
+            {
+                double rate = (double)(ordersLast7Days - ordersPrev7Days) / ordersPrev7Days;
+                growthRateStr = Math.Abs(rate).ToString("P0");
+                growthType = rate > 0 ? "up" : (rate < 0 ? "down" : "neutral");
+            }
+
             // 1. 取得 KPI
             var kpis = new SellerKpiDto
             {
@@ -41,6 +70,10 @@ namespace ISpanShop.Services.Stores
 
                 TotalOrders = await _context.Orders
                     .CountAsync(o => o.StoreId == storeId),
+
+                OrdersLast7Days = ordersLast7Days,
+                OrdersGrowthRate = growthRateStr,
+                OrdersGrowthType = growthType,
 
                 PendingOrders = await _context.Orders
                     .CountAsync(o => o.StoreId == storeId && o.Status == (byte)OrderStatus.Processing), // 待出貨

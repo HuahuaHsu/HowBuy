@@ -26,6 +26,9 @@ namespace ISpanShop.Models.DTOs.Stores
     {
         public decimal TotalRevenue { get; set; }      // 總營收
         public int TotalOrders { get; set; }           // 總訂單數
+        public int OrdersLast7Days { get; set; }       // 近 7 天訂單數
+        public string OrdersGrowthRate { get; set; }   // 訂單較上期成長率 (字串，如 "+10%" 或 "-5%")
+        public string OrdersGrowthType { get; set; }   // 成長類型: "up", "down", "neutral"
         public int PendingOrders { get; set; }         // 待出貨訂單
         public int TotalProducts { get; set; }         // 在架商品數
         public int LowStockCount { get; set; }         // 庫存低於預警商品數
