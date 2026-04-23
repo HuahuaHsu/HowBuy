@@ -192,8 +192,8 @@ export const routes: RouteRecordRaw[] = [
         name: 'SellerProductEdit',
         component: () => import('../views/seller/ProductEditView.vue'),
       },
-      // ── TODO 佔位路由 ──
-      { path: 'orders',             name: 'SellerOrders',     component: () => import('../views/seller/TodoView.vue') },
+      // ── 訂單管理 ──
+      { path: 'orders',             name: 'SellerOrders',     component: () => import('../views/seller/OrderListView.vue') },
       { path: 'orders/batch',       name: 'SellerOrdersBatch', component: () => import('../views/seller/TodoView.vue') },
       { path: 'returns',            name: 'SellerReturns',    component: () => import('../views/seller/TodoView.vue') },
       { path: 'promotions',         name: 'SellerPromotions', component: () => import('../views/seller/PromotionListView.vue') },

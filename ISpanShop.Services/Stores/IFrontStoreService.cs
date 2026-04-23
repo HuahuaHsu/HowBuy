@@ -1,5 +1,9 @@
 using System.Threading.Tasks;
+using ISpanShop.Common.Enums;
 using ISpanShop.Models.DTOs.Stores;
+
+using ISpanShop.Models.DTOs.Orders;
+using System.Collections.Generic;
 
 namespace ISpanShop.Services.Stores
 {
@@ -13,5 +17,8 @@ namespace ISpanShop.Services.Stores
         Task<int> GetPendingOrdersCountAsync(int userId);
 		Task<StorePublicProfileDto?> GetPublicStoreProfileAsync(int storeId);
 
+        // 賣家訂單管理 (支援分頁)
+        Task<PagedResultDto<SellerOrderListDto>> GetSellerOrdersAsync(int userId, OrderStatus? status = null, int page = 1, int pageSize = 10);
+        Task<bool> UpdateOrderStatusAsync(int userId, long orderId, OrderStatus newStatus);
 	}
 }

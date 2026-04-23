@@ -4,16 +4,15 @@ using System.Linq;
 using System.Threading.Tasks;
 using ISpanShop.Models.DTOs;
 using ISpanShop.Models.DTOs.Stores;
+using ISpanShop.Models.DTOs.Orders;
 using ISpanShop.Models.EfModels;
 using Microsoft.EntityFrameworkCore;
-
 using ISpanShop.Common.Enums;
 
 namespace ISpanShop.Services.Stores
 {
-
-    public class FrontStoreService: IFrontStoreService
-	{
+    public class FrontStoreService : IFrontStoreService
+    {
         private readonly ISpanShopDBContext _context;
 
         public FrontStoreService(ISpanShopDBContext context)
@@ -37,26 +36,26 @@ namespace ISpanShop.Services.Stores
             var kpis = new SellerKpiDto
             {
                 TotalRevenue = await _context.Orders
-                    .Where(o => o.StoreId == storeId && o.Status == (byte)OrderStatus.Completed) 
+                    .Where(o => o.StoreId == storeId && o.Status == (byte)OrderStatus.Completed)
                     .SumAsync(o => o.FinalAmount),
-                
+
                 TotalOrders = await _context.Orders
                     .CountAsync(o => o.StoreId == storeId),
-                
+
                 PendingOrders = await _context.Orders
                     .CountAsync(o => o.StoreId == storeId && o.Status == (byte)OrderStatus.Processing), // 待出貨
-                
+
                 TotalProducts = await _context.Products
                     .CountAsync(p => p.StoreId == storeId && p.IsDeleted != true),
-                
+
                 LowStockCount = await _context.ProductVariants
-                    .CountAsync(v => v.Product.StoreId == storeId && v.IsDeleted != true && v.Stock <= 10) 
+                    .CountAsync(v => v.Product.StoreId == storeId && v.IsDeleted != true && v.Stock <= 10)
             };
 
             // 2. 銷售趨勢 (近 7 日)
             var endDate = DateTime.Today.AddDays(1);
             var startDate = DateTime.Today.AddDays(-6);
-            
+
             var dailySales = await _context.Orders
                 .Where(o => o.StoreId == storeId && o.Status == (byte)OrderStatus.Completed && o.CreatedAt >= startDate && o.CreatedAt < endDate)
                 .GroupBy(o => o.CreatedAt.Value.Date)
@@ -64,8 +63,8 @@ namespace ISpanShop.Services.Stores
                 .ToListAsync();
 
             var salesTrend = new ApexChartDataDto();
-            var series = new ChartSeriesDto { Name = "營營收" };
-            
+            var series = new ChartSeriesDto { Name = "營收" };
+
             for (int i = 0; i < 7; i++)
             {
                 var date = startDate.AddDays(i);
@@ -101,7 +100,7 @@ namespace ISpanShop.Services.Stores
                 {
                     OrderId = o.Id,
                     OrderNumber = o.OrderNumber,
-                    BuyerName = o.User.Account, // 或使用 FullName
+                    BuyerName = o.User.Account,
                     ProductName = o.OrderDetails.FirstOrDefault().ProductName + (o.OrderDetails.Count > 1 ? " 等..." : ""),
                     Amount = o.FinalAmount,
                     Status = ((OrderStatus)o.Status).GetDisplayName(),
@@ -120,44 +119,32 @@ namespace ISpanShop.Services.Stores
 
         public async Task<bool> ApplyStoreAsync(int userId, StoreApplyRequestDto dto)
         {
-            // 1. 檢查是否已有賣場
             var existingStore = await _context.Stores.FirstOrDefaultAsync(s => s.UserId == userId);
-            
+
             if (existingStore != null)
             {
-                // 如果已經審核通過，禁止重新申請
-                if (existingStore.IsVerified == true)
-                {
-                    throw new Exception("您已經擁有賣場，無需重複申請");
-                }
+                if (existingStore.IsVerified == true) throw new Exception("您已經擁有賣場，無需重複申請");
+                if (existingStore.IsVerified == null) throw new Exception("您的申請正在審核中，請耐心等候");
 
-                // 如果正在審核中，提示耐心等候
-                if (existingStore.IsVerified == null)
-                {
-                    throw new Exception("您的申請正在審核中，請耐心等候");
-                }
-
-                // 如果是被駁回 (IsVerified == false)，則允許覆蓋舊資料並重置為待審核 (null)
                 existingStore.StoreName = dto.StoreName;
                 existingStore.Description = dto.Description;
                 existingStore.LogoUrl = dto.LogoUrl;
-                existingStore.IsVerified = null; // 重置為待審核
-                existingStore.StoreStatus = 2;   // 重置為休假中
-                existingStore.CreatedAt = DateTime.Now; // 更新申請時間
+                existingStore.IsVerified = null;
+                existingStore.StoreStatus = 2;
+                existingStore.CreatedAt = DateTime.Now;
 
                 _context.Stores.Update(existingStore);
             }
             else
             {
-                // 2. 建立新賣場 (第一次申請)
                 var newStore = new Store
                 {
                     UserId = userId,
                     StoreName = dto.StoreName,
                     Description = dto.Description,
                     LogoUrl = dto.LogoUrl,
-                    IsVerified = null, // 待審核狀態
-                    StoreStatus = 2,    // 預設休假中
+                    IsVerified = null,
+                    StoreStatus = 2,
                     CreatedAt = DateTime.Now
                 };
                 _context.Stores.Add(newStore);
@@ -172,15 +159,8 @@ namespace ISpanShop.Services.Stores
                 .AsNoTracking()
                 .FirstOrDefaultAsync(s => s.UserId == userId);
 
-            if (store == null)
-            {
-                return "NotApplied";
-            }
-
-            if (store.IsVerified == null)
-            {
-                return "Pending";
-            }
+            if (store == null) return "NotApplied";
+            if (store.IsVerified == null) return "Pending";
 
             return store.IsVerified.Value ? "Approved" : "Rejected";
         }
@@ -226,33 +206,124 @@ namespace ISpanShop.Services.Stores
 
             if (store == null) return 0;
 
-            // Status 1 為待出貨
             return await _context.Orders
-                .CountAsync(o => o.StoreId == store.Id && o.Status == 1);
+                .CountAsync(o => o.StoreId == store.Id && o.Status == (byte)OrderStatus.Processing);
         }
 
-		public async Task<StorePublicProfileDto?> GetPublicStoreProfileAsync(int storeId)
-		{
-			var store = await _context.Stores
-				.AsNoTracking()
-				.FirstOrDefaultAsync(s => s.Id == storeId);
+        public async Task<StorePublicProfileDto?> GetPublicStoreProfileAsync(int storeId)
+        {
+            var store = await _context.Stores
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.Id == storeId);
 
-			if (store == null) return null;
+            if (store == null) return null;
 
-			var productCount = await _context.Products
-				.CountAsync(p => p.StoreId == storeId && p.Status == 1 && p.IsDeleted != true);
+            var productCount = await _context.Products
+                .CountAsync(p => p.StoreId == storeId && p.Status == 1 && p.IsDeleted != true);
 
-			return new StorePublicProfileDto
-			{
-				Id = store.Id,
-				Name = store.StoreName ?? string.Empty,
-				Description = store.Description,
-				LogoUrl = store.LogoUrl,
-				Rating = null,
-				ProductCount = productCount,
-				FollowerCount = 0,
-				CreatedAt = store.CreatedAt
-			};
-		}
-	}
+            return new StorePublicProfileDto
+            {
+                Id = store.Id,
+                Name = store.StoreName ?? string.Empty,
+                Description = store.Description,
+                LogoUrl = store.LogoUrl,
+                Rating = null,
+                ProductCount = productCount,
+                FollowerCount = 0,
+                CreatedAt = store.CreatedAt
+            };
+        }
+
+        public async Task<PagedResultDto<SellerOrderListDto>> GetSellerOrdersAsync(int userId, OrderStatus? status = null, int page = 1, int pageSize = 10)
+        {
+            var store = await _context.Stores
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.UserId == userId);
+
+            if (store == null) throw new Exception("找不到您的賣場");
+
+            var query = _context.Orders
+                .Include(o => o.User)
+                .Include(o => o.OrderDetails)
+                .Where(o => o.StoreId == store.Id);
+
+            if (status.HasValue)
+            {
+                query = query.Where(o => o.Status == (byte)status.Value);
+            }
+
+            var totalCount = await query.CountAsync();
+
+            var orders = await query
+                .OrderByDescending(o => o.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var items = orders.Select(o => {
+                var firstDetail = o.OrderDetails.FirstOrDefault();
+                string image = firstDetail?.CoverImage;
+                
+                // 如果訂單明細沒存圖片，去抓商品主圖
+                if (string.IsNullOrEmpty(image) && firstDetail != null)
+                {
+                    image = _context.ProductImages
+                        .Where(pi => pi.ProductId == firstDetail.ProductId && pi.IsMain == true)
+                        .Select(pi => pi.ImageUrl)
+                        .FirstOrDefault();
+                }
+
+                // 確保路徑以 / 開頭
+                if (!string.IsNullOrEmpty(image) && !image.StartsWith("http") && !image.StartsWith("/"))
+                {
+                    image = "/" + image;
+                }
+
+                return new SellerOrderListDto
+                {
+                    Id = o.Id,
+                    OrderNumber = o.OrderNumber,
+                    CreatedAt = o.CreatedAt,
+                    FinalAmount = o.FinalAmount,
+                    Status = (OrderStatus)o.Status,
+                    StatusName = ((OrderStatus)o.Status).GetDisplayName(),
+                    BuyerName = o.User?.Account ?? "未知買家",
+                    RecipientName = o.RecipientName,
+                    FirstProductName = firstDetail?.ProductName,
+                    FirstProductImage = image,
+                    TotalItemCount = o.OrderDetails.Sum(od => od.Quantity)
+                };
+            }).ToList();
+
+            return new PagedResultDto<SellerOrderListDto>
+            {
+                Items = items,
+                TotalCount = totalCount
+            };
+        }
+
+        public async Task<bool> UpdateOrderStatusAsync(int userId, long orderId, OrderStatus newStatus)
+        {
+            var store = await _context.Stores
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.UserId == userId);
+
+            if (store == null) throw new Exception("找不到您的賣場");
+
+            var order = await _context.Orders
+                .FirstOrDefaultAsync(o => o.Id == orderId && o.StoreId == store.Id);
+
+            if (order == null) throw new Exception("找不到該筆訂單或該訂單不屬於您的賣場");
+
+            order.Status = (byte)newStatus;
+
+            if (newStatus == OrderStatus.Completed)
+            {
+                order.CompletedAt = DateTime.Now;
+            }
+
+            _context.Orders.Update(order);
+            return await _context.SaveChangesAsync() > 0;
+        }
+    }
 }

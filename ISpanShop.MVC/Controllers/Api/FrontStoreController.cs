@@ -1,9 +1,11 @@
+using ISpanShop.Common.Enums;
 using ISpanShop.Models.DTOs.Stores;
 using ISpanShop.Services.Stores;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -23,8 +25,52 @@ namespace ISpanShop.MVC.Controllers.Api
         }
 
         /// <summary>
-        /// 上傳賣場 Logo
+        /// 取得賣場訂單列表 (支援分頁)
         /// </summary>
+        [HttpGet("orders")]
+        public async Task<IActionResult> GetSellerOrders([FromQuery] OrderStatus? status = null, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        {
+            try
+            {
+                var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (!int.TryParse(userIdStr, out int userId)) return Unauthorized();
+
+                var pagedResult = await _storeService.GetSellerOrdersAsync(userId, status, page, pageSize);
+                return Ok(pagedResult);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// 更新訂單狀態 (例如出貨)
+        /// </summary>
+        [HttpPut("orders/{orderId}/status")]
+        public async Task<IActionResult> UpdateOrderStatus(long orderId, [FromBody] UpdateStatusRequest request)
+        {
+            try
+            {
+                var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (!int.TryParse(userIdStr, out int userId)) return Unauthorized();
+
+                var success = await _storeService.UpdateOrderStatusAsync(userId, orderId, request.Status);
+                return success ? Ok(new { message = "狀態更新成功" }) : BadRequest(new { message = "更新失敗" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        public class UpdateStatusRequest
+        {
+            public OrderStatus Status { get; set; }
+        }
+
+        /// <summary>
+        /// 上傳賣場 Logo...
         [HttpPost("upload-logo")]
         public async Task<IActionResult> UploadLogo(IFormFile file)
         {

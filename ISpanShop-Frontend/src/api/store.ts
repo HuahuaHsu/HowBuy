@@ -34,9 +34,25 @@ export const uploadStoreLogoApi = (file: File) => {
 export const getSellerDashboardApi = () => {
   return axios.get<SellerDashboardData>('/api/front/store/dashboard')
 }
+/**
+ * 取得賣場訂單列表
+ */
+export const getSellerOrdersApi = (params: { status?: number, page?: number, pageSize?: number } = {}) => {
+  return axios.get<{ items: SellerOrder[], totalCount: number }>('/api/front/store/orders', {
+    params
+  })
+}
+
+/**
+ * 更新賣家訂單狀態 (如：安排出貨)
+ */
+export const updateSellerOrderStatusApi = (orderId: number, status: number) => {
+  return axios.put<ApiResponse>(`/api/front/store/orders/${orderId}/status`, { status })
+}
 
 /**
  * 取得賣場公開資訊（名稱、評分、商品數、粉絲數、加入時間等）
+...
  * GET /api/stores/:id
  */
 export const getStoreInfo = (storeId: number) =>

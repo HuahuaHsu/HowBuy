@@ -49,3 +49,17 @@ export interface RecentOrder {
   status: string
   createdAt: string
 }
+
+export interface SellerOrder {
+  id: number
+  orderNumber: string
+  createdAt: string
+  finalAmount: number
+  status: number
+  statusName: string
+  buyerName: string
+  recipientName: string
+  firstProductName: string
+  firstProductImage: string
+  totalItemCount: number
+}
