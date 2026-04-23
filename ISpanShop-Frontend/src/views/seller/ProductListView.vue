@@ -225,7 +225,10 @@
                     <el-dropdown-menu>
                       <el-dropdown-item command="copy">複製</el-dropdown-item>
                       <el-dropdown-item command="preview">即時預覽</el-dropdown-item>
-                      <el-dropdown-item command="shelf">
+                      <el-dropdown-item 
+                        v-if="product.status === 'on' || product.status === 'off'"
+                        command="shelf"
+                      >
                         {{ product.status === 'on' ? '下架' : '上架' }}
                       </el-dropdown-item>
                       <el-dropdown-item command="stock">低庫存提醒</el-dropdown-item>
@@ -439,13 +442,13 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Plus, Search, Edit, Delete, Grid, List,
   ArrowDown, ArrowUp, DCaret, CaretTop, CaretBottom,
   MoreFilled, WarningFilled, View, ShoppingCart, Goods,
 } from '@element-plus/icons-vue'
-import { fetchSellerProducts } from '@/api/product'
+import { fetchSellerProducts, updateProductStatus } from '@/api/product'
 import { fetchMainCategories } from '@/api/category'
 import type { SellerProductListItem } from '@/types/product'
 import type { Category } from '@/types/category'
@@ -742,14 +745,41 @@ function handleCardCommand(cmd: string, product: SellerProduct): void {
 }
 
 // ── 上/下架切換 ───────────────────────────────────────────────────
-function handleToggleShelf(product: SellerProduct): void {
+async function handleToggleShelf(product: SellerProduct): Promise<void> {
+  // 只有已上架(status=1)或已下架(status=0)的商品可以切換
+  // 待審核(status=2)、已退回(status=3)等狀態不能直接上下架
+  if (product.status !== 'on' && product.status !== 'off') {
+    ElMessage.warning('此商品狀態無法進行上下架操作')
+    return
+  }
+
   const newStatus: ProductStatus = product.status === 'on' ? 'off' : 'on'
-  // TODO: 呼叫 PUT /api/seller/products/{id}/shelf { isOnShelf: newStatus === 'on' }
-  console.log('[TODO] PUT /api/seller/products/' + product.id + '/shelf', {
-    isOnShelf: newStatus === 'on',
-  })
-  product.status = newStatus
-  ElMessage.success(newStatus === 'on' ? '商品已上架' : '商品已下架')
+  const newStatusNumber = newStatus === 'on' ? 1 : 0
+  const actionText = newStatus === 'on' ? '上架' : '下架'
+
+  try {
+    await ElMessageBox.confirm(
+      `確定要${actionText}此商品嗎？`,
+      '提示',
+      {
+        confirmButtonText: '確定',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    )
+
+    await updateProductStatus(product.id, newStatusNumber)
+    
+    // 更新本地狀態
+    product.status = newStatus
+    
+    ElMessage.success(`商品已${actionText}`)
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error(`${actionText}失敗:`, error)
+      ElMessage.error(`${actionText}失敗，請稍後再試`)
+    }
+  }
 }
 
 // ── 刪除 ──────────────────────────────────────────────────────────

@@ -116,15 +116,45 @@ export async function getSellerProductDetail(id: number): Promise<ApiResponse<Pr
 
 /**
  * 更新賣家商品
- * PUT /api/seller/products/{id}  (multipart/form-data)
+ * PUT /api/seller/products/{id}  (application/json)
  */
 export async function updateSellerProduct(
   id: number,
-  data: FormData,
+  data: any,
 ): Promise<ApiResponse<{ productId: number }>> {
   const response = await request.put<ApiResponse<{ productId: number }>>(
     `/api/seller/products/${id}`,
     data,
+  )
+  return response.data
+}
+
+/**
+ * 更新商品狀態（上架/下架）
+ * PATCH /api/seller/products/{id}/status
+ */
+export async function updateProductStatus(
+  id: number,
+  status: number,
+): Promise<ApiResponse<unknown>> {
+  const response = await request.patch<ApiResponse<unknown>>(
+    `/api/seller/products/${id}/status`,
+    { status },
+  )
+  return response.data
+}
+
+/**
+ * 更新商品圖片
+ * PUT /api/seller/products/{id}/images (multipart/form-data)
+ */
+export async function updateProductImages(
+  id: number,
+  formData: FormData,
+): Promise<ApiResponse<unknown>> {
+  const response = await request.put<ApiResponse<unknown>>(
+    `/api/seller/products/${id}/images`,
+    formData,
     { headers: { 'Content-Type': 'multipart/form-data' } },
   )
   return response.data

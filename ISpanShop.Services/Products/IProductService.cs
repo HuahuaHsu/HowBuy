@@ -188,5 +188,14 @@ namespace ISpanShop.Services.Products
 
         /// <summary>批次新增商品圖片（前台賣家上傳，URLs 已儲存至磁碟）。</summary>
         void AddProductImages(int productId, IEnumerable<ISpanShop.Models.EfModels.ProductImage> images);
+
+        /// <summary>刪除商品所有圖片（資料庫記錄 + 實體檔案）。</summary>
+        void DeleteProductImages(int productId, string webRootPath);
+
+        /// <summary>刪除商品圖片（排除指定的 URL 列表）。</summary>
+        void DeleteProductImagesExcept(int productId, List<string> keepImageUrls, string webRootPath);
+
+        /// <summary>更新商品主圖設定。</summary>
+        void UpdateMainImage(int productId, int mainImageIndex);
     }
 }

@@ -699,5 +699,23 @@ namespace ISpanShop.Services.Products
         {
             _productRepository.AddProductImages(productId, images);
         }
+
+        /// <inheritdoc/>
+        public void DeleteProductImages(int productId, string webRootPath)
+        {
+            _productRepository.DeleteProductImages(productId, webRootPath);
+        }
+
+        /// <inheritdoc/>
+        public void DeleteProductImagesExcept(int productId, List<string> keepImageUrls, string webRootPath)
+        {
+            _productRepository.DeleteProductImagesExcept(productId, keepImageUrls, webRootPath);
+        }
+
+        /// <inheritdoc/>
+        public void UpdateMainImage(int productId, int mainImageIndex)
+        {
+            _productRepository.UpdateMainImage(productId, mainImageIndex);
+        }
     }
 }

@@ -53,6 +53,14 @@ namespace ISpanShop.Models.DTOs.Products
         public string? MainImageUrl { get; set; }
     }
 
+    /// <summary>更新商品狀態（上架/下架）</summary>
+    public class UpdateProductStatusRequest
+    {
+        [Required]
+        [Range(0, 1, ErrorMessage = "狀態只能是 0 (下架) 或 1 (上架)")]
+        public byte Status { get; set; }
+    }
+
     /// <summary>新增規格</summary>
     public class CreateVariantRequest
     {
