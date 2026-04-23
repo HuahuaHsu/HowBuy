@@ -140,7 +140,7 @@ import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { Money, Document, Goods, Warning } from '@element-plus/icons-vue';
 import { getSellerDashboardApi, getStoreStatusApi } from '@/api/store';
-import type { SellerDashboardData, StoreStatus } from '@/types/store';
+import type { SellerDashboardData } from '@/types/store';
 import { ElMessage } from 'element-plus';
 import VueApexCharts from 'vue3-apexcharts';
 
@@ -149,6 +149,7 @@ const authStore = useAuthStore();
 const apexchart = VueApexCharts;
 
 const loading = ref(false);
+const status = ref<string>('Pending');
 const dashboardData = ref<SellerDashboardData | null>(null);
 
 const lastUpdateTime = computed(() => {
@@ -193,7 +194,9 @@ const chartOptions = ref({
   }
 });
 
-const dashboardData = ref<SellerDashboardData | null>(null);
+const formatPrice = (price: number) => {
+  return price.toLocaleString();
+};
 
 const checkStatus = async () => {
   loading.value = true;
@@ -206,23 +209,22 @@ const checkStatus = async () => {
       const dashboardRes = await getSellerDashboardApi();
       dashboardData.value = dashboardRes.data;
       
-      if (dashboardData.value.salesTrend) {
+      if (dashboardData.value?.salesTrend) {
         chartOptions.value.xaxis.categories = dashboardData.value.salesTrend.labels;
       }
     } else {
       authStore.updateSellerStatus(false);
     }
-    }
+  } catch (error) {
     console.error('取得資料失敗', error);
-    ElMessage.error('無法取得賣場數據');
-    ElMessage.error('無法取得賣場狀態');
+    ElMessage.error('無法取得賣場狀態或數據');
   } finally {
     loading.value = false;
   }
 };
 
 onMounted(() => {
-  fetchDashboardData();
+  checkStatus();
 });
 </script>
 
@@ -245,6 +247,7 @@ onMounted(() => {
   margin: 0;
 }
 .page-date {
+  margin-left: 12px;
   color: #94a3b8;
   font-size: 14px;
 }
@@ -320,7 +323,6 @@ onMounted(() => {
 
 .chart-wrapper {
   padding: 10px 0;
-  padding: 10px 0;
 }
 
 .status-box {
@@ -329,5 +331,10 @@ onMounted(() => {
   background: #fff;
   border-radius: 12px;
   border: 1px solid #e8eaf0;
+}
+
+.status-tip {
+  margin-bottom: 15px;
+  color: #64748b;
 }
 </style>
