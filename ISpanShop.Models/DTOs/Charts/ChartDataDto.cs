@@ -22,6 +22,7 @@ namespace ISpanShop.Models.DTOs
 	// 專為商品排行使用
 	public class TopProductSalesDto
 	{
+		public int ProductId { get; set; }
 		public string ProductName { get; set; }
 		public string CategoryName { get; set; } // 新增：用於統一顏色
 		public int SalesVolume { get; set; }

@@ -141,19 +141,20 @@ namespace ISpanShop.Services.Stores
             }
             salesTrend.Series.Add(series);
 
-            // 3. 熱銷商品排行 (前 5 名)
+            // 3. 熱銷商品排行 (前 10 名)
             var topProducts = await _context.OrderDetails
                 .Include(od => od.Order)
                 .Where(od => od.Order.StoreId == storeId && od.Order.Status == (byte)OrderStatus.Completed)
-                .GroupBy(od => od.ProductName)
+                .GroupBy(od => new { od.ProductId, od.ProductName })
                 .Select(g => new TopProductSalesDto
                 {
-                    ProductName = g.Key,
+                    ProductId = g.Key.ProductId,
+                    ProductName = g.Key.ProductName,
                     SalesVolume = g.Sum(od => od.Quantity),
                     SalesRevenue = g.Sum(od => (od.Price ?? 0) * od.Quantity)
                 })
                 .OrderByDescending(p => p.SalesVolume)
-                .Take(5)
+                .Take(10)
                 .ToListAsync();
 
             // 4. 近期訂單 (前 10 筆)

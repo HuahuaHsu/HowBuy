@@ -114,7 +114,13 @@
                   <span class="card-title">🏆 熱銷商品排行</span>
                 </div>
               </template>
-              <el-table :data="dashboardData.topProducts" stripe style="width: 100%">
+              <el-table 
+                :data="dashboardData.topProducts" 
+                stripe 
+                style="width: 100%"
+                class="clickable-table"
+                @row-click="handleRowClick"
+              >
                 <el-table-column type="index" label="排名" width="80" align="center" />
                 <el-table-column prop="productName" label="商品名稱" min-width="400" />
                 <el-table-column prop="salesVolume" label="總銷量" width="150" align="right">
@@ -194,6 +200,13 @@ const chartOptions = ref({
 
 const formatPrice = (price: number) => {
   return price.toLocaleString();
+};
+
+const handleRowClick = (row: any) => {
+  const id = row.productId || row.ProductId;
+  if (id) {
+    router.push(`/product/${id}`);
+  }
 };
 
 const checkStatus = async () => {
@@ -354,5 +367,9 @@ onMounted(() => {
 .status-tip {
   margin-bottom: 15px;
   color: #64748b;
+}
+
+.clickable-table :deep(.el-table__row) {
+  cursor: pointer;
 }
 </style>
