@@ -91,12 +91,16 @@
     <el-card class="recent-orders" shadow="never">
       <template #header>
         <div class="card-header">
-          <span class="card-title">📋 近期訂單</span>
+          <span class="card-title">📋 近期訂單 (前 10 筆)</span>
           <el-button text type="primary" @click="router.push('/seller/orders')">查看全部</el-button>
         </div>
       </template>
-      <!-- TODO: 呼叫後端 GET /api/seller/orders?pageSize=5&page=1 取得真實訂單 -->
-      <el-table :data="recentOrders" stripe class="orders-table">
+      <el-table 
+        :data="recentOrders" 
+        stripe 
+        class="orders-table clickable-table"
+        @row-click="handleRowClick"
+      >
         <el-table-column prop="orderNumber" label="訂單編號" min-width="200" class-name="no-wrap" />
         <el-table-column prop="buyerName" label="買家" min-width="150" class-name="no-wrap" />
         <el-table-column prop="amount" label="金額" min-width="140">
@@ -235,6 +239,10 @@ const quickActions = [
 const recentOrders = computed(() => {
   return dashboardData.value?.recentOrders || []
 })
+
+const handleRowClick = (row: any) => {
+  router.push(`/seller/orders/${row.orderId}`)
+}
 
 function statusTagType(status: string): 'success' | 'warning' | 'danger' | 'info' {
   const map: Record<string, 'success' | 'warning' | 'danger' | 'info'> = {
@@ -415,6 +423,10 @@ function statusTagType(status: string): 'success' | 'warning' | 'danger' | 'info
   border-radius: 12px !important;
 }
 .orders-table { width: 100%; }
+
+.clickable-table :deep(.el-table__row) {
+  cursor: pointer;
+}
 
 :deep(.no-wrap),
 :deep(.no-wrap .cell) {

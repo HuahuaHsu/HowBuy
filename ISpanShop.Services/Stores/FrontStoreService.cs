@@ -156,13 +156,13 @@ namespace ISpanShop.Services.Stores
                 .Take(5)
                 .ToListAsync();
 
-            // 4. 近期訂單 (前 5 筆)
+            // 4. 近期訂單 (前 10 筆)
             var recentOrders = await _context.Orders
                 .Include(o => o.User)
                 .Include(o => o.OrderDetails)
                 .Where(o => o.StoreId == storeId)
                 .OrderByDescending(o => o.CreatedAt)
-                .Take(5)
+                .Take(10)
                 .Select(o => new RecentOrderDto
                 {
                     OrderId = o.Id,
