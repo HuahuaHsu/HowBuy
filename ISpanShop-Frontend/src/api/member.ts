@@ -28,10 +28,10 @@ export interface UpdateMemberProfileDto {
 }
 
 /**
- * 取得會員等級資訊與規則 (真實消費金額)
+ * 取得會員等級詳細資訊 (含進度、計算區間、最新消費額)
  */
-export const getLevelInfo = () => {
-  return axios.get<any>('/api/member/level-info');
+export const getLevelDetail = () => {
+  return axios.get<any>('/api/member/level-detail');
 };
 
 /**
