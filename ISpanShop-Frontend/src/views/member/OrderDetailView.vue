@@ -103,6 +103,7 @@
           :order-id="order.id" 
           :order-number="order.orderNumber"
           :status="order.status" 
+          :is-reviewed="order.isReviewed || (order as any).IsReviewed"
           :is-detail="true"
           @refresh="fetchOrderDetail"
         />

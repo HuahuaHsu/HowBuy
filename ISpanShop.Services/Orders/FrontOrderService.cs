@@ -45,7 +45,8 @@ namespace ISpanShop.Services.Orders
                     StoreName = o.Store?.StoreName ?? "未知商店",
                     FirstProductName = firstDetail?.ProductName,
                     FirstProductImage = GetFinalImage(firstDetail),
-                    TotalItemCount = o.OrderDetails.Sum(od => od.Quantity)
+                    TotalItemCount = o.OrderDetails.Sum(od => od.Quantity),
+                    IsReviewed = o.OrderReviews.Any()
                 };
             }).ToList();
         }
@@ -91,6 +92,7 @@ namespace ISpanShop.Services.Orders
                     Price = od.Price ?? 0,
                     Quantity = od.Quantity
                 }).ToList(),
+                IsReviewed = o.OrderReviews.Any(),
                 
                 // 抓取最新的一筆退貨申請作為資訊展示
                 ReturnInfo = o.ReturnRequests.OrderByDescending(r => r.CreatedAt).Select(r => new FrontReturnDetailDto

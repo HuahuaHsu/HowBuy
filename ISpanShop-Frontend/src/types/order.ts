@@ -9,6 +9,7 @@ export interface OrderListItem {
   firstProductName: string;
   firstProductImage: string;
   totalItemCount: number;
+  isReviewed: boolean;
 }
 
 export interface OrderItem {
@@ -43,4 +44,5 @@ export interface OrderDetail {
   recipientAddress: string;
   note: string;
   items: OrderItem[];
+  isReviewed: boolean;
 }

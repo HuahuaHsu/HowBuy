@@ -77,6 +77,7 @@
                 :order-id="order.id" 
                 :order-number="order.orderNumber"
                 :status="order.status" 
+                :is-reviewed="order.isReviewed || (order as any).IsReviewed"
                 @refresh="fetchOrders"
               />
               <el-button @click="goToDetail(order.id)" size="default" class="detail-btn">
@@ -120,6 +121,7 @@ const fetchOrders = async () => {
   try {
     const res = await getMyOrdersApi();
     orders.value = res.data;
+    console.log('Orders data:', res.data);
   } catch (error) {
     console.error('獲取訂單失敗', error);
     ElMessage.error('獲取訂單失敗，請稍後再試');

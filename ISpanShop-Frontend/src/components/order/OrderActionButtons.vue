@@ -19,7 +19,7 @@
 
     <!-- 狀態 3: 已完成 -->
     <template v-if="status === 3">
-      <el-button type="success" size="default" @click="handleReview">評價回饋</el-button>
+      <el-button v-if="!isReviewed" type="success" size="default" @click="handleReview">評價回饋</el-button>
       <el-button type="warning" size="default" @click="handleAppeal">訂單申訴</el-button>
       <el-button type="primary" plain size="default" @click="handleRebuy">再次購買</el-button>
     </template>
@@ -48,10 +48,12 @@ interface Props {
   orderId: number;
   orderNumber: string;
   status: number;
+  isReviewed?: boolean;
   isDetail?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  isReviewed: false,
   isDetail: false
 });
 
