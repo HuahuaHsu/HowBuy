@@ -22,7 +22,6 @@
       <el-button type="success" size="default" @click="handleReview">評價回饋</el-button>
       <el-button type="warning" size="default" @click="handleAppeal">訂單申訴</el-button>
       <el-button type="primary" plain size="default" @click="handleRebuy">再次購買</el-button>
-      <el-button @click="handleRefund" :loading="loading" size="default">申請退貨/退款</el-button>
     </template>
 
     <!-- 狀態 4: 已取消 -->
@@ -122,6 +121,17 @@ const handleRefund = () => {
 
 const handleRefundDetail = () => {
   router.push(`/member/orders/${props.orderId}/refund/detail`);
+};
+
+const handleReview = () => {
+  router.push(`/member/orders/${props.orderId}/review`);
+};
+
+const handleAppeal = () => {
+  router.push({
+    path: '/member/support',
+    query: { orderId: props.orderId }
+  });
 };
 
 const handleRebuy = async () => {
