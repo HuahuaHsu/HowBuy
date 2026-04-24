@@ -1357,7 +1357,7 @@ function getBrandName(brandId: number): string {
   return brand?.name || ''
 }
 
-async function handleSubmit(publishNow: boolean, redirectAfter = true): Promise<boolean> {
+async function handleSubmit(publishNow: boolean, redirectAfter = true, isDraftAction = false): Promise<boolean> {
   const mode = publishNow ? 'submit' : 'draft'
   console.log('[儲存模式]', mode)
 
@@ -1441,13 +1441,16 @@ async function handleSubmit(publishNow: boolean, redirectAfter = true): Promise<
       }
       
       // 3. 更新成功訊息並依 mode 跳轉
-      const successMsg = publishNow ? '商品已提交審核，請等待管理員審核' : '商品草稿已儲存'
+      const successMsg = publishNow ? '商品已提交審核，請等待管理員審核' : '商品資料已儲存'
       ElMessage.success(successMsg)
       
       if (redirectAfter) {
-        // 送審導向 review，草稿導向 draft
-        const targetTab = publishNow ? 'review' : 'draft'
-        void router.push(`/seller/products?tab=${targetTab}`)
+        // 送審導向 review，草稿操作導向 draft，一般儲存回來源 tab
+        let targetTab = fromTab.value
+        if (publishNow) targetTab = 'review'
+        else if (isDraftAction) targetTab = 'draft'
+        
+        void router.push({ path: '/seller/products', query: { tab: targetTab } })
       }
       return true
     } else {
@@ -1506,9 +1509,8 @@ async function handleSubmit(publishNow: boolean, redirectAfter = true): Promise<
       ElMessage.success(successMsg)
       
       if (redirectAfter) {
-        // 送審導向 review，草稿導向 draft
         const targetTab = publishNow ? 'review' : 'draft'
-        void router.push(`/seller/products?tab=${targetTab}`)
+        void router.push({ path: '/seller/products', query: { tab: targetTab } })
       }
       return true
     }
@@ -1523,15 +1525,17 @@ async function handleSubmit(publishNow: boolean, redirectAfter = true): Promise<
 }
 
 function handleCancel(): void {
-  void router.push(`/seller/products?tab=${fromTab.value}`)
+  void router.push({ path: '/seller/products', query: { tab: fromTab.value } })
 }
 
 async function handleSaveDraft(): Promise<void> {
-  await handleSubmit(false)
+  // 強制去草稿頁籤
+  await handleSubmit(false, true, true)
 }
 
 async function handleSave(): Promise<void> {
-  await handleSubmit(false)
+  // 儲存後回到來源頁籤
+  await handleSubmit(false, true, false)
 }
 
 async function handleSaveAndSubmit(): Promise<void> {
