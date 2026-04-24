@@ -59,7 +59,7 @@ onMounted(async () => {
       pending: allOrders.filter(o => o.status === 0).length,
       processing: allOrders.filter(o => o.status === 1).length,
       shipped: allOrders.filter(o => o.status === 2).length,
-      completed: allOrders.filter(o => o.status === 3).length
+      completed: allOrders.filter(o => o.status === 3 && !o.isReviewed && !(o as any).IsReviewed).length
     };
 
     // 同步更新 store 中的資料並持久化
@@ -86,7 +86,7 @@ const go = (name: string) => {
     case '待收貨':
       router.push({ path: '/member/orders', query: { tab: '2' } });
       break;
-    case '評價':
+    case '待評價':
       router.push({ path: '/member/orders', query: { tab: '3' } });
       break;
     case '紅利點數':
@@ -114,7 +114,7 @@ const orders = computed(() => [
   { label: "待付款", icon: "💳", badge: orderCounts.value.pending },
   { label: "待出貨", icon: "📦", badge: orderCounts.value.processing },
   { label: "待收貨", icon: "🚚", badge: orderCounts.value.shipped },
-  { label: "評價",   icon: "⭐", badge: orderCounts.value.completed },
+  { label: "待評價",   icon: "⭐", badge: orderCounts.value.completed },
 ]);
 
 const services = [
