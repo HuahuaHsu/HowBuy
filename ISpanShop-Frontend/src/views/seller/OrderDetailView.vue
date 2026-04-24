@@ -5,17 +5,24 @@
       <h2 class="title">訂單詳情：{{ order?.orderNumber }}</h2>
       <div class="actions">
         <!-- 待出貨狀態才顯示出貨按鈕 -->
-        <el-button 
-          v-if="order?.status === 2" 
-          type="primary" 
-          size="large"
+        <el-button
+          v-if="order?.status === 1"
+          type="primary"
           @click="handleShip"
         >
           確認出貨
         </el-button>
-        <el-button 
-          type="info" 
-          plain 
+        <!-- 退貨中狀態顯示審核按鈕 -->
+        <el-button
+          v-if="order?.status === 5"
+          type="warning"
+          @click="router.push(`/seller/returns/${order?.id}`)"
+        >
+          前往審核退貨
+        </el-button>
+        <el-button
+          type="info"
+          plain
           @click="contactBuyer"
         >
           聯繫買家

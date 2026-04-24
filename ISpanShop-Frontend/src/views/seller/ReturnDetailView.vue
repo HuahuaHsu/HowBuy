@@ -45,9 +45,14 @@
           </div>
         </el-card>
 
-        <el-card class="items-card" shadow="never" header="原訂單商品">
+        <el-card class="items-card" shadow="never" header="本次退貨商品明細">
           <el-table :data="detail.items" style="width: 100%">
-            <el-table-column label="商品" min-width="200">
+            <el-table-column label="商品圖片" width="100">
+              <template #default="{ row }">
+                <el-image :src="row.coverImage" class="table-product-img" fit="cover" />
+              </template>
+            </el-table-column>
+            <el-table-column label="商品資訊" min-width="200">
               <template #default="{ row }">
                 <div class="product-info">
                   <div class="name">{{ row.productName }}</div>
@@ -58,7 +63,11 @@
             <el-table-column prop="price" label="單價" width="100" align="right">
               <template #default="{ row }">NT$ {{ row.price.toLocaleString() }}</template>
             </el-table-column>
-            <el-table-column prop="quantity" label="數量" width="80" align="center" />
+            <el-table-column prop="quantity" label="退貨數量" width="100" align="center">
+              <template #default="{ row }">
+                <span style="font-weight: 700; color: #ee4d2d">{{ row.quantity }}</span>
+              </template>
+            </el-table-column>
           </el-table>
         </el-card>
       </el-col>
@@ -263,6 +272,12 @@ onMounted(() => {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+}
+.table-product-img {
+  width: 60px;
+  height: 60px;
+  border-radius: 4px;
+  border: 1px solid #eee;
 }
 .evidence-img {
   width: 100px;

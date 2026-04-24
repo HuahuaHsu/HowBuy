@@ -540,9 +540,11 @@ namespace ISpanShop.Services.Stores
 
             var order = await _context.Orders
                 .Include(o => o.User)
-                .Include(o => o.OrderDetails)
                 .Include(o => o.ReturnRequests)
                     .ThenInclude(r => r.ReturnRequestImages)
+                .Include(o => o.ReturnRequests)
+                    .ThenInclude(r => r.ReturnRequestItems)
+                        .ThenInclude(ri => ri.OrderDetail)
                 .FirstOrDefaultAsync(o => o.Id == orderId && o.StoreId == store.Id);
 
             if (order == null || !order.ReturnRequests.Any()) throw new Exception("找不到該筆退貨申請");
@@ -566,17 +568,27 @@ namespace ISpanShop.Services.Stores
                 ImageUrls = latestReturn.ReturnRequestImages.Select(img => img.ImageUrl).ToList(),
                 BuyerAccount = order.User?.Account ?? "未知",
 
-                Items = order.OrderDetails.Select(od => new SellerOrderItemDto
-                {
-                    Id = od.Id,
-                    ProductId = od.ProductId,
-                    VariantId = od.VariantId,
-                    ProductName = od.ProductName,
-                    VariantName = od.VariantName,
-                    SkuCode = od.SkuCode,
-                    CoverImage = od.CoverImage, // 詳情頁面可再優化圖片抓取，先簡單處理
-                    Price = od.Price ?? 0,
-                    Quantity = od.Quantity
+                // 關鍵：這裡只列出「退貨品項」及其數量
+                Items = latestReturn.ReturnRequestItems.Select(ri => {
+                    string image = ri.OrderDetail.CoverImage;
+                    // 若無快照圖，可進一步處理 (此處簡化處理，因為退貨時理應已有 OrderDetail 快照)
+                    if (!string.IsNullOrEmpty(image) && !image.StartsWith("http") && !image.StartsWith("/"))
+                    {
+                        image = "/" + image;
+                    }
+
+                    return new SellerOrderItemDto
+                    {
+                        Id = ri.OrderDetailId,
+                        ProductId = ri.OrderDetail.ProductId,
+                        VariantId = ri.OrderDetail.VariantId,
+                        ProductName = ri.OrderDetail.ProductName,
+                        VariantName = ri.OrderDetail.VariantName,
+                        SkuCode = ri.OrderDetail.SkuCode,
+                        CoverImage = image,
+                        Price = ri.OrderDetail.Price ?? 0,
+                        Quantity = ri.Quantity // 這是退貨的數量
+                    };
                 }).ToList()
             };
         }
