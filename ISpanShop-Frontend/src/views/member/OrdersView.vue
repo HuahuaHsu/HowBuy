@@ -29,7 +29,7 @@
       <div v-loading="loading" class="order-list">
         <el-empty v-if="filteredOrders.length === 0" description="暫無訂單資料" />
         
-        <div v-for="order in filteredOrders" :key="order.id" class="order-card">
+        <div v-for="order in pagedOrders" :key="order.id" class="order-card">
           <div class="order-card-header">
             <div class="store-info">
               <span class="store-tag">賣場</span>
@@ -84,6 +84,18 @@
           </div>
         </div>
       </div>
+
+      <!-- 分頁 -->
+      <div v-if="filteredOrders.length > 0" class="pagination-wrap">
+        <el-pagination
+          background
+          layout="prev, pager, next, jumper, total"
+          :total="filteredOrders.length"
+          :page-size="pageSize"
+          v-model:current-page="currentPage"
+          :disabled="loading"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -104,6 +116,10 @@ const orders = ref<OrderListItem[]>([]);
 const activeTab = ref('all');
 const searchQuery = ref('');
 
+// 分頁狀態
+const currentPage = ref(1);
+const pageSize = ref(5); // 訂單卡片較大，每頁顯示 5 筆較合適
+
 // 監聽路由參數變化，以便在頁面內切換標籤時也能生效
 watch(() => route.query.tab, (newTab) => {
   if (newTab) {
@@ -111,6 +127,12 @@ watch(() => route.query.tab, (newTab) => {
   } else {
     activeTab.value = 'all';
   }
+  currentPage.value = 1; // 切換標籤時重置分頁
+});
+
+// 監聽搜尋字串變化，重置分頁
+watch(searchQuery, () => {
+  currentPage.value = 1;
 });
 
 const fetchOrders = async () => {
@@ -143,6 +165,12 @@ const filteredOrders = computed(() => {
   }
   
   return result;
+});
+
+const pagedOrders = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return filteredOrders.value.slice(start, end);
 });
 
 const handleTabChange = (tabName: string) => {
@@ -201,6 +229,21 @@ onMounted(() => {
   max-width: 1000px; /* 稍微縮小寬度以適應側邊欄後的空間 */
   margin: 0;
   padding: 0;
+}
+
+.pagination-wrap {
+  margin-top: 24px;
+  display: flex;
+  justify-content: center;
+  padding-bottom: 40px;
+
+  :deep(.el-pagination.is-background .el-pager li:not(.is-disabled).is-active) {
+    background-color: #ee4d2d;
+  }
+  
+  :deep(.el-pagination.is-background .el-pager li:not(.is-disabled):hover) {
+    color: #ee4d2d;
+  }
 }
 
 /* Tabs 樣式優化 */
