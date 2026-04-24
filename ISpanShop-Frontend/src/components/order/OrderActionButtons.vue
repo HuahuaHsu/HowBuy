@@ -8,13 +8,13 @@
 
     <!-- 狀態 1: 待出貨 -->
     <template v-if="status === 1">
-      <el-button @click="handleRefund" :loading="loading" size="default">申請退款</el-button>
+      <el-button @click="handleRefund" :loading="loading" size="default">申請退貨/退款</el-button>
     </template>
 
     <!-- 狀態 2: 運送中 -->
     <template v-if="status === 2">
       <el-button @click="handleRefund" :loading="loading" size="default">申請退貨/退款</el-button>
-      <el-button type="primary" @click="handleConfirmReceipt" :loading="loading" size="default">確認收貨</el-button>
+      <el-button type="primary" @click="handleConfirmReceipt" :loading="loading" size="default">完成訂單</el-button>
     </template>
 
     <!-- 狀態 3: 已完成 -->
@@ -97,8 +97,8 @@ const handleCancel = async () => {
 
 const handleConfirmReceipt = async () => {
   try {
-    await ElMessageBox.confirm('確認已收到商品且無誤嗎？確認後訂單將轉為已完成。', '確認收貨', {
-      confirmButtonText: '確認收貨',
+    await ElMessageBox.confirm('確認已收到商品且無誤嗎？確認後訂單將轉為已完成。', '完成訂單', {
+      confirmButtonText: '完成訂單',
       cancelButtonText: '取消',
       type: 'success'
     });

@@ -69,13 +69,6 @@
             </div>
           </div>
 
-          <el-form-item label="退款類型" required>
-            <el-select v-model="form.type" placeholder="請選擇退款類型" class="w-full">
-              <el-option label="退貨退款" value="ReturnAndRefund" />
-              <el-option label="僅退款 (未收到貨或已與賣家達成協議)" value="RefundOnly" />
-            </el-select>
-          </el-form-item>
-
           <el-form-item label="退款原因" required>
             <el-select v-model="form.reasonCategory" placeholder="請選擇退款原因" class="w-full">
               <el-option label="商品瑕疵/損壞" value="商品瑕疵" />
@@ -146,7 +139,7 @@ const isIndeterminate = ref(false);
 
 // ── 表單狀態 ──
 const form = reactive({
-  type: '',
+  type: 'ReturnAndRefund',
   reasonCategory: '',
   reasonDescription: '',
   images: [] as any[]
@@ -225,7 +218,7 @@ const totalRefundAmount = computed(() => {
 });
 
 const isFormValid = computed(() => {
-  return selectedItems.value.length > 0 && form.type && form.reasonCategory;
+  return selectedItems.value.length > 0 && form.reasonCategory;
 });
 
 const handleUploadChange = (file: any, fileList: any[]) => {
@@ -256,9 +249,8 @@ const handleSubmit = async () => {
     }
 
     // 2. 送出退貨申請
-    const typeLabel = form.type === 'ReturnAndRefund' ? '退貨退款' : (form.type === 'RefundOnly' ? '僅退款' : form.type);
     const payload = {
-      reasonCategory: `[${typeLabel}] ${form.reasonCategory}`,
+      reasonCategory: form.reasonCategory,
       reasonDescription: form.reasonDescription,
       items: selectedItems.value.map(id => ({
         orderDetailId: id,
