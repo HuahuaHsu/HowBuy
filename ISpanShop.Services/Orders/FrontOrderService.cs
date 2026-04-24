@@ -85,6 +85,7 @@ namespace ISpanShop.Services.Orders
                 Status = (OrderStatus)(o.Status ?? 0),
                 StatusName = GetStatusName(o.Status),
                 StoreName = o.Store?.StoreName ?? "未知商店",
+                StoreStatus = o.Store?.StoreStatus ?? 1,
                 RecipientName = o.RecipientName,
                 RecipientPhone = o.RecipientPhone,
                 RecipientAddress = o.RecipientAddress,
@@ -98,7 +99,8 @@ namespace ISpanShop.Services.Orders
                     VariantName = od.VariantName,
                     CoverImage = GetFinalImage(od),
                     Price = od.Price ?? 0,
-                    Quantity = od.Quantity
+                    Quantity = od.Quantity,
+                    StoreStatus = o.Store?.StoreStatus ?? 1
                 }).ToList(),
                 IsReviewed = o.OrderReviews.Any(),
                 
