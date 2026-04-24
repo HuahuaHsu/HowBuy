@@ -98,6 +98,12 @@ const go = (name: string) => {
     case '我的賣場':
       router.push('/seller');
       break;
+    case '再買一次':
+      router.push({ path: '/member/orders', query: { tab: '3' } });
+      break;
+    case '會員權益':
+      router.push('/member/level');
+      break;
     case '客服專區':
       router.push('/member/support');
       break;
