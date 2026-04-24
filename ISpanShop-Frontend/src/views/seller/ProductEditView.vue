@@ -270,6 +270,7 @@
 
                 <QuillEditor
                   v-if="!loading"
+                  ref="quillEditorRef"
                   v-model:content="form.description"
                   content-type="html"
                   :options="editorOptions"
@@ -745,6 +746,7 @@ const currentTab = ref<string>('section-basic')
 const showCategoryPicker = ref<boolean>(false)
 const specsEnabled = ref<boolean>(false)
 const descImageInput = ref<HTMLInputElement | null>(null)
+const quillEditorRef = ref<any>(null)
 const currentImageIndex = ref<number>(0)
 const productData = ref<SellerProductDetail | null>(null)
 const originalImageCount = ref<number>(0) // 記錄載入時的圖片數量
@@ -1277,14 +1279,19 @@ async function handleDescriptionImageFileChange(event: Event): Promise<void> {
   try {
     const res = await uploadDescriptionImage(file)
     if (res.success && (res as any).url) {
-      // 3. 插入圖片標籤到描述中 (Quill 會自動解析 HTML 顯示圖片影像)
       const imgUrl = (res as any).url
-      const imgTag = `<img src="${imgUrl}" style="max-width: 100%;" />`
       
-      // 直接附加到內容末尾，或者您可以手動插入 HTML
-      // 由於 QuillEditor 綁定了 form.description，直接修改字串即可生效
-      form.description += imgTag
-      ElMessage.success('圖片上傳成功')
+      // 使用 Quill API 插入圖片，避免直接修改字串導致狀態不同步
+      if (quillEditorRef.value) {
+        const quill = quillEditorRef.value.getQuill()
+        const range = quill.getSelection(true)
+        quill.insertEmbed(range.index, 'image', imgUrl)
+        quill.setSelection(range.index + 1)
+        ElMessage.success('圖片上傳成功')
+      } else {
+        // Fallback: 如果抓不到實體，才用字串附加
+        form.description += `<img src="${imgUrl}" style="max-width: 100%;" />`
+      }
     } else {
       ElMessage.error('圖片上傳失敗')
     }
