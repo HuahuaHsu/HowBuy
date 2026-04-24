@@ -248,7 +248,12 @@ async function handleSubmit() {
     return
   }
 
-  if (!recipient.value.name || !recipient.value.phone || !recipient.value.address) {
+  // 確保地址是最新的 (手動填寫模式下需要拼接)
+  if (!selectedAddressId.value) {
+    recipient.value.address = `${recipient.value.city}${recipient.value.region}${recipient.value.street}`
+  }
+
+  if (!recipient.value.name || !recipient.value.phone || !recipient.value.address || recipient.value.address.length < 5) {
     ElMessage.warning('請填寫完整的收件資訊')
     return
   }
@@ -277,6 +282,22 @@ async function handleSubmit() {
     const res = await checkoutApi.createOrder(payload)
     loading.close()
     if (res.data.success) {
+      // ── 自動儲存手動輸入的地址 ──
+      if (!selectedAddressId.value) {
+        try {
+          await addressStore.addAddress({
+            recipientName: recipient.value.name,
+            recipientPhone: recipient.value.phone,
+            city: recipient.value.city,
+            region: recipient.value.region,
+            street: recipient.value.street,
+            isDefault: addressStore.addresses.length === 0 // 如果原本沒地址，設為預設
+          })
+        } catch (err) {
+          console.warn('自動儲存地址失敗，但不影響訂單流程')
+        }
+      }
+
       ElMessage.success('訂單已建立')
       
       // ── 結帳後清理 ──
