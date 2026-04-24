@@ -20,23 +20,6 @@
         </el-tab-pane>
       </el-tabs>
 
-      <!-- ── 二級 Tab（僅架上商品顯示）── -->
-      <div v-if="activeTab === 'on'" class="level2-wrap">
-        <el-tabs v-model="activeSubTab" class="level2-tabs" @tab-change="onSubTabChange">
-          <el-tab-pane name="all" label="全部" />
-          <el-tab-pane name="restock">
-            <template #label>
-              重新補貨<span class="tab-count tab-count-orange">({{ restockCount }})</span>
-            </template>
-          </el-tab-pane>
-          <el-tab-pane name="optimize">
-            <template #label>
-              商品內容優化 <el-tag size="small" type="info" style="margin-left:4px">TODO</el-tag>
-            </template>
-          </el-tab-pane>
-        </el-tabs>
-      </div>
-
       <!-- ── 搜尋列 ── -->
       <div class="search-section">
         <el-row :gutter="12" align="middle">
@@ -502,7 +485,6 @@ function getProductPrice(product: SellerProduct): string {
 // ── 型別定義 ──────────────────────────────────────────────────────
 type ProductStatus = 'on' | 'off' | 'deleted' | 'review' | 'rejected' | 'draft'
 type TabKey = 'all' | 'on' | 'deleted' | 'review' | 'rejected' | 'draft'
-type SubTabKey = 'all' | 'restock' | 'optimize'
 type SortField = 'minPrice' | 'createdAt'
 type SortDir = 'asc' | 'desc' | null
 
@@ -538,7 +520,6 @@ const selectedRows = ref<SellerProduct[]>([])
 
 // Tabs
 const activeTab = ref<TabKey>((route.query.tab as TabKey) || 'all')
-const activeSubTab = ref<SubTabKey>((route.query.subTab as SubTabKey) || 'all')
 
 // 搜尋
 const searchKeyword = ref<string>('')
@@ -580,20 +561,13 @@ const sortOptions: Array<{ field: string; label: string }> = [
 
 // ── Computed ──────────────────────────────────────────────────────
 
-/** Step 1：依一/二級 Tab 篩選 */
+/** Step 1：依一級 Tab 篩選 */
 const tabFiltered = computed<SellerProduct[]>(() => {
   let list = allProducts.value
 
   if (activeTab.value !== 'all') {
     list = list.filter((p) => p.status === activeTab.value)
   }
-
-  // 二級 tab — 重新補貨
-  if (activeTab.value === 'on' && activeSubTab.value === 'restock') {
-    // TODO: totalStock 後端尚未回傳，重新補貨篩選暫時停用
-    // list = list.filter((p) => p.totalStock === 0)
-  }
-  // TODO: 二級 tab — 商品內容優化，後端尚未提供優化建議資料
 
   return list
 })
@@ -642,9 +616,6 @@ const tabCounts = computed<Record<TabKey, number>>(() => {
   })
   return c as Record<TabKey, number>
 })
-
-/** 重新補貨計數（TODO: totalStock 後端尚未回傳，暫時顯示 0）*/
-const restockCount = computed<number>(() => 0)
 
 // ── Init ──────────────────────────────────────────────────────────
 onMounted(async () => {
@@ -715,26 +686,11 @@ watch(
   }
 )
 
-watch(
-  () => route.query.subTab,
-  (newSubTab) => {
-    if (newSubTab && newSubTab !== activeSubTab.value) {
-      activeSubTab.value = newSubTab as SubTabKey
-    }
-  }
-)
-
 // ── Tab 事件 ──────────────────────────────────────────────────────
 function onTabChange(val: TabKey): void {
-  activeSubTab.value = 'all'
   pagination.page = 1
   // 更新網址 Query，但不重新跳轉頁面
   router.replace({ query: { ...route.query, tab: val } })
-}
-
-function onSubTabChange(val: SubTabKey): void {
-  pagination.page = 1
-  router.replace({ query: { ...route.query, subTab: val } })
 }
 
 // ── 搜尋 / 重設 ───────────────────────────────────────────────────
@@ -959,24 +915,11 @@ function getStatusTagType(status: ProductStatus): 'success' | 'warning' | 'dange
 :deep(.level1-tabs .el-tabs__item.is-active)  { color: #ee4d2d; font-weight: 700; }
 :deep(.level1-tabs .el-tabs__item:hover)      { color: #ee4d2d; }
 
-/* ─ 二級 Tab ──────────────────────────────────────────────────── */
-.level2-wrap {
-  background: #f8fafc;
-  border-top: 1px solid #f1f5f9;
-  padding: 0 20px;
-}
-:deep(.level2-tabs .el-tabs__nav-wrap::after) { display: none; }
-:deep(.level2-tabs .el-tabs__active-bar)      { background: #ee4d2d; height: 2px; }
-:deep(.level2-tabs .el-tabs__item.is-active)  { color: #ee4d2d; font-weight: 600; }
-:deep(.level2-tabs .el-tabs__item:hover)      { color: #ee4d2d; }
-:deep(.level2-tabs .el-tabs__header)          { margin: 0; }
-
 .tab-count {
   font-size: 12px;
   color: #94a3b8;
   margin-left: 3px;
 }
-.tab-count-orange { color: #ee4d2d; }
 
 /* ─ 搜尋列 ─────────────────────────────────────────────────────── */
 .search-section {
