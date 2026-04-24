@@ -632,19 +632,19 @@ async function loadCategories(): Promise<void> {
 async function loadProducts(): Promise<void> {
   loading.value = true
   try {
-    // 依據排序狀態帶入參數
-    let sortOrderParam = sortDir.value === 'asc' ? 'asc' : 'desc'
-    
-    // 如果排序欄位是建立時間，則依照後端規範使用 date_asc / date_desc
-    if (sortField.value === 'createdAt') {
-      sortOrderParam = sortDir.value === 'asc' ? 'date_asc' : 'date_desc'
+    // 後端 SortOrder 接受組合字串（date_desc / date_asc / price_asc / price_desc）
+    // 而非分開的 field + direction，需在前端組好後一起送
+    let sortByParam: string
+    if (sortField.value === 'minPrice') {
+      sortByParam = sortDir.value === 'asc' ? 'price_asc' : 'price_desc'
+    } else {
+      sortByParam = sortDir.value === 'asc' ? 'date_asc' : 'date_desc'
     }
 
-    const params: any = { 
-      page: 1, 
+    const params: any = {
+      page: 1,
       pageSize: 100,
-      sortBy: sortField.value,
-      sortOrder: sortOrderParam
+      sortBy: sortByParam,
     }
     
     const res = await fetchSellerProducts(params)
@@ -716,15 +716,15 @@ function handleReset(): void {
 
 // ── 排序 ──────────────────────────────────────────────────────────
 function toggleSort(field: SortField): void {
+  pagination.page = 1 // 關鍵：切換排序時重置頁碼
+
   if (sortField.value !== field) {
     sortField.value = field
-    sortDir.value = 'asc'
-  } else if (sortDir.value === 'asc') {
-    sortDir.value = 'desc'
+    // 預設行為：價格用 asc，建立時間用 desc
+    sortDir.value = field === 'createdAt' ? 'desc' : 'asc'
   } else {
-    // 回到預設：建立時間降序
-    sortField.value = 'createdAt'
-    sortDir.value = 'desc'
+    // 同欄位切換方向
+    sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
   }
 }
 
