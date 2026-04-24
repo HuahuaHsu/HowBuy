@@ -330,6 +330,7 @@ async function handleSubmit() {
       storeId: checkoutItems.value[0].storeId,
       usePoints: usePoints.value,
       couponId: selectedCouponId.value,
+      levelDiscount: levelDiscount.value,
       items: checkoutItems.value.map(i => ({
         productId: i.productId,
         variantId: i.variantId || 0,
