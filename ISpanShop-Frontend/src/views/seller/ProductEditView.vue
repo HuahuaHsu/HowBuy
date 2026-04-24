@@ -269,6 +269,7 @@
                 />
 
                 <QuillEditor
+                  v-if="!loading"
                   v-model:content="form.description"
                   content-type="html"
                   :options="editorOptions"

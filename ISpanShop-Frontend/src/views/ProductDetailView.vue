@@ -277,7 +277,7 @@
         <!-- 商品描述 -->
         <el-card class="pd-detail-card" shadow="never">
           <template #header><span class="card-title">商品描述</span></template>
-          <pre class="pd-description">{{ safeProduct.description }}</pre>
+          <div class="pd-description" v-html="safeProduct.description"></div>
         </el-card>
 
         <!-- 逛逛賣場其他好物 -->
@@ -660,7 +660,8 @@ watch(() => route.params.id, (newId) => {
   margin-left: 2px;
 }
 
-.pd-description { white-space: pre-wrap; font-size: 14px; color: #334155; line-height: 1.8; margin: 0; font-family: inherit; }
+.pd-description { font-size: 14px; color: #334155; line-height: 1.8; margin: 0; font-family: inherit; }
+.pd-description :deep(img) { max-width: 100%; height: auto; display: block; margin: 8px 0; }
 .pd-related-section { margin-top: 24px; }
 .related-title { font-size: 18px; font-weight: 700; color: #1e293b; margin: 0 0 16px; padding-bottom: 12px; border-bottom: 2px solid #EE4D2D; display: inline-block; }
 .related-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
