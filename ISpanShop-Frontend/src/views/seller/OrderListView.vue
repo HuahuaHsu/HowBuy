@@ -359,7 +359,7 @@ onMounted(() => {
     .buyer-info {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
 
       .buyer-tag {
         background-color: #3b82f6;
@@ -372,9 +372,24 @@ onMounted(() => {
       .buyer-name {
         font-weight: 500;
         color: #333;
+        margin-right: 2px;
       }
       
-      .chat-btn { margin-left: 5px; }
+      .chat-btn {
+        margin-left: 0;
+        height: 24px;
+        padding: 0 8px;
+        font-size: 12px;
+        border-color: #dcdfe6;
+        color: #606266;
+        background-color: #fff;
+
+        &:hover {
+          color: #ee4d2d;
+          border-color: #f7a696;
+          background-color: #fffbf8;
+        }
+      }
     }
 
     .status-info {
@@ -529,13 +544,5 @@ onMounted(() => {
     background-color: #fff;
     &:hover { background-color: #fffbf8; }
   }
-}
-
-/* 聊聊按鈕特別修正 */
-.chat-btn.el-button--primary.is-link {
-  color: #ee4d2d;
-  background: transparent;
-  border: none;
-  &:hover { color: #f05d40; text-decoration: underline; }
 }
 </style>

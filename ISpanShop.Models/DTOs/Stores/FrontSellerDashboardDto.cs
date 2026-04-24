@@ -36,5 +36,7 @@ namespace ISpanShop.Models.DTOs.Stores
         public int PendingRefundCount { get; set; }    // 待審核退貨數
         public int TotalProducts { get; set; }         // 在架商品數
         public int LowStockCount { get; set; }         // 庫存低於預警商品數
+        public int TotalViews { get; set; }            // 總商品瀏覽數
+        public string ConversionRate { get; set; }     // 訂單轉換率 (字串格式如 "5.21%")
     }
 }

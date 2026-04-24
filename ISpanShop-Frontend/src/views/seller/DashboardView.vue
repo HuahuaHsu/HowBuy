@@ -52,12 +52,17 @@
         <el-col
           v-for="metric in analyticsMetrics"
           :key="metric.label"
-          :xs="12" :sm="8" :lg="metric.wide ? 6 : 4"
+          :xs="12" :sm="12" :lg="6"
           class="metric-col"
         >
           <div class="metric-item">
             <div class="metric-value">{{ metric.value }}</div>
-            <div class="metric-label">{{ metric.label }}</div>
+            <div class="metric-label">
+              {{ metric.label }}
+              <el-tooltip v-if="metric.hasTooltip" :content="metric.tooltip" placement="top">
+                <el-icon class="info-icon"><QuestionFilled /></el-icon>
+              </el-tooltip>
+            </div>
           </div>
         </el-col>
       </el-row>
@@ -117,7 +122,7 @@ import { useRouter } from 'vue-router'
 import {
   Document, Box, WarningFilled,
   CaretTop, CaretBottom,
-  Plus, List, StarFilled, DataLine
+  Plus, List, StarFilled, DataLine, QuestionFilled
 } from '@element-plus/icons-vue'
 import { getStoreStatusApi, getSellerDashboardApi } from '@/api/store'
 import { useAuthStore } from '@/stores/auth'
@@ -206,11 +211,15 @@ const statCards = computed(() => {
 const analyticsMetrics = computed(() => {
   const kpis = dashboardData.value?.kpis
   return [
-    { label: '總累積營收', value: `NT$ ${kpis?.totalRevenue?.toLocaleString() || '0'}`, wide: true },
-    { label: '不重複訪客數', value: '0', wide: false },
-    { label: '商品點擊數', value: '0', wide: false },
-    { label: '訂單數', value: kpis?.totalOrders?.toString() || '0', wide: false },
-    { label: '訂單轉換率', value: '0.00%', wide: false },
+    { label: '總累積營收', value: `NT$ ${kpis?.totalRevenue?.toLocaleString() || '0'}` },
+    { label: '商品點擊數', value: kpis?.totalViews?.toLocaleString() || '0' },
+    { label: '訂單數', value: kpis?.totalOrders?.toLocaleString() || '0' },
+    { 
+      label: '訂單轉換率', 
+      value: kpis?.conversionRate || '0.00%', 
+      hasTooltip: true,
+      tooltip: '計算公式：(總訂單數 / 商品總瀏覽數) x 100%。反映進店訪客轉化為實際買家的比例。'
+    },
   ]
 })
 
@@ -350,6 +359,18 @@ function statusTagType(status: string): 'success' | 'warning' | 'danger' | 'info
   font-size: 12px;
   color: #64748b;
   margin-top: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.info-icon {
+  font-size: 14px;
+  color: #94a3b8;
+  cursor: help;
+}
+.info-icon:hover {
+  color: #ee4d2d;
 }
 
 /* 快捷操作 */

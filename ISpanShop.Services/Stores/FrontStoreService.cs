@@ -105,8 +105,19 @@ namespace ISpanShop.Services.Stores
                     .CountAsync(p => p.StoreId == storeId && p.IsDeleted != true),
 
                 LowStockCount = await _context.ProductVariants
-                    .CountAsync(v => v.Product.StoreId == storeId && v.IsDeleted != true && v.Stock <= 10)
+                    .CountAsync(v => v.Product.StoreId == storeId && v.IsDeleted != true && v.Stock <= 10),
+
+                TotalViews = await _context.Products
+                    .Where(p => p.StoreId == storeId && p.IsDeleted != true)
+                    .SumAsync(p => p.ViewCount ?? 0)
             };
+
+            // 計算轉換率
+            int totalOrders = kpis.TotalOrders;
+            int totalViews = kpis.TotalViews;
+            kpis.ConversionRate = totalViews > 0 
+                ? ((double)totalOrders / totalViews).ToString("P2") 
+                : "0.00%";
 
             // 2. 銷售趨勢 (近 7 日)
             var endDate = DateTime.Today.AddDays(1);
