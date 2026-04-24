@@ -216,9 +216,6 @@
                     </button>
                     <template #dropdown>
                       <el-dropdown-menu>
-                        <!-- 複製：所有狀態都可以 -->
-                        <el-dropdown-item command="copy">複製</el-dropdown-item>
-
                         <!-- 即時預覽：已上架、未上架、審核中可預覽 -->
                         <el-dropdown-item
                           v-if="product.status === 'on' || product.status === 'draft' || product.status === 'review'"
