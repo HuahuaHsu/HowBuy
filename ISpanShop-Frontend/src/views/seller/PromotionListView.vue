@@ -189,7 +189,7 @@
         </el-form-item>
         
         <!-- 滿額折扣：顯示滿額門檻 + 折扣金額 -->
-        <template v-if="formData.promotionType === 2">
+        <div v-if="formData.promotionType === 2">
           <el-form-item label="滿額門檻" prop="minimumAmount">
             <el-input-number
               v-model="formData.minimumAmount"
@@ -215,10 +215,10 @@
             />
             <span class="form-hint">例如：100 代表滿額折 100 元</span>
           </el-form-item>
-        </template>
+        </div>
         
         <!-- 限時特賣：顯示折扣比例 -->
-        <template v-else-if="formData.promotionType === 1">
+        <div v-else-if="formData.promotionType === 1">
           <el-form-item label="折扣(%off)" prop="discountValue">
             <el-input-number
               v-model="formData.discountValue"
@@ -232,10 +232,10 @@
             />
             <span class="form-hint">例如：20 代表打 8 折（20% off）</span>
           </el-form-item>
-        </template>
+        </div>
         
         <!-- 限量搶購：顯示限量數量 + 折扣金額 -->
-        <template v-else-if="formData.promotionType === 3">
+        <div v-else-if="formData.promotionType === 3">
           <el-form-item label="限量數量" prop="limitQuantity">
             <el-input-number
               v-model="formData.limitQuantity"
@@ -261,10 +261,10 @@
             />
             <span class="form-hint">例如：100 代表每件折 100 元</span>
           </el-form-item>
-        </template>
+        </div>
         
         <!-- 新品優惠或其他類型：只顯示折扣金額 -->
-        <template v-else-if="formData.promotionType === 4 || formData.promotionType > 0">
+        <div v-else-if="formData.promotionType === 4 || formData.promotionType > 0">
           <el-form-item label="折扣金額" prop="discountValue">
             <el-input-number
               v-model="formData.discountValue"
@@ -278,7 +278,7 @@
             />
             <span class="form-hint">折扣金額（元）</span>
           </el-form-item>
-        </template>
+        </div>
         <el-form-item label="開始時間" prop="startTime">
           <el-date-picker
             v-model="formData.startTime"
@@ -399,7 +399,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import type { FormInstance, FormRules, ElTable } from 'element-plus'
@@ -459,9 +459,9 @@ interface PromotionFormData {
   name: string
   description: string
   promotionType: number
-  discountValue: number
-  minimumAmount: number  // 滿額門檻
-  limitQuantity: number  // 限量數量
+  discountValue: number | null
+  minimumAmount: number | null // 滿額門檻
+  limitQuantity: number | null // 限量數量
   startTime: string
   endTime: string
 }
@@ -569,11 +569,21 @@ const formData = ref<PromotionFormData>({
   name: '',
   description: '',
   promotionType: promotionTypeOptions[0].value, // 預設選取「限時特賣」
-  discountValue: 0,
-  minimumAmount: 0,
-  limitQuantity: 0,
+  discountValue: null,
+  minimumAmount: null,
+  limitQuantity: null,
   startTime: defaultDates.start,
   endTime: defaultDates.end,
+})
+
+/** 切換活動類型時，自動清空數值欄位，顯示 placeholder */
+watch(() => formData.value.promotionType, () => {
+  // 若非編輯模式，才清空數值
+  if (!isEdit.value) {
+    formData.value.discountValue = null
+    formData.value.minimumAmount = null
+    formData.value.limitQuantity = null
+  }
 })
 
 const formRules: FormRules = {
@@ -687,9 +697,9 @@ function openCreateDialog(): void {
     name: '',
     description: '',
     promotionType: promotionTypeOptions[0].value,
-    discountValue: 0,
-    minimumAmount: 0,
-    limitQuantity: 0,
+    discountValue: null,
+    minimumAmount: null,
+    limitQuantity: null,
     startTime: dates.start,
     endTime: dates.end,
   }
