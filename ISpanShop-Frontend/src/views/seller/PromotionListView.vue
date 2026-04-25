@@ -339,6 +339,7 @@
       width="720px"
       :close-on-click-modal="false"
       append-to-body
+      @closed="handleSelectorClosed"
     >
       <div class="selector-toolbar">
         <el-input
@@ -883,6 +884,20 @@ async function loadSelectorProducts(): Promise<void> {
 function onSelectorSearch(): void {
   selectorPage.value = 1
   void loadSelectorProducts()
+}
+
+/** 在選擇器視窗徹底關閉後，強制清空表格狀態與暫存清單 */
+function handleSelectorClosed(): void {
+  // 1. 清除表格內部的 reserve-selection 記憶
+  if (selectorTableRef.value) {
+    selectorTableRef.value.clearSelection()
+  }
+  
+  // 2. 清空暫存與關鍵字，確保下次開啟是乾淨的
+  pendingSelection.value = []
+  selectorKeyword.value = ''
+  selectorPage.value = 1
+  console.log('[Selector] 已清空表格選取狀態與暫存資訊')
 }
 
 function handleSelectorSelectionChange(rows: AvailableProduct[]): void {
