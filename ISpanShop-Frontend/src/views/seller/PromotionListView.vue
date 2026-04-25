@@ -179,10 +179,12 @@
         </el-form-item>
         <el-form-item label="活動類型" prop="promotionType">
           <el-select v-model="formData.promotionType" placeholder="請選擇活動類型" style="width: 100%;">
-            <el-option label="限時特賣" :value="1" />
-            <el-option label="滿額折扣" :value="2" />
-            <el-option label="限量搶購" :value="3" />
-            <el-option label="新品優惠" :value="4" />
+            <el-option
+              v-for="opt in promotionTypeOptions"
+              :key="opt.value"
+              :label="opt.label"
+              :value="opt.value"
+            />
           </el-select>
         </el-form-item>
         
@@ -554,10 +556,19 @@ const selectorTotal = ref(0)
 const pendingSelection = ref<AvailableProduct[]>([])
 const selectorTableRef = ref<InstanceType<typeof ElTable>>()
 
+// ─── 常數與選項定義 ────────────────────────────────────────────────
+
+const promotionTypeOptions = [
+  { value: 1, label: '限時特賣' },
+  { value: 2, label: '滿額折扣' },
+  { value: 3, label: '限量搶購' },
+  { value: 4, label: '新品優惠' },
+]
+
 const formData = ref<PromotionFormData>({
   name: '',
   description: '',
-  promotionType: 0,
+  promotionType: promotionTypeOptions[0].value, // 預設選取「限時特賣」
   discountValue: 0,
   minimumAmount: 0,
   limitQuantity: 0,
@@ -675,7 +686,7 @@ function openCreateDialog(): void {
   formData.value = {
     name: '',
     description: '',
-    promotionType: 0,
+    promotionType: promotionTypeOptions[0].value,
     discountValue: 0,
     minimumAmount: 0,
     limitQuantity: 0,
