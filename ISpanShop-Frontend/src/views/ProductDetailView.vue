@@ -112,31 +112,24 @@
             </div>
 
             <div class="pd-price-block">
+              <!-- 活動標籤 (僅展示活動訊息) -->
+              <div v-if="displayPriceInfo.hasPromo" class="pd-promo-tag-row">
+                <el-tag type="danger" effect="dark" size="small">{{ displayPriceInfo.tagText }}</el-tag>
+              </div>
+
               <div class="pd-price-row">
+                <!-- 商品原價 -->
                 <span class="pd-price-main">
-                  <template v-if="selectedVariant">
-                    ${{ formatPrice(selectedVariant.price) }}
-                  </template>
-                  <template v-else>
-                    ${{ formatPrice(safeProduct.priceRange.min) }}
-                    <template v-if="safeProduct.priceRange.max !== safeProduct.priceRange.min">
-                      &nbsp;-&nbsp;${{ formatPrice(safeProduct.priceRange.max) }}
-                    </template>
+                  ${{ formatPrice(displayPriceInfo.current) }}
+                  <template v-if="!selectedVariant && safeProduct.priceRange.max !== safeProduct.priceRange.min">
+                    &nbsp;-&nbsp;${{ formatPrice(safeProduct.priceRange.max) }}
                   </template>
                 </span>
+                
                 <span
                   v-if="safeProduct.discountRate !== null"
                   class="pd-discount-tag"
                 >{{ safeProduct.discountRate.toFixed(1) }} 折</span>
-              </div>
-              <div v-if="safeProduct.originalPriceRange" class="pd-original-price">
-                原價：
-                <span class="pd-strikethrough">
-                  ${{ formatPrice(safeProduct.originalPriceRange.min) }}
-                  <template v-if="safeProduct.originalPriceRange.max !== safeProduct.originalPriceRange.min">
-                    &nbsp;-&nbsp;${{ formatPrice(safeProduct.originalPriceRange.max) }}
-                  </template>
-                </span>
               </div>
             </div>
 
@@ -332,8 +325,34 @@ const cartStore = useCartStore()
 const authStore = useAuthStore()
 const chatStore = useChatStore()
 
+// 取得網址上的活動參數
+const promoText = computed(() => (route.query.promoText as string) || '')
+
 const product = ref<ProductDetail | null>(null)
 const categoryAttributes = ref<CategoryAttribute[]>([])
+
+/** 計算促銷資訊：僅顯示標籤，不變動價格 */
+const displayPriceInfo = computed(() => {
+  const p = product.value
+  if (!p) return { current: 0, hasPromo: false, tagText: '' }
+
+  // 抓取目前價格 (優先使用規格選中的價格，否則用範圍最低價)
+  let currentPrice = selectedVariant.value ? selectedVariant.value.price : p.priceRange.min
+  let hasPromo = false
+  let tagText = ''
+
+  // 只要商品符合條件，就亮起活動標籤
+  if (promoText.value.includes('腳架') || (p.name && p.name.includes('腳架'))) {
+    hasPromo = true
+    tagText = '活動：滿1000折100'
+  }
+
+  return { 
+    current: currentPrice, 
+    hasPromo, 
+    tagText
+  }
+})
 const loading = ref(false)
 const loadError = ref<string | null>(null)
 const relatedProducts = ref<ProductListItem[]>([])
@@ -625,10 +644,13 @@ watch(() => route.params.id, (newId) => {
 .pd-rating-row { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid #f1f5f9; }
 .pd-vacation-alert { margin-bottom: 20px; }
 .pd-price-block { background: #fffbf8; border-radius: 4px; padding: 16px; margin-bottom: 20px; }
+.pd-promo-tag-row { margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+.pd-promo-hint { font-size: 12px; color: #f59e0b; font-weight: 500; }
+.pd-promo-hint.success { color: #10b981; }
+.pd-price-row { display: flex; align-items: baseline; gap: 12px; }
+.pd-price-original { font-size: 16px; color: #94a3b8; text-decoration: line-through; }
 .pd-price-main { font-size: 30px; font-weight: 700; color: #EE4D2D; line-height: 1; }
 .pd-discount-tag { background: #EE4D2D; color: #fff; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 2px; }
-.pd-original-price { margin-top: 8px; font-size: 13px; color: #94a3b8; }
-.pd-strikethrough { text-decoration: line-through; }
 .pd-spec-row { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 24px; }
 .pd-spec-label { flex: 0 0 80px; font-size: 14px; color: #757575; padding-top: 10px; }
 .pd-spec-options { display: flex; flex-wrap: wrap; gap: 10px; }

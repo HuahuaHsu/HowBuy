@@ -351,41 +351,33 @@ const promotions = ref<Promotion[]>([])
 
 // ── API 呼叫 ─────────────────────────────────────────────────────
 
-/** 處理活動跳轉：強制攔截邏輯，解決導向 /promotion/1 的問題 */
+/** 處理活動跳轉：通用傳遞版，確保所有 Banner 點擊後都有活動橫幅 */
 function goToActivity(banner: any): void {
   if (!banner) return
 
   const title = banner.title || ''
-  const id = banner.id
+  const queryParams: any = {}
 
-  console.log('[Banner Click]', { id, title })
-
-  // 🛑 強制攔截：只要 ID 是 1 或標題有「腳架」，強制導向搜尋頁
-  if (id === 1 || title.includes('腳架')) {
-    void router.push('/products?keyword=腳架')
-    return
+  // 🌟 核心規則：只要有標題，一律帶過去作為活動橫幅
+  if (title) {
+    queryParams.promoText = title
   }
 
-  // 攔截：3C/筆電相關
-  if (title.includes('3C') || title.includes('筆電')) {
-    void router.push('/products?categoryId=1')
-    return
+  // 🔽 自訂搜尋對照表
+  if (banner.id === 1 || title.includes('腳架')) {
+    queryParams.keyword = '腳架'
+  } else if (title.includes('3C') || title.includes('筆電')) {
+    queryParams.categoryId = '1'
+  } else if (title.includes('春夏') || title.includes('穿搭')) {
+    queryParams.categoryId = '3'
+  } else if (title.includes('氣泡水')) {
+    queryParams.keyword = '氣泡水'
+  } else if (title.includes('123123')) {
+    queryParams.keyword = '123123'
   }
 
-  // 攔截：春夏/穿搭相關
-  if (title.includes('春夏') || title.includes('穿搭')) {
-    void router.push('/products?categoryId=3')
-    return
-  }
-
-  // 其他特定關鍵字判斷
-  if (title.includes('氣泡水')) {
-    void router.push('/products?keyword=氣泡水')
-    return
-  }
-
-  // 預設退路：導向全部商品列表
-  void router.push('/products')
+  // 統一跳轉
+  void router.push({ path: '/products', query: queryParams })
 }
 
 async function loadProducts(): Promise<void> {
