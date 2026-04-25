@@ -616,9 +616,61 @@ const tabCounts = computed<Record<TabKey, number>>(() => {
 })
 
 // ── Init ──────────────────────────────────────────────────────────
+const SESSION_STATE_KEY = 'sellerProductListState'
+
 onMounted(async () => {
+  // 1. 嘗試還原狀態
+  restoreListState()
+  
   await Promise.all([loadCategories(), loadProducts()])
 })
+
+/** 從 sessionStorage 還原搜尋/分頁狀態 */
+function restoreListState(): void {
+  const saved = sessionStorage.getItem(SESSION_STATE_KEY)
+  if (!saved) return
+
+  try {
+    const state = JSON.parse(saved)
+    if (state.activeTab) activeTab.value = state.activeTab
+    if (state.searchKeyword) searchKeyword.value = state.searchKeyword
+    if (state.searchCategoryId) searchCategoryId.value = state.searchCategoryId
+    if (state.advMinPrice !== undefined) advMinPrice.value = state.advMinPrice
+    if (state.advMaxPrice !== undefined) advMaxPrice.value = state.advMaxPrice
+    if (state.sortField) sortField.value = state.sortField
+    if (state.sortDir) sortDir.value = state.sortDir
+    if (state.page) pagination.page = state.page
+    if (state.viewMode) viewMode.value = state.viewMode
+    console.log('[State] 已還原列表狀態:', state)
+  } catch (e) {
+    console.error('[State] 還原列表狀態失敗:', e)
+  }
+}
+
+/** 儲存狀態至 sessionStorage */
+function saveListState(): void {
+  const state = {
+    activeTab: activeTab.value,
+    searchKeyword: searchKeyword.value,
+    searchCategoryId: searchCategoryId.value,
+    advMinPrice: advMinPrice.value,
+    advMaxPrice: advMaxPrice.value,
+    sortField: sortField.value,
+    sortDir: sortDir.value,
+    page: pagination.page,
+    viewMode: viewMode.value,
+  }
+  sessionStorage.setItem(SESSION_STATE_KEY, JSON.stringify(state))
+}
+
+// 監聽所有狀態變動，自動儲存
+watch(
+  [activeTab, searchKeyword, searchCategoryId, advMinPrice, advMaxPrice, sortField, sortDir, () => pagination.page, viewMode],
+  () => {
+    saveListState()
+  },
+  { deep: true }
+)
 
 async function loadCategories(): Promise<void> {
   try {
@@ -704,6 +756,7 @@ function handleSearch(): void {
 }
 
 function handleReset(): void {
+  sessionStorage.removeItem(SESSION_STATE_KEY) // 清除暫存
   searchKeyword.value = ''
   searchCategoryId.value = null
   advMinPrice.value = null
