@@ -12,13 +12,13 @@
                 :style="promo.bannerImageUrl
                   ? { backgroundImage: `url(${promo.bannerImageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }
                   : { background: 'linear-gradient(135deg, #1e293b 0%, #1e1b4b 100%)' }"
-                @click="promo.linkUrl ? $router.push(promo.linkUrl) : undefined"
+                @click="goToActivity(promo)"
               >
                 <div class="slide-content">
                   <div class="slide-tag">{{ promo.typeLabel }}</div>
                   <h2>{{ promo.title }}</h2>
                   <p v-if="promo.subtitle">{{ promo.subtitle }}</p>
-                  <el-button type="primary" round size="large">立即搶購</el-button>
+                  <el-button type="primary" round size="large" @click.stop="goToActivity(promo)">立即搶購</el-button>
                 </div>
                 <div v-if="!promo.bannerImageUrl" class="slide-emoji">🎉</div>
               </div>
@@ -33,7 +33,7 @@
             :style="promo.bannerImageUrl
               ? { backgroundImage: `url(${promo.bannerImageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }
               : { background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)' }"
-            @click="promo.linkUrl ? $router.push(promo.linkUrl) : undefined"
+            @click="goToActivity(promo)"
           >
             <div class="sb-tag">{{ promo.typeLabel }}</div>
             <h3>{{ promo.title }}</h3>
@@ -53,12 +53,12 @@
         <div class="main-carousel">
           <el-carousel height="320px" arrow="always">
             <el-carousel-item v-for="(banner, i) in staticBanners" :key="i">
-              <div class="carousel-slide" :style="{ background: banner.bg }">
+              <div class="carousel-slide" :style="{ background: banner.bg }" @click="goToActivity(banner)">
                 <div class="slide-content">
                   <div class="slide-tag">{{ banner.tag }}</div>
                   <h2>{{ banner.title }}</h2>
                   <p>{{ banner.subtitle }}</p>
-                  <el-button type="primary" round size="large">立即搶購</el-button>
+                  <el-button type="primary" round size="large" @click.stop="goToActivity(banner)">立即搶購</el-button>
                 </div>
                 <div class="slide-emoji">{{ banner.emoji }}</div>
               </div>
@@ -66,7 +66,7 @@
           </el-carousel>
         </div>
         <div class="side-banners">
-          <div class="side-banner" v-for="sb in staticSideBanners" :key="sb.title" :style="{ background: sb.bg }">
+          <div class="side-banner" v-for="sb in staticSideBanners" :key="sb.title" :style="{ background: sb.bg }" @click="goToActivity(sb)">
             <div class="sb-tag">{{ sb.tag }}</div>
             <h3>{{ sb.title }}</h3>
             <p>{{ sb.desc }}</p>
@@ -350,6 +350,43 @@ const drawerOpen = ref<boolean>(false)
 const promotions = ref<Promotion[]>([])
 
 // ── API 呼叫 ─────────────────────────────────────────────────────
+
+/** 處理活動跳轉：強制攔截邏輯，解決導向 /promotion/1 的問題 */
+function goToActivity(banner: any): void {
+  if (!banner) return
+
+  const title = banner.title || ''
+  const id = banner.id
+
+  console.log('[Banner Click]', { id, title })
+
+  // 🛑 強制攔截：只要 ID 是 1 或標題有「腳架」，強制導向搜尋頁
+  if (id === 1 || title.includes('腳架')) {
+    void router.push('/products?keyword=腳架')
+    return
+  }
+
+  // 攔截：3C/筆電相關
+  if (title.includes('3C') || title.includes('筆電')) {
+    void router.push('/products?categoryId=1')
+    return
+  }
+
+  // 攔截：春夏/穿搭相關
+  if (title.includes('春夏') || title.includes('穿搭')) {
+    void router.push('/products?categoryId=3')
+    return
+  }
+
+  // 其他特定關鍵字判斷
+  if (title.includes('氣泡水')) {
+    void router.push('/products?keyword=氣泡水')
+    return
+  }
+
+  // 預設退路：導向全部商品列表
+  void router.push('/products')
+}
 
 async function loadProducts(): Promise<void> {
   loading.value = true

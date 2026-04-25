@@ -44,6 +44,12 @@ export const routes: RouteRecordRaw[] = [
         component: () => import('../views/CouponsView.vue'),
         meta: { requiresAuth: false }
       },
+      {
+        path: 'promotion/:id',
+        name: 'PromotionDetail',
+        component: () => import('../views/PromotionView.vue'),
+        meta: { requiresAuth: false }
+      },
       // ── 會員中心嵌套佈局（在 DefaultLayout 內再包一層側邊欄） ──
       {
         path: 'member',
