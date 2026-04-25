@@ -95,7 +95,7 @@ public partial class ISpanShopDBContext : DbContext
     {
         modelBuilder.Entity<Address>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Addresse__3214EC07D9FD6C2F");
+            entity.HasKey(e => e.Id).HasName("PK__Addresse__3214EC078667F343");
 
             entity.Property(e => e.City).HasMaxLength(20);
             entity.Property(e => e.IsDefault).HasDefaultValue(false);
@@ -139,7 +139,7 @@ public partial class ISpanShopDBContext : DbContext
 
         modelBuilder.Entity<BlacklistRecord>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Blacklis__3214EC076269953D");
+            entity.HasKey(e => e.Id).HasName("PK__Blacklis__3214EC07EB09F2EC");
 
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("(getdate())")
@@ -160,7 +160,7 @@ public partial class ISpanShopDBContext : DbContext
 
         modelBuilder.Entity<Brand>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Brands__3214EC07C348BA1F");
+            entity.HasKey(e => e.Id).HasName("PK__Brands__3214EC07422F1543");
 
             entity.Property(e => e.IsDeleted).HasDefaultValue(false);
             entity.Property(e => e.IsVisible).HasDefaultValue(true);
@@ -173,7 +173,7 @@ public partial class ISpanShopDBContext : DbContext
 
         modelBuilder.Entity<Cart>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Carts__3214EC07D9B6343E");
+            entity.HasKey(e => e.Id).HasName("PK__Carts__3214EC07D5E6A401");
 
             entity.HasIndex(e => e.UserId, "UQ_Carts_UserId").IsUnique();
 
@@ -185,7 +185,7 @@ public partial class ISpanShopDBContext : DbContext
 
         modelBuilder.Entity<CartItem>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__CartItem__3214EC0748E8D4C1");
+            entity.HasKey(e => e.Id).HasName("PK__CartItem__3214EC072DE98BC1");
 
             entity.Property(e => e.UnitPrice).HasColumnType("decimal(18, 2)");
 
@@ -211,7 +211,7 @@ public partial class ISpanShopDBContext : DbContext
 
         modelBuilder.Entity<Category>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Categori__3214EC07FC461DEE");
+            entity.HasKey(e => e.Id).HasName("PK__Categori__3214EC07ACB84F5B");
 
             entity.Property(e => e.Icon).HasMaxLength(255);
             entity.Property(e => e.IconUrl).HasMaxLength(500);
@@ -229,7 +229,7 @@ public partial class ISpanShopDBContext : DbContext
 
         modelBuilder.Entity<CategoryAttribute>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Category__3214EC079761E39D");
+            entity.HasKey(e => e.Id).HasName("PK__Category__3214EC07E3ECEF3C");
 
             entity.Property(e => e.InputType)
                 .IsRequired()
@@ -244,7 +244,7 @@ public partial class ISpanShopDBContext : DbContext
 
         modelBuilder.Entity<CategoryAttributeMapping>(entity =>
         {
-            entity.HasKey(e => new { e.CategoryId, e.CategoryAttributeId }).HasName("PK__Category__2B1402DC58616739");
+            entity.HasKey(e => new { e.CategoryId, e.CategoryAttributeId }).HasName("PK__Category__2B1402DC0FA57D58");
 
             entity.HasOne(d => d.CategoryAttribute).WithMany(p => p.CategoryAttributeMappings)
                 .HasForeignKey(d => d.CategoryAttributeId)
@@ -257,7 +257,7 @@ public partial class ISpanShopDBContext : DbContext
 
         modelBuilder.Entity<CategoryAttributeOption>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Category__3214EC0765168A2C");
+            entity.HasKey(e => e.Id).HasName("PK__Category__3214EC07E8491758");
 
             entity.Property(e => e.OptionName)
                 .IsRequired()
@@ -270,7 +270,7 @@ public partial class ISpanShopDBContext : DbContext
 
         modelBuilder.Entity<ChatMessage>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__ChatMess__3214EC073AB3BA81");
+            entity.HasKey(e => e.Id).HasName("PK__ChatMess__3214EC07B97F7A60");
 
             entity.Property(e => e.IsRead).HasDefaultValue(false);
             entity.Property(e => e.SentAt)
@@ -359,7 +359,7 @@ public partial class ISpanShopDBContext : DbContext
 
         modelBuilder.Entity<LoginHistory>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__LoginHis__3214EC075EA170C5");
+            entity.HasKey(e => e.Id).HasName("PK__LoginHis__3214EC0738FB54D5");
 
             entity.Property(e => e.AttemptedAccount).HasMaxLength(50);
             entity.Property(e => e.Ipaddress)
@@ -399,27 +399,20 @@ public partial class ISpanShopDBContext : DbContext
 
         modelBuilder.Entity<MemberProfile>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__MemberPr__3214EC072700F837");
+            entity.HasKey(e => e.Id).HasName("PK__MemberPr__3214EC0725299CA3");
 
             entity.HasIndex(e => e.UserId, "UQ_MemberProfiles_UserId").IsUnique();
 
             entity.Property(e => e.AvatarUrl).HasMaxLength(500);
-            entity.Property(e => e.EmailNotification)
-                .HasDefaultValue(true)
-                .HasAnnotation("Relational:DefaultConstraintName", "DF__MemberPro__Email__1AD3FDA4");
+            entity.Property(e => e.EmailNotification).HasDefaultValue(true);
             entity.Property(e => e.FullName).HasMaxLength(50);
-            entity.Property(e => e.IsSeller)
-                .HasDefaultValue(false)
-                .HasAnnotation("Relational:DefaultConstraintName", "DF__MemberPro__IsSel__1BC821DD");
+            entity.Property(e => e.IsSeller).HasDefaultValue(false);
             entity.Property(e => e.PhoneNumber)
                 .HasMaxLength(20)
                 .IsUnicode(false);
-            entity.Property(e => e.PointBalance)
-                .HasDefaultValue(0)
-                .HasAnnotation("Relational:DefaultConstraintName", "DF__MemberPro__Point__19DFD96B");
+            entity.Property(e => e.PointBalance).HasDefaultValue(0);
             entity.Property(e => e.TotalSpending)
                 .HasDefaultValue(0m)
-                .HasAnnotation("Relational:DefaultConstraintName", "DF__MemberPro__Total__18EBB532")
                 .HasColumnType("decimal(18, 2)");
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
 
@@ -436,7 +429,7 @@ public partial class ISpanShopDBContext : DbContext
 
         modelBuilder.Entity<MembershipLevel>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Membersh__3214EC07A093CEF7");
+            entity.HasKey(e => e.Id).HasName("PK__Membersh__3214EC07CC797882");
 
             entity.Property(e => e.DiscountRate).HasColumnType("decimal(3, 2)");
             entity.Property(e => e.LevelName)
@@ -447,7 +440,7 @@ public partial class ISpanShopDBContext : DbContext
 
         modelBuilder.Entity<Order>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Orders__3214EC07451F09D5");
+            entity.HasKey(e => e.Id).HasName("PK__Orders__3214EC07FC73E6C4");
 
             entity.HasIndex(e => e.OrderNumber, "UQ_Orders_Number").IsUnique();
 
@@ -494,7 +487,7 @@ public partial class ISpanShopDBContext : DbContext
 
         modelBuilder.Entity<OrderDetail>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__OrderDet__3214EC07156366DF");
+            entity.HasKey(e => e.Id).HasName("PK__OrderDet__3214EC071597148A");
 
             entity.Property(e => e.AllocatedDiscountAmount).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.CoverImage).HasMaxLength(500);
@@ -520,7 +513,7 @@ public partial class ISpanShopDBContext : DbContext
 
         modelBuilder.Entity<OrderReview>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__OrderRev__3214EC076BEC4B6C");
+            entity.HasKey(e => e.Id).HasName("PK__OrderRev__3214EC07F9BB0474");
 
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("(getdate())")
@@ -548,7 +541,7 @@ public partial class ISpanShopDBContext : DbContext
 
         modelBuilder.Entity<PaymentLog>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__PaymentL__3214EC0783B1D149");
+            entity.HasKey(e => e.Id).HasName("PK__PaymentL__3214EC0767409C1C");
 
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("(getdate())")
@@ -588,7 +581,7 @@ public partial class ISpanShopDBContext : DbContext
 
         modelBuilder.Entity<PointHistory>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__PointHis__3214EC07E7F17930");
+            entity.HasKey(e => e.Id).HasName("PK__PointHis__3214EC074778454C");
 
             entity.ToTable("PointHistory");
 
@@ -608,7 +601,7 @@ public partial class ISpanShopDBContext : DbContext
 
         modelBuilder.Entity<Product>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Products__3214EC0799BB5C28");
+            entity.HasKey(e => e.Id).HasName("PK__Products__3214EC072B741E07");
 
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("(getdate())")
@@ -650,7 +643,7 @@ public partial class ISpanShopDBContext : DbContext
 
         modelBuilder.Entity<ProductImage>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__ProductI__3214EC074B3C6AC5");
+            entity.HasKey(e => e.Id).HasName("PK__ProductI__3214EC07417ACDD9");
 
             entity.Property(e => e.ImageUrl)
                 .IsRequired()
@@ -670,7 +663,7 @@ public partial class ISpanShopDBContext : DbContext
 
         modelBuilder.Entity<ProductVariant>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__ProductV__3214EC079EA1D13B");
+            entity.HasKey(e => e.Id).HasName("PK__ProductV__3214EC07D71370E5");
 
             entity.HasIndex(e => e.SkuCode, "UQ_ProductVariants_SkuCode").IsUnique();
 
@@ -689,7 +682,7 @@ public partial class ISpanShopDBContext : DbContext
 
         modelBuilder.Entity<Promotion>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Promotio__3214EC0742C8E94F");
+            entity.HasKey(e => e.Id).HasName("PK__Promotio__3214EC0734189CD1");
 
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("(getdate())")
@@ -716,7 +709,7 @@ public partial class ISpanShopDBContext : DbContext
 
         modelBuilder.Entity<PromotionItem>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Promotio__3214EC07D1DA9715");
+            entity.HasKey(e => e.Id).HasName("PK__Promotio__3214EC07D525F879");
 
             entity.Property(e => e.DiscountPrice).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.OriginalPrice).HasColumnType("decimal(18, 2)");
@@ -732,7 +725,7 @@ public partial class ISpanShopDBContext : DbContext
 
         modelBuilder.Entity<PromotionRule>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Promotio__3214EC07FBF406BC");
+            entity.HasKey(e => e.Id).HasName("PK__Promotio__3214EC072C6C95F6");
 
             entity.Property(e => e.DiscountValue).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.Threshold).HasColumnType("decimal(18, 2)");
@@ -774,7 +767,7 @@ public partial class ISpanShopDBContext : DbContext
 
         modelBuilder.Entity<ReviewImage>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__ReviewIm__3214EC07529AF034");
+            entity.HasKey(e => e.Id).HasName("PK__ReviewIm__3214EC070ABE198A");
 
             entity.Property(e => e.ImageUrl)
                 .IsRequired()
@@ -788,7 +781,7 @@ public partial class ISpanShopDBContext : DbContext
 
         modelBuilder.Entity<Role>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Roles__3214EC072E4334EA");
+            entity.HasKey(e => e.Id).HasName("PK__Roles__3214EC07F59BA9D3");
 
             entity.Property(e => e.Description).HasMaxLength(200);
             entity.Property(e => e.RoleName)
@@ -798,7 +791,7 @@ public partial class ISpanShopDBContext : DbContext
 
         modelBuilder.Entity<SensitiveWord>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Sensitiv__3214EC07A2177B19");
+            entity.HasKey(e => e.Id).HasName("PK__Sensitiv__3214EC072CFE62FC");
 
             entity.Property(e => e.Category).HasMaxLength(50);
             entity.Property(e => e.CreatedTime)
@@ -816,7 +809,7 @@ public partial class ISpanShopDBContext : DbContext
 
         modelBuilder.Entity<SensitiveWordCategory>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Sensitiv__3214EC07651109F7");
+            entity.HasKey(e => e.Id).HasName("PK__Sensitiv__3214EC074404F692");
 
             entity.Property(e => e.Name)
                 .IsRequired()
@@ -825,7 +818,7 @@ public partial class ISpanShopDBContext : DbContext
 
         modelBuilder.Entity<Store>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Stores__3214EC070F0544BB");
+            entity.HasKey(e => e.Id).HasName("PK__Stores__3214EC070B20AFF6");
 
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("(getdate())")
@@ -845,7 +838,7 @@ public partial class ISpanShopDBContext : DbContext
 
         modelBuilder.Entity<SupportTicket>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__SupportT__3214EC07A1A952C8");
+            entity.HasKey(e => e.Id).HasName("PK__SupportT__3214EC07625A89CC");
 
             entity.Property(e => e.AttachmentUrl).HasMaxLength(500);
             entity.Property(e => e.CreatedAt)
@@ -867,7 +860,7 @@ public partial class ISpanShopDBContext : DbContext
 
         modelBuilder.Entity<User>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Users__3214EC07853AE7AA");
+            entity.HasKey(e => e.Id).HasName("PK__Users__3214EC070C2A5F8B");
 
             entity.HasIndex(e => e.Account, "UQ_Users_Account").IsUnique();
 

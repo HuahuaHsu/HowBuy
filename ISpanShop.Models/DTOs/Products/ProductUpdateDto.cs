@@ -12,5 +12,9 @@ namespace ISpanShop.Models.DTOs.Products
         public string? Description { get; set; }
         public string? SpecDefinitionJson { get; set; }
         public string? MainImageUrl { get; set; }
+        public byte? Status { get; set; }
+        public int? ReviewStatus { get; set; }
+        public string? VariantsJson { get; set; }
+        public string? AttributesJson { get; set; }
     }
 }

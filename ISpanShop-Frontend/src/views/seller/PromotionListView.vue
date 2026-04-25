@@ -179,15 +179,17 @@
         </el-form-item>
         <el-form-item label="活動類型" prop="promotionType">
           <el-select v-model="formData.promotionType" placeholder="請選擇活動類型" style="width: 100%;">
-            <el-option label="限時特賣" :value="1" />
-            <el-option label="滿額折扣" :value="2" />
-            <el-option label="限量搶購" :value="3" />
-            <el-option label="新品優惠" :value="4" />
+            <el-option
+              v-for="opt in promotionTypeOptions"
+              :key="opt.value"
+              :label="opt.label"
+              :value="opt.value"
+            />
           </el-select>
         </el-form-item>
         
         <!-- 滿額折扣：顯示滿額門檻 + 折扣金額 -->
-        <template v-if="formData.promotionType === 2">
+        <div v-if="formData.promotionType === 2">
           <el-form-item label="滿額門檻" prop="minimumAmount">
             <el-input-number
               v-model="formData.minimumAmount"
@@ -213,10 +215,10 @@
             />
             <span class="form-hint">例如：100 代表滿額折 100 元</span>
           </el-form-item>
-        </template>
+        </div>
         
         <!-- 限時特賣：顯示折扣比例 -->
-        <template v-else-if="formData.promotionType === 1">
+        <div v-else-if="formData.promotionType === 1">
           <el-form-item label="折扣(%off)" prop="discountValue">
             <el-input-number
               v-model="formData.discountValue"
@@ -230,10 +232,10 @@
             />
             <span class="form-hint">例如：20 代表打 8 折（20% off）</span>
           </el-form-item>
-        </template>
+        </div>
         
         <!-- 限量搶購：顯示限量數量 + 折扣金額 -->
-        <template v-else-if="formData.promotionType === 3">
+        <div v-else-if="formData.promotionType === 3">
           <el-form-item label="限量數量" prop="limitQuantity">
             <el-input-number
               v-model="formData.limitQuantity"
@@ -259,10 +261,10 @@
             />
             <span class="form-hint">例如：100 代表每件折 100 元</span>
           </el-form-item>
-        </template>
+        </div>
         
         <!-- 新品優惠或其他類型：只顯示折扣金額 -->
-        <template v-else-if="formData.promotionType === 4 || formData.promotionType > 0">
+        <div v-else-if="formData.promotionType === 4 || formData.promotionType > 0">
           <el-form-item label="折扣金額" prop="discountValue">
             <el-input-number
               v-model="formData.discountValue"
@@ -276,7 +278,7 @@
             />
             <span class="form-hint">折扣金額（元）</span>
           </el-form-item>
-        </template>
+        </div>
         <el-form-item label="開始時間" prop="startTime">
           <el-date-picker
             v-model="formData.startTime"
@@ -284,6 +286,7 @@
             placeholder="選擇開始時間"
             format="YYYY-MM-DD HH:mm:ss"
             value-format="YYYY-MM-DDTHH:mm:ss"
+            :disabled-date="disabledDate"
             style="width: 100%;"
           />
         </el-form-item>
@@ -294,6 +297,7 @@
             placeholder="選擇結束時間"
             format="YYYY-MM-DD HH:mm:ss"
             value-format="YYYY-MM-DDTHH:mm:ss"
+            :disabled-date="disabledDate"
             style="width: 100%;"
           />
         </el-form-item>
@@ -335,6 +339,7 @@
       width="720px"
       :close-on-click-modal="false"
       append-to-body
+      @closed="handleSelectorClosed"
     >
       <div class="selector-toolbar">
         <el-input
@@ -355,7 +360,7 @@
         style="width: 100%; margin-top: 12px;"
         row-key="id"
       >
-        <el-table-column type="selection" width="50" />
+        <el-table-column type="selection" :reserve-selection="true" width="50" />
         <el-table-column label="商品" min-width="280">
           <template #default="{ row }">
             <div class="selector-product-row">
@@ -395,7 +400,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import type { FormInstance, FormRules, ElTable } from 'element-plus'
@@ -455,9 +460,9 @@ interface PromotionFormData {
   name: string
   description: string
   promotionType: number
-  discountValue: number
-  minimumAmount: number  // 滿額門檻
-  limitQuantity: number  // 限量數量
+  discountValue: number | null
+  minimumAmount: number | null // 滿額門檻
+  limitQuantity: number | null // 限量數量
   startTime: string
   endTime: string
 }
@@ -552,15 +557,34 @@ const selectorTotal = ref(0)
 const pendingSelection = ref<AvailableProduct[]>([])
 const selectorTableRef = ref<InstanceType<typeof ElTable>>()
 
+// ─── 常數與選項定義 ────────────────────────────────────────────────
+
+const promotionTypeOptions = [
+  { value: 1, label: '限時特賣' },
+  { value: 2, label: '滿額折扣' },
+  { value: 3, label: '限量搶購' },
+  { value: 4, label: '新品優惠' },
+]
+
 const formData = ref<PromotionFormData>({
   name: '',
   description: '',
-  promotionType: 0,
-  discountValue: 0,
-  minimumAmount: 0,
-  limitQuantity: 0,
+  promotionType: promotionTypeOptions[0].value, // 預設選取「限時特賣」
+  discountValue: null,
+  minimumAmount: null,
+  limitQuantity: null,
   startTime: defaultDates.start,
   endTime: defaultDates.end,
+})
+
+/** 切換活動類型時，自動清空數值欄位，顯示 placeholder */
+watch(() => formData.value.promotionType, () => {
+  // 若非編輯模式，才清空數值
+  if (!isEdit.value) {
+    formData.value.discountValue = null
+    formData.value.minimumAmount = null
+    formData.value.limitQuantity = null
+  }
 })
 
 const formRules: FormRules = {
@@ -673,10 +697,10 @@ function openCreateDialog(): void {
   formData.value = {
     name: '',
     description: '',
-    promotionType: 0,
-    discountValue: 0,
-    minimumAmount: 0,
-    limitQuantity: 0,
+    promotionType: promotionTypeOptions[0].value,
+    discountValue: null,
+    minimumAmount: null,
+    limitQuantity: null,
     startTime: dates.start,
     endTime: dates.end,
   }
@@ -862,6 +886,20 @@ function onSelectorSearch(): void {
   void loadSelectorProducts()
 }
 
+/** 在選擇器視窗徹底關閉後，強制清空表格狀態與暫存清單 */
+function handleSelectorClosed(): void {
+  // 1. 清除表格內部的 reserve-selection 記憶
+  if (selectorTableRef.value) {
+    selectorTableRef.value.clearSelection()
+  }
+  
+  // 2. 清空暫存與關鍵字，確保下次開啟是乾淨的
+  pendingSelection.value = []
+  selectorKeyword.value = ''
+  selectorPage.value = 1
+  console.log('[Selector] 已清空表格選取狀態與暫存資訊')
+}
+
 function handleSelectorSelectionChange(rows: AvailableProduct[]): void {
   pendingSelection.value = rows
 }
@@ -967,6 +1005,16 @@ function canEdit(statusText: string): boolean {
 
 function canDelete(statusText: string): boolean {
   return statusText === '待審核'
+}
+
+/** 限制活動時間不能選擇過去的日期 */
+const disabledDate = (time: Date) => {
+  // 取得今天的日期，並將時分秒歸零，避免把「今天的此時此刻之前」也鎖死
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  
+  // 只要月曆上的時間小於今天凌晨 00:00，就禁用 (回傳 true)
+  return time.getTime() < today.getTime()
 }
 
 // ─── 生命週期 ─────────────────────────────────────────────────────

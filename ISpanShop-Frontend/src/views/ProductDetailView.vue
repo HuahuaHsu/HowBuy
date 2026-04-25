@@ -112,31 +112,24 @@
             </div>
 
             <div class="pd-price-block">
+              <!-- 活動標籤 (僅展示活動訊息) -->
+              <div v-if="displayPriceInfo.hasPromo" class="pd-promo-tag-row">
+                <el-tag type="danger" effect="dark" size="small">{{ displayPriceInfo.tagText }}</el-tag>
+              </div>
+
               <div class="pd-price-row">
+                <!-- 商品原價 -->
                 <span class="pd-price-main">
-                  <template v-if="selectedVariant">
-                    ${{ formatPrice(selectedVariant.price) }}
-                  </template>
-                  <template v-else>
-                    ${{ formatPrice(safeProduct.priceRange.min) }}
-                    <template v-if="safeProduct.priceRange.max !== safeProduct.priceRange.min">
-                      &nbsp;-&nbsp;${{ formatPrice(safeProduct.priceRange.max) }}
-                    </template>
+                  ${{ formatPrice(displayPriceInfo.current) }}
+                  <template v-if="!selectedVariant && safeProduct.priceRange.max !== safeProduct.priceRange.min">
+                    &nbsp;-&nbsp;${{ formatPrice(safeProduct.priceRange.max) }}
                   </template>
                 </span>
+                
                 <span
                   v-if="safeProduct.discountRate !== null"
                   class="pd-discount-tag"
                 >{{ safeProduct.discountRate.toFixed(1) }} 折</span>
-              </div>
-              <div v-if="safeProduct.originalPriceRange" class="pd-original-price">
-                原價：
-                <span class="pd-strikethrough">
-                  ${{ formatPrice(safeProduct.originalPriceRange.min) }}
-                  <template v-if="safeProduct.originalPriceRange.max !== safeProduct.originalPriceRange.min">
-                    &nbsp;-&nbsp;${{ formatPrice(safeProduct.originalPriceRange.max) }}
-                  </template>
-                </span>
               </div>
             </div>
 
@@ -185,8 +178,8 @@
               <el-input-number
                 v-model="quantity"
                 :min="1"
-                :max="currentStock"
-                :disabled="isSoldOut || !allSpecsSelected"
+                :max="Math.max(1, currentStock || 1)"
+                :disabled="isSoldOut || currentStock <= 0 || !allSpecsSelected"
                 controls-position="right"
                 size="default"
               />
@@ -229,6 +222,12 @@
             <div class="pd-spec-item"><span class="spec-key">店家</span><span class="spec-val">{{ safeProduct.storeName }}</span></div>
             <div class="pd-spec-item"><span class="spec-key">庫存</span><span class="spec-val">{{ safeProduct.totalStock }}</span></div>
             <div class="pd-spec-item"><span class="spec-key">上架日</span><span class="spec-val">{{ safeProduct.createdAt }}</span></div>
+            
+            <!-- 動態屬性 -->
+            <div v-for="attr in displayAttributes" :key="attr.id" class="pd-spec-item">
+              <span class="spec-key">{{ attr.label }}</span>
+              <span class="spec-val">{{ attr.value }}</span>
+            </div>
           </div>
         </el-card>
 
@@ -277,7 +276,7 @@
         <!-- 商品描述 -->
         <el-card class="pd-detail-card" shadow="never">
           <template #header><span class="card-title">商品描述</span></template>
-          <pre class="pd-description">{{ safeProduct.description }}</pre>
+          <div class="pd-description" v-html="safeProduct.description"></div>
         </el-card>
 
         <!-- 商品評價 -->
@@ -307,6 +306,7 @@ import { Picture, ChatDotRound, Shop } from '@element-plus/icons-vue'
 import ProductCard from '@/components/product/ProductCard.vue'
 import ProductReview from '@/components/product/ProductReview.vue'
 import { fetchProductDetail, fetchRelatedProducts } from '@/api/product'
+import { getCategoryAttributes } from '@/api/categoryAttribute'
 import { useCartStore } from '@/stores/cart'
 import { useAuthStore } from '@/stores/auth'
 import { useChatStore } from '@/stores/chat'
@@ -321,6 +321,7 @@ import type {
   ProductSpec,
   StoreInfo,
 } from '@/types/product'
+import type { CategoryAttribute } from '@/api/categoryAttribute'
 
 const route = useRoute()
 const router = useRouter()
@@ -328,7 +329,34 @@ const cartStore = useCartStore()
 const authStore = useAuthStore()
 const chatStore = useChatStore()
 
+// 取得網址上的活動參數
+const promoText = computed(() => (route.query.promoText as string) || '')
+
 const product = ref<ProductDetail | null>(null)
+const categoryAttributes = ref<CategoryAttribute[]>([])
+
+/** 計算促銷資訊：僅顯示標籤，不變動價格 */
+const displayPriceInfo = computed(() => {
+  const p = product.value
+  if (!p) return { current: 0, hasPromo: false, tagText: '' }
+
+  // 抓取目前價格 (優先使用規格選中的價格，否則用範圍最低價)
+  let currentPrice = selectedVariant.value ? selectedVariant.value.price : p.priceRange.min
+  let hasPromo = false
+  let tagText = ''
+
+  // 只要商品符合條件，就亮起活動標籤
+  if (promoText.value.includes('腳架') || (p.name && p.name.includes('腳架'))) {
+    hasPromo = true
+    tagText = '活動：滿1000折100'
+  }
+
+  return { 
+    current: currentPrice, 
+    hasPromo, 
+    tagText
+  }
+})
 const loading = ref(false)
 const loadError = ref<string | null>(null)
 const relatedProducts = ref<ProductListItem[]>([])
@@ -355,6 +383,65 @@ const safeProduct = computed(() => {
     specs: (p.specs || []) as ProductSpec[],
     variants: (p.variants || []) as ProductVariant[],
     createdAt: p.createdAt ? p.createdAt.substring(0, 10) : '—',
+  }
+})
+
+/** 解析並翻譯屬性字典 — 修復數字自填消失問題並實作多選合併 */
+const displayAttributes = computed(() => {
+  const p = product.value
+  if (!p || !p.attributesJson) return []
+
+  try {
+    const parsed = JSON.parse(p.attributesJson)
+    const flatList = parsed.map((attr: any) => {
+      const attrId = attr.AttributeId || attr.attributeId
+      const optId = attr.OptionId || attr.optionId
+      let customVal = attr.CustomValue || attr.customValue || attr.Value || attr.value
+
+      const def = categoryAttributes.value?.find(c => c.id === attrId)
+      const labelName = def ? def.name : `屬性#${attrId}`
+
+      let finalValue = customVal
+
+      // 如果沒有明確的自填字串，但有 optId
+      if (!finalValue && optId !== null && optId !== undefined) {
+        if (def && def.options) {
+          // 用 == 弱型別比對，避免數字與字串型別差異
+          const opt = def.options.find(o => o.id == optId)
+          if (opt) {
+            finalValue = opt.value // 找到對應選項，顯示選項文字
+          } else {
+            // 【關鍵防呆】找不到該選項！代表這個 optId 其實是手填的數字內容
+            finalValue = String(optId)
+          }
+        } else {
+          finalValue = String(optId)
+        }
+      }
+
+      return { id: attrId, label: labelName, value: finalValue }
+    }).filter(a => a.value !== null && a.value !== undefined && a.value !== '')
+
+    // 群組化邏輯：將相同 ID 的屬性合併
+    const grouped: Record<number, { id: number; label: string; values: string[] }> = {}
+    flatList.forEach((item) => {
+      const id = item.id
+      if (!grouped[id]) {
+        grouped[id] = { id, label: item.label, values: [String(item.value)] }
+      } else {
+        grouped[id].values.push(String(item.value))
+      }
+    })
+
+    // 將合併後的陣列轉回適合渲染的格式
+    return Object.values(grouped).map((g) => ({
+      id: g.id,
+      label: g.label,
+      value: g.values.join('、'),
+    }))
+  } catch (e) {
+    console.error('屬性解析錯誤:', e)
+    return []
   }
 })
 
@@ -415,6 +502,15 @@ async function loadProduct(id: number) {
       const mainImg = res.data.images.find(img => img.isMain) || res.data.images[0]
       activeImageUrl.value = mainImg?.url || ''
       res.data.specs.forEach(s => selectedSpecs.value[s.name] = null)
+      
+      // 載入屬性定義
+      try {
+        const attrRes = await getCategoryAttributes(res.data.categoryId)
+        if (attrRes.success) categoryAttributes.value = attrRes.data
+      } catch (e) {
+        console.error('載入屬性定義失敗:', e)
+      }
+
       void loadRelated(id)
     }
   } catch (err) {
@@ -553,10 +649,13 @@ watch(() => route.params.id, (newId) => {
 .pd-rating-row { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid #f1f5f9; }
 .pd-vacation-alert { margin-bottom: 20px; }
 .pd-price-block { background: #fffbf8; border-radius: 4px; padding: 16px; margin-bottom: 20px; }
+.pd-promo-tag-row { margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+.pd-promo-hint { font-size: 12px; color: #f59e0b; font-weight: 500; }
+.pd-promo-hint.success { color: #10b981; }
+.pd-price-row { display: flex; align-items: baseline; gap: 12px; }
+.pd-price-original { font-size: 16px; color: #94a3b8; text-decoration: line-through; }
 .pd-price-main { font-size: 30px; font-weight: 700; color: #EE4D2D; line-height: 1; }
 .pd-discount-tag { background: #EE4D2D; color: #fff; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 2px; }
-.pd-original-price { margin-top: 8px; font-size: 13px; color: #94a3b8; }
-.pd-strikethrough { text-decoration: line-through; }
 .pd-spec-row { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 24px; }
 .pd-spec-label { flex: 0 0 80px; font-size: 14px; color: #757575; padding-top: 10px; }
 .pd-spec-options { display: flex; flex-wrap: wrap; gap: 10px; }
@@ -665,7 +764,8 @@ watch(() => route.params.id, (newId) => {
   margin-left: 2px;
 }
 
-.pd-description { white-space: pre-wrap; font-size: 14px; color: #334155; line-height: 1.8; margin: 0; font-family: inherit; }
+.pd-description { font-size: 14px; color: #334155; line-height: 1.8; margin: 0; font-family: inherit; }
+.pd-description :deep(img) { max-width: 100%; height: auto; display: block; margin: 8px 0; }
 .pd-related-section { margin-top: 24px; }
 .related-title { font-size: 18px; font-weight: 700; color: #1e293b; margin: 0 0 16px; padding-bottom: 12px; border-bottom: 2px solid #EE4D2D; display: inline-block; }
 .related-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }

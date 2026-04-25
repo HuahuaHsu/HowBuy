@@ -33,6 +33,15 @@ namespace ISpanShop.Models.DTOs.Products
 
         /// <summary>主圖索引（0-based）</summary>
         public int MainImageIndex { get; set; } = 0;
+
+        /// <summary>儲存模式：draft=草稿, submit=送審</summary>
+        public string Mode { get; set; } = "draft";
+
+        /// <summary>變體列表 JSON</summary>
+        public string? VariantsJson { get; set; }
+
+        /// <summary>屬性列表 JSON</summary>
+        public string? AttributesJson { get; set; }
     }
 
     /// <summary>更新商品基本資料（JSON）</summary>
@@ -51,6 +60,23 @@ namespace ISpanShop.Models.DTOs.Products
         public string? SpecDefinitionJson { get; set; }
 
         public string? MainImageUrl { get; set; }
+
+        /// <summary>儲存模式：draft=草稿, submit=送審</summary>
+        public string Mode { get; set; } = "draft";
+
+        /// <summary>變體列表 JSON</summary>
+        public string? VariantsJson { get; set; }
+
+        /// <summary>屬性列表 JSON</summary>
+        public string? AttributesJson { get; set; }
+    }
+
+    /// <summary>屬性資料 DTO</summary>
+    public class ProductAttributeDto
+    {
+        public int AttributeId { get; set; }
+        public int? OptionId { get; set; }
+        public string? CustomValue { get; set; }
     }
 
     /// <summary>更新商品狀態（上架/下架）</summary>
@@ -144,8 +170,11 @@ namespace ISpanShop.Models.DTOs.Products
         public decimal? MaxPrice           { get; set; }
         public string?  SpecDefinitionJson { get; set; }
         public string?  RejectReason       { get; set; }
+        /// <summary>審核狀態：0=待審核 1=通過 2=退回 3=重新送審</summary>
+        public int      ReviewStatus       { get; set; }
         public DateTime? CreatedAt         { get; set; }
         public DateTime? UpdatedAt         { get; set; }
+        public string?   AttributesJson     { get; set; }
         public List<string>                  Images   { get; set; } = new();
         public List<VariantDetailResponse>   Variants { get; set; } = new();
     }

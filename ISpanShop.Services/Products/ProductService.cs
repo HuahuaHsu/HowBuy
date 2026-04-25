@@ -42,8 +42,8 @@ namespace ISpanShop.Services.Products
                 SpecDefinitionJson = dto.SpecDefinitionJson,
                 CreatedAt          = DateTime.Now,
                 UpdatedAt          = DateTime.Now,
-                Status             = 2, // 待審核
-                ReviewStatus       = 0
+                Status             = dto.Status,
+                ReviewStatus       = dto.ReviewStatus
             };
 
             if (dto.Variants != null && dto.Variants.Count > 0)
@@ -254,6 +254,7 @@ namespace ISpanShop.Services.Products
                 ForceOffShelfDate   = product.ForceOffShelfDate,
                 ForceOffShelfBy     = product.ForceOffShelfBy,
                 ReApplyDate         = product.ReApplyDate,
+                AttributesJson     = product.AttributesJson,
                 Images = product.ProductImages?
                     .OrderBy(img => img.SortOrder)
                     .Select(img => img.ImageUrl)
@@ -670,8 +671,8 @@ namespace ISpanShop.Services.Products
         {
             var product = await _productRepository.GetProductDetailAsync(id);
 
-            // 找不到、已刪除、或非上架狀態 → 回傳 null
-            if (product == null || product.Status != 1)
+            // 找不到、已刪除、非上架狀態、或賣家被停權 → 回傳 null
+            if (product == null || product.Status != 1 || product.Store?.StoreStatus == 3 || product.Store?.User?.IsBlacklisted == true)
                 return (null, null, 0, 0);
 
             var (rating, reviewCount) = await _productRepository.GetProductRatingAsync(id);
@@ -694,6 +695,10 @@ namespace ISpanShop.Services.Products
             limit = Math.Clamp(limit, 1, 20);
             return await _productRepository.GetHotKeywordsAsync(limit);
         }
+
+        /// <inheritdoc/>
+        public Task IncrementViewCountAsync(int productId)
+            => _productRepository.IncrementViewCountAsync(productId);
 
         /// <inheritdoc/>
         public void AddProductImages(int productId, IEnumerable<ISpanShop.Models.EfModels.ProductImage> images)

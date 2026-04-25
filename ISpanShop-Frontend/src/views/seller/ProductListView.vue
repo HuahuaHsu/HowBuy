@@ -20,23 +20,6 @@
         </el-tab-pane>
       </el-tabs>
 
-      <!-- ── 二級 Tab（僅架上商品顯示）── -->
-      <div v-if="activeTab === 'on'" class="level2-wrap">
-        <el-tabs v-model="activeSubTab" class="level2-tabs" @tab-change="onSubTabChange">
-          <el-tab-pane name="all" label="全部" />
-          <el-tab-pane name="restock">
-            <template #label>
-              重新補貨<span class="tab-count tab-count-orange">({{ restockCount }})</span>
-            </template>
-          </el-tab-pane>
-          <el-tab-pane name="optimize">
-            <template #label>
-              商品內容優化 <el-tag size="small" type="info" style="margin-left:4px">TODO</el-tag>
-            </template>
-          </el-tab-pane>
-        </el-tabs>
-      </div>
-
       <!-- ── 搜尋列 ── -->
       <div class="search-section">
         <el-row :gutter="12" align="middle">
@@ -184,6 +167,8 @@
               <!-- 商品資訊 -->
               <div class="card-body">
                 <p class="card-name">{{ product.name }}</p>
+                <!-- 停權隱藏標籤 -->
+                <el-tag v-if="sellerStore.isBanned" type="info" size="small" style="margin-bottom:4px">前台已隱藏</el-tag>
                 <!-- 退回原因橫幅 -->
                 <div v-if="product.status === 'rejected' && product.rejectReason" class="reject-banner">
                   <el-icon :size="13"><WarningFilled /></el-icon>
@@ -198,11 +183,12 @@
                   </span>
                 </div>
                 <div class="card-stats">
-                  <!-- TODO: viewCount / totalSales / cartCount 後端尚未回傳，補上後移除 ?? '--' -->
+                  <!-- TODO: viewCount 後端尚未回傳，補上後移除 ?? '--' -->
                   <span title="瀏覽次數"><el-icon><View /></el-icon> {{ product.viewCount ?? '--' }}</span>
-                  <span title="已售數量"><el-icon><Goods /></el-icon> {{ product.totalSales ?? '--' }}</span>
-                  <span title="加入購物車"><el-icon><ShoppingCart /></el-icon> {{ product.cartCount ?? '--' }}</span>
+                  <!-- TODO: reviewCount 尚未由後端商品列表 API 回傳，待補上 -->
+                  <span title="評論數"><el-icon><ChatDotRound /></el-icon> 0</span>
                 </div>
+                <div class="card-date">建立時間: {{ formatDate(product.createdAt) }}</div>
               </div>
 
               <!-- 操作列 -->
@@ -217,7 +203,7 @@
                   <button
                     class="card-action-btn edit-btn"
                     :class="{ 'resubmit-btn': product.status === 'rejected' }"
-                    @click="router.push(`/seller/products/${product.id}/edit`)"
+                    @click="handleEdit(product.id)"
                   >
                     <el-icon :size="13"><Edit /></el-icon>
                     {{ product.status === 'rejected' ? '重新編輯' : '編輯' }}
@@ -231,9 +217,6 @@
                     </button>
                     <template #dropdown>
                       <el-dropdown-menu>
-                        <!-- 複製：所有狀態都可以 -->
-                        <el-dropdown-item command="copy">複製</el-dropdown-item>
-
                         <!-- 即時預覽：已上架、未上架、審核中可預覽 -->
                         <el-dropdown-item
                           v-if="product.status === 'on' || product.status === 'draft' || product.status === 'review'"
@@ -348,11 +331,13 @@
               </template>
             </el-table-column>
 
-            <el-table-column label="狀態" width="90" align="center">
+            <el-table-column label="狀態" width="130" align="center">
               <template #default="{ row }">
                 <el-tag :type="getStatusTagType(row.status)" size="small">
                   {{ row.statusText }}
                 </el-tag>
+                <br v-if="sellerStore.isBanned" />
+                <el-tag v-if="sellerStore.isBanned" type="info" size="small" style="margin-top:4px">前台已隱藏</el-tag>
               </template>
             </el-table-column>
 
@@ -363,7 +348,7 @@
                     text
                     :type="row.status === 'rejected' ? 'warning' : 'primary'"
                     size="small"
-                    @click="router.push(`/seller/products/${row.id}/edit`)"
+                    @click="handleEdit(row.id)"
                   >
                     <el-icon><Edit /></el-icon>
                     {{ row.status === 'rejected' ? '重新編輯' : '編輯' }}
@@ -459,20 +444,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Plus, Search, Edit, Delete, Grid, List,
   ArrowDown, ArrowUp, DCaret, CaretTop, CaretBottom,
-  MoreFilled, WarningFilled, View, ShoppingCart, Goods,
+  MoreFilled, WarningFilled, View, ChatDotRound,
 } from '@element-plus/icons-vue'
 import { fetchSellerProducts, updateProductStatus, deleteSellerProduct } from '@/api/product'
 import { fetchMainCategories } from '@/api/category'
+import { useSellerStore } from '@/stores/seller'
 import type { SellerProductListItem } from '@/types/product'
 import type { Category } from '@/types/category'
 
 const router = useRouter()
+const route = useRoute()
+const sellerStore = useSellerStore()
 
 // ── 預設圖片 ──────────────────────────────────────────────────────
 const defaultProductImage = 'https://placehold.co/200x200/f5f5f5/999?text=No+Image'
@@ -495,7 +483,6 @@ function getProductPrice(product: SellerProduct): string {
 // ── 型別定義 ──────────────────────────────────────────────────────
 type ProductStatus = 'on' | 'off' | 'deleted' | 'review' | 'rejected' | 'draft'
 type TabKey = 'all' | 'on' | 'deleted' | 'review' | 'rejected' | 'draft'
-type SubTabKey = 'all' | 'restock' | 'optimize'
 type SortField = 'minPrice' | 'createdAt'
 type SortDir = 'asc' | 'desc' | null
 
@@ -530,8 +517,7 @@ const categories = ref<Category[]>([])
 const selectedRows = ref<SellerProduct[]>([])
 
 // Tabs
-const activeTab = ref<TabKey>('all')
-const activeSubTab = ref<SubTabKey>('all')
+const activeTab = ref<TabKey>((route.query.tab as TabKey) || 'all')
 
 // 搜尋
 const searchKeyword = ref<string>('')
@@ -541,8 +527,8 @@ const advMinPrice = ref<number | null>(null)
 const advMaxPrice = ref<number | null>(null)
 
 // 排序
-const sortField = ref<SortField | null>(null)
-const sortDir = ref<SortDir>(null)
+const sortField = ref<SortField>('createdAt')
+const sortDir = ref<SortDir>('desc')
 
 // 顯示模式
 const viewMode = ref<'grid' | 'list'>('grid')
@@ -573,7 +559,7 @@ const sortOptions: Array<{ field: string; label: string }> = [
 
 // ── Computed ──────────────────────────────────────────────────────
 
-/** Step 1：依一/二級 Tab 篩選 */
+/** Step 1：依一級 Tab 篩選 */
 const tabFiltered = computed<SellerProduct[]>(() => {
   let list = allProducts.value
 
@@ -581,17 +567,10 @@ const tabFiltered = computed<SellerProduct[]>(() => {
     list = list.filter((p) => p.status === activeTab.value)
   }
 
-  // 二級 tab — 重新補貨
-  if (activeTab.value === 'on' && activeSubTab.value === 'restock') {
-    // TODO: totalStock 後端尚未回傳，重新補貨篩選暫時停用
-    // list = list.filter((p) => p.totalStock === 0)
-  }
-  // TODO: 二級 tab — 商品內容優化，後端尚未提供優化建議資料
-
   return list
 })
 
-/** Step 2：依搜尋條件 + 進階篩選過濾，並排序 */
+/** Step 2：依搜尋條件 + 進階篩選過濾 */
 const filteredProducts = computed<SellerProduct[]>(() => {
   let list = tabFiltered.value
 
@@ -616,17 +595,6 @@ const filteredProducts = computed<SellerProduct[]>(() => {
     list = list.filter((p) => (p.minPrice ?? 0) <= (advMaxPrice.value ?? Infinity))
   }
 
-  // 排序
-  if (sortField.value && sortDir.value) {
-    const f = sortField.value
-    const d = sortDir.value
-    list = [...list].sort((a, b) => {
-      const av = a[f] as number
-      const bv = b[f] as number
-      return d === 'asc' ? av - bv : bv - av
-    })
-  }
-
   return list
 })
 
@@ -647,13 +615,62 @@ const tabCounts = computed<Record<TabKey, number>>(() => {
   return c as Record<TabKey, number>
 })
 
-/** 重新補貨計數（TODO: totalStock 後端尚未回傳，暫時顯示 0）*/
-const restockCount = computed<number>(() => 0)
-
 // ── Init ──────────────────────────────────────────────────────────
+const SESSION_STATE_KEY = 'sellerProductListState'
+
 onMounted(async () => {
+  // 1. 嘗試還原狀態
+  restoreListState()
+  
   await Promise.all([loadCategories(), loadProducts()])
 })
+
+/** 從 sessionStorage 還原搜尋/分頁狀態 */
+function restoreListState(): void {
+  const saved = sessionStorage.getItem(SESSION_STATE_KEY)
+  if (!saved) return
+
+  try {
+    const state = JSON.parse(saved)
+    if (state.activeTab) activeTab.value = state.activeTab
+    if (state.searchKeyword) searchKeyword.value = state.searchKeyword
+    if (state.searchCategoryId) searchCategoryId.value = state.searchCategoryId
+    if (state.advMinPrice !== undefined) advMinPrice.value = state.advMinPrice
+    if (state.advMaxPrice !== undefined) advMaxPrice.value = state.advMaxPrice
+    if (state.sortField) sortField.value = state.sortField
+    if (state.sortDir) sortDir.value = state.sortDir
+    if (state.page) pagination.page = state.page
+    if (state.viewMode) viewMode.value = state.viewMode
+    console.log('[State] 已還原列表狀態:', state)
+  } catch (e) {
+    console.error('[State] 還原列表狀態失敗:', e)
+  }
+}
+
+/** 儲存狀態至 sessionStorage */
+function saveListState(): void {
+  const state = {
+    activeTab: activeTab.value,
+    searchKeyword: searchKeyword.value,
+    searchCategoryId: searchCategoryId.value,
+    advMinPrice: advMinPrice.value,
+    advMaxPrice: advMaxPrice.value,
+    sortField: sortField.value,
+    sortDir: sortDir.value,
+    page: pagination.page,
+    viewMode: viewMode.value,
+  }
+  sessionStorage.setItem(SESSION_STATE_KEY, JSON.stringify(state))
+}
+
+// 監聽所有狀態變動，自動儲存
+watch(
+  [activeTab, searchKeyword, searchCategoryId, advMinPrice, advMaxPrice, sortField, sortDir, () => pagination.page, viewMode],
+  () => {
+    saveListState()
+  },
+  { deep: true }
+)
 
 async function loadCategories(): Promise<void> {
   try {
@@ -667,7 +684,22 @@ async function loadCategories(): Promise<void> {
 async function loadProducts(): Promise<void> {
   loading.value = true
   try {
-    const res = await fetchSellerProducts({ page: 1, pageSize: 100 })
+    // 後端 SortOrder 接受組合字串（date_desc / date_asc / price_asc / price_desc）
+    // 而非分開的 field + direction，需在前端組好後一起送
+    let sortByParam: string
+    if (sortField.value === 'minPrice') {
+      sortByParam = sortDir.value === 'asc' ? 'price_asc' : 'price_desc'
+    } else {
+      sortByParam = sortDir.value === 'asc' ? 'date_asc' : 'date_desc'
+    }
+
+    const params: any = {
+      page: 1,
+      pageSize: 100,
+      sortBy: sortByParam,
+    }
+    
+    const res = await fetchSellerProducts(params)
 
     if (res.items.length > 0) {
       console.log('第一筆商品:', res.items[0])
@@ -696,14 +728,26 @@ async function loadProducts(): Promise<void> {
   }
 }
 
-// ── Tab 事件 ──────────────────────────────────────────────────────
-function onTabChange(): void {
-  activeSubTab.value = 'all'
-  pagination.page = 1
-}
+// 監聽排序變更，自動重新載入
+watch([sortField, sortDir], () => {
+  loadProducts()
+})
 
-function onSubTabChange(): void {
+// 監聽網址 Query 變更（如瀏覽器上一頁/下一頁）
+watch(
+  () => route.query.tab,
+  (newTab) => {
+    if (newTab && newTab !== activeTab.value) {
+      activeTab.value = newTab as TabKey
+    }
+  }
+)
+
+// ── Tab 事件 ──────────────────────────────────────────────────────
+function onTabChange(val: TabKey): void {
   pagination.page = 1
+  // 更新網址 Query，但不重新跳轉頁面
+  router.replace({ query: { ...route.query, tab: val } })
 }
 
 // ── 搜尋 / 重設 ───────────────────────────────────────────────────
@@ -712,26 +756,28 @@ function handleSearch(): void {
 }
 
 function handleReset(): void {
+  sessionStorage.removeItem(SESSION_STATE_KEY) // 清除暫存
   searchKeyword.value = ''
   searchCategoryId.value = null
   advMinPrice.value = null
   advMaxPrice.value = null
   showAdvanced.value = false
-  sortField.value = null
-  sortDir.value = null
+  sortField.value = 'createdAt'
+  sortDir.value = 'desc'
   pagination.page = 1
 }
 
 // ── 排序 ──────────────────────────────────────────────────────────
 function toggleSort(field: SortField): void {
+  pagination.page = 1 // 關鍵：切換排序時重置頁碼
+
   if (sortField.value !== field) {
     sortField.value = field
-    sortDir.value = 'asc'
-  } else if (sortDir.value === 'asc') {
-    sortDir.value = 'desc'
+    // 預設行為：價格用 asc，建立時間用 desc
+    sortDir.value = field === 'createdAt' ? 'desc' : 'asc'
   } else {
-    sortField.value = null
-    sortDir.value = null
+    // 同欄位切換方向
+    sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
   }
 }
 
@@ -740,14 +786,17 @@ function getSortIcon(field: SortField): object {
   return sortDir.value === 'asc' ? CaretTop : CaretBottom
 }
 
+// ── 編輯導向 ────────────────────────────────────────────────────
+function handleEdit(id: number): void {
+  router.push({
+    path: `/seller/products/${id}/edit`,
+    query: { fromTab: activeTab.value }
+  })
+}
+
 // ── 卡片更多選單 ──────────────────────────────────────────────────
 async function handleCardCommand(cmd: string, product: SellerProduct): Promise<void> {
   switch (cmd) {
-    case 'copy':
-      // TODO: 呼叫 POST /api/seller/products/{id}/copy 複製商品
-      console.log('[TODO] POST /api/seller/products/' + product.id + '/copy')
-      ElMessage.info('複製功能待後端 API 實作')
-      break
     case 'preview':
       window.open(`/product/${product.id}`, '_blank')
       break
@@ -867,6 +916,12 @@ function saveStockAlert(): void {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────
+function formatDate(dateString: string | undefined): string {
+  if (!dateString) return '—'
+  const d = new Date(dateString)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
+
 const STATUS_LABEL: Record<ProductStatus, string> = {
   on: '架上', off: '下架', deleted: '已刪除', review: '審核中', rejected: '已退回', draft: '草稿',
 }
@@ -919,24 +974,11 @@ function getStatusTagType(status: ProductStatus): 'success' | 'warning' | 'dange
 :deep(.level1-tabs .el-tabs__item.is-active)  { color: #ee4d2d; font-weight: 700; }
 :deep(.level1-tabs .el-tabs__item:hover)      { color: #ee4d2d; }
 
-/* ─ 二級 Tab ──────────────────────────────────────────────────── */
-.level2-wrap {
-  background: #f8fafc;
-  border-top: 1px solid #f1f5f9;
-  padding: 0 20px;
-}
-:deep(.level2-tabs .el-tabs__nav-wrap::after) { display: none; }
-:deep(.level2-tabs .el-tabs__active-bar)      { background: #ee4d2d; height: 2px; }
-:deep(.level2-tabs .el-tabs__item.is-active)  { color: #ee4d2d; font-weight: 600; }
-:deep(.level2-tabs .el-tabs__item:hover)      { color: #ee4d2d; }
-:deep(.level2-tabs .el-tabs__header)          { margin: 0; }
-
 .tab-count {
   font-size: 12px;
   color: #94a3b8;
   margin-left: 3px;
 }
-.tab-count-orange { color: #ee4d2d; }
 
 /* ─ 搜尋列 ─────────────────────────────────────────────────────── */
 .search-section {
@@ -1139,6 +1181,13 @@ function getStatusTagType(status: ProductStatus): 'success' | 'warning' | 'dange
   gap: 8px;
   font-size: 11px;
   color: #94a3b8;
+}
+.card-date {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed #f1f5f9;
 }
 
 .card-footer {

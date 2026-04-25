@@ -8,6 +8,7 @@ export type StoreStatus = 'NotApplied' | 'Pending' | 'Approved' | 'Rejected' | '
 
 export interface StoreStatusResponse {
   status: StoreStatus
+  isBanned: boolean // TODO: 需要後端在 GET /api/front/store/status 回傳此欄位
 }
 
 export interface StoreProfileData {

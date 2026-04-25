@@ -187,7 +187,7 @@ import {
   ArrowDown, House, SwitchButton, WarningFilled,
   DataAnalysis, Box, List, Plus, Document, RefreshLeft,
   PriceTag, StarFilled, Ticket, TrendCharts, Histogram, DataLine,
-  ChatDotRound, DArrowLeft, DArrowRight, Setting
+  ChatDotRound, DArrowLeft, DArrowRight, Setting, WarningFilled
 } from '@element-plus/icons-vue'
 import { useAuthStore } from '../stores/auth'
 import { getStoreStatusApi } from '../api/store'
@@ -196,6 +196,11 @@ import SupportTicketsView from '../views/member/SupportTicketsView.vue'
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const sellerStore = useSellerStore()
+
+onMounted(() => {
+  void sellerStore.fetchBanStatus()
+})
 
 const isCollapsed = ref<boolean>(false)
 const isSuspended = ref<boolean>(false)

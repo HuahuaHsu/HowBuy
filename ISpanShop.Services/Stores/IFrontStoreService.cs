@@ -12,6 +12,7 @@ namespace ISpanShop.Services.Stores
         Task<FrontSellerDashboardDto> GetDashboardDataAsync(int userId);
         Task<bool> ApplyStoreAsync(int userId, StoreApplyRequestDto dto);
         Task<string> GetStoreStatusAsync(int userId); // 回傳狀態：NotApplied, Pending, Approved, Rejected
+        Task<(string Status, bool IsBanned)> GetStoreStatusDetailAsync(int userId);
         Task<UpdateStoreInfoRequestDto> GetStoreInfoAsync(int userId);
         Task<bool> UpdateStoreInfoAsync(int userId, UpdateStoreInfoRequestDto dto);
         Task<int> GetPendingOrdersCountAsync(int userId);

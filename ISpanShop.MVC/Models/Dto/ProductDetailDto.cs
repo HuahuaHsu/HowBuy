@@ -27,6 +27,9 @@ namespace ISpanShop.MVC.Models.Dto
         public int ReviewCount { get; set; }
         public bool IsOnShelf { get; set; }
         public DateTime? CreatedAt { get; set; }
+        public int ViewCount { get; set; }
+        /// <summary>分類動態屬性 JSON（由賣家設定，格式：[{"AttributeId":1,"OptionId":2,"CustomValue":null}]）</summary>
+        public string? AttributesJson { get; set; }
     }
 
     public class CategoryPathItemDto
