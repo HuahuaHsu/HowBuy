@@ -4,10 +4,11 @@ export interface StoreApplyRequest {
   logoUrl?: string
 }
 
-export type StoreStatus = 'NotApplied' | 'Pending' | 'Approved' | 'Rejected'
+export type StoreStatus = 'NotApplied' | 'Pending' | 'Approved' | 'Rejected' | 'Suspended'
 
 export interface StoreStatusResponse {
   status: StoreStatus
+  isBanned: boolean // TODO: 需要後端在 GET /api/front/store/status 回傳此欄位
 }
 
 export interface StoreProfileData {
@@ -62,6 +63,7 @@ export interface SellerOrder {
   status: number
   statusName: string
   buyerName: string
+  buyerId: number
   recipientName: string
   firstProductName: string
   firstProductImage: string
@@ -91,6 +93,7 @@ export interface SellerOrderDetail {
   totalAmount: number
   shippingFee: number
   discountAmount: number
+  levelDiscount?: number // 會員等級折抵
   pointDiscount: number
   finalAmount: number
 
@@ -134,5 +137,14 @@ export interface SellerReturnDetail {
   statusName: string
   imageUrls: string[]
   buyerAccount: string
+
+  // 訂單財務資訊
+  totalAmount: number
+  shippingFee: number | null
+  levelDiscount: number | null
+  discountAmount: number | null
+  pointDiscount: number | null
+  finalAmount: number
+
   items: SellerOrderItem[]
 }

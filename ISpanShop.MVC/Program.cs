@@ -154,6 +154,7 @@ namespace ISpanShop.MVC
 			builder.Services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
 			builder.Services.AddScoped<IMemberRepository, MemberRepository>();
 			builder.Services.AddScoped<IMemberService, MemberService>();
+			builder.Services.AddScoped<IMemberLevelService, MemberLevelService>();
 			builder.Services.AddScoped<IAddressRepository, AddressRepository>();
 			builder.Services.AddScoped<IAddressService, AddressService>();
 			builder.Services.AddScoped<IPointRepository, PointRepository>();
@@ -182,6 +183,7 @@ namespace ISpanShop.MVC
 			builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 			builder.Services.AddScoped<IOrderService, OrderService>();
 			builder.Services.AddScoped<IFrontOrderService, FrontOrderService>();
+			builder.Services.AddScoped<ICartService, CartService>();
 			builder.Services.AddScoped<IOrderDashboardService, OrderDashboardService>();
 			builder.Services.AddScoped<IOrderReviewRepository, OrderReviewRepository>();
 			builder.Services.AddScoped<IOrderReviewService, OrderReviewService>();

@@ -30,7 +30,7 @@ namespace ISpanShop.Services.Payments
 			_couponService = couponService;
 		}
 
-		public async Task<(bool IsSuccess, string Message, string? OrderNumber)> CreateOrderAsync(CheckoutRequestDTO dto)
+		public async Task<(bool IsSuccess, string Message, string? OrderNumber)> CreateOrderAsync(CheckoutRequestDto dto)
 		{
 			var strategy = _context.Database.CreateExecutionStrategy();
 
@@ -45,6 +45,7 @@ namespace ISpanShop.Services.Payments
 						decimal shippingFee = 60;
 						decimal pointDiscountAmount = 0;
 						decimal couponDiscountAmount = 0;
+						decimal levelDiscountAmount = dto.LevelDiscount ?? 0;
 						Coupon? coupon = null;
 
 						var orderNumber = "ORD" + DateTime.Now.ToString("yyyyMMddHHmmss");
@@ -77,13 +78,14 @@ namespace ISpanShop.Services.Payments
 							}
 						}
 
-						// --- C. 處理點數折抵邏輯 (在扣除優惠券後的剩餘金額基礎上折抵) ---
-						decimal remainingAmount = subtotal - couponDiscountAmount;
+						// --- C. 處理點數折抵邏輯 (在扣除優惠券與等級折扣後的剩餘金額基礎上折抵) ---
+						decimal totalDiscountAmount = couponDiscountAmount + levelDiscountAmount;
+						decimal remainingAmount = subtotal - totalDiscountAmount;
 
 						if (dto.UsePoints)
 						{
 							int balance = await _pointService.GetBalanceAsync(dto.UserId);
-							pointDiscountAmount = Math.Min(balance, remainingAmount);
+							pointDiscountAmount = Math.Min(balance, Math.Max(0, remainingAmount));
 
 							if (pointDiscountAmount > 0)
 							{
@@ -110,9 +112,16 @@ namespace ISpanShop.Services.Payments
 
 						// 檢查賣場狀態
 						var store = await _context.Stores.AsNoTracking().FirstOrDefaultAsync(s => s.Id == effectiveStoreId);
-						if (store != null && store.StoreStatus == 2)
+						if (store != null)
 						{
-							return (false, "該賣場目前休假中，暫時無法接受下單", null);
+							if (store.StoreStatus == 2)
+							{
+								return (false, "該賣場目前休假中，暫時無法接受下單", null);
+							}
+							if (store.StoreStatus == 3)
+							{
+								return (false, "該賣場已被停權，目前無法接受新訂單，請聯繫客服", null);
+							}
 						}
 
 						var order = new Order
@@ -123,9 +132,10 @@ namespace ISpanShop.Services.Payments
 							TotalAmount = subtotal,
 							ShippingFee = shippingFee,
 							CouponId = dto.CouponId,
-							DiscountAmount = couponDiscountAmount, // 優惠券折扣
+							DiscountAmount = couponDiscountAmount, // 僅存優惠券折扣
+							LevelDiscount = levelDiscountAmount,   // 存入會員等級折扣
 							PointDiscount = (int)pointDiscountAmount, // 點數折扣
-							FinalAmount = (subtotal + shippingFee) - couponDiscountAmount - pointDiscountAmount,
+							FinalAmount = (subtotal + shippingFee) - totalDiscountAmount - pointDiscountAmount,
 							Status = 0, // 0: 待付款
 							RecipientName = dto.RecipientName,
 							RecipientPhone = dto.RecipientPhone,
@@ -149,10 +159,10 @@ namespace ISpanShop.Services.Payments
 							decimal itemSubtotal = item.UnitPrice * item.Quantity;
 							decimal? allocatedDiscount = null;
 
-							if (subtotal > 0 && couponDiscountAmount > 0)
+							if (subtotal > 0 && totalDiscountAmount > 0)
 							{
-								// 依小計比例分攤優惠券折扣
-								allocatedDiscount = Math.Round((itemSubtotal / subtotal) * couponDiscountAmount, 2);
+								// 依小計比例分攤折扣 (包含優惠券與等級折扣)
+								allocatedDiscount = Math.Round((itemSubtotal / subtotal) * totalDiscountAmount, 2);
 							}
 
 							_context.OrderDetails.Add(new OrderDetail
@@ -184,6 +194,26 @@ namespace ISpanShop.Services.Payments
 						};
 
 						_context.PaymentLogs.Add(paymentLog);
+
+						// --- H. 清除已結帳的購物車商品 (確保不會重複結帳) ---
+						var cart = await _context.Carts
+							.Include(c => c.CartItems)
+							.FirstOrDefaultAsync(c => c.UserId == dto.UserId);
+							
+						if (cart != null && dto.Items.Any())
+						{
+							foreach (var item in dto.Items)
+							{
+								var cartItem = cart.CartItems.FirstOrDefault(ci => 
+									ci.ProductId == item.ProductId && 
+									(ci.VariantId == (item.VariantId ?? 0) || ci.VariantId == item.VariantId));
+									
+								if (cartItem != null)
+								{
+									_context.CartItems.Remove(cartItem);
+								}
+							}
+						}
 
 						await _context.SaveChangesAsync();
 						await transaction.CommitAsync();

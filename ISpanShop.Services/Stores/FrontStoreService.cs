@@ -105,8 +105,19 @@ namespace ISpanShop.Services.Stores
                     .CountAsync(p => p.StoreId == storeId && p.IsDeleted != true),
 
                 LowStockCount = await _context.ProductVariants
-                    .CountAsync(v => v.Product.StoreId == storeId && v.IsDeleted != true && v.Stock <= 10)
+                    .CountAsync(v => v.Product.StoreId == storeId && v.IsDeleted != true && v.Stock <= 10),
+
+                TotalViews = await _context.Products
+                    .Where(p => p.StoreId == storeId && p.IsDeleted != true)
+                    .SumAsync(p => p.ViewCount ?? 0)
             };
+
+            // 計算轉換率
+            int totalOrders = kpis.TotalOrders;
+            int totalViews = kpis.TotalViews;
+            kpis.ConversionRate = totalViews > 0 
+                ? ((double)totalOrders / totalViews).ToString("P2") 
+                : "0.00%";
 
             // 2. 銷售趨勢 (近 7 日)
             var endDate = DateTime.Today.AddDays(1);
@@ -130,28 +141,29 @@ namespace ISpanShop.Services.Stores
             }
             salesTrend.Series.Add(series);
 
-            // 3. 熱銷商品排行 (前 5 名)
+            // 3. 熱銷商品排行 (前 10 名)
             var topProducts = await _context.OrderDetails
                 .Include(od => od.Order)
                 .Where(od => od.Order.StoreId == storeId && od.Order.Status == (byte)OrderStatus.Completed)
-                .GroupBy(od => od.ProductName)
+                .GroupBy(od => new { od.ProductId, od.ProductName })
                 .Select(g => new TopProductSalesDto
                 {
-                    ProductName = g.Key,
+                    ProductId = g.Key.ProductId,
+                    ProductName = g.Key.ProductName,
                     SalesVolume = g.Sum(od => od.Quantity),
                     SalesRevenue = g.Sum(od => (od.Price ?? 0) * od.Quantity)
                 })
                 .OrderByDescending(p => p.SalesVolume)
-                .Take(5)
+                .Take(10)
                 .ToListAsync();
 
-            // 4. 近期訂單 (前 5 筆)
+            // 4. 近期訂單 (前 10 筆)
             var recentOrders = await _context.Orders
                 .Include(o => o.User)
                 .Include(o => o.OrderDetails)
                 .Where(o => o.StoreId == storeId)
                 .OrderByDescending(o => o.CreatedAt)
-                .Take(5)
+                .Take(10)
                 .Select(o => new RecentOrderDto
                 {
                     OrderId = o.Id,
@@ -217,8 +229,25 @@ namespace ISpanShop.Services.Stores
 
             if (store == null) return "NotApplied";
             if (store.IsVerified == null) return "Pending";
+            if (store.StoreStatus == 3) return "Suspended";
 
             return store.IsVerified.Value ? "Approved" : "Rejected";
+        }
+
+        public async Task<(string Status, bool IsBanned)> GetStoreStatusDetailAsync(int userId)
+        {
+            var store = await _context.Stores
+                .Include(s => s.User)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.UserId == userId);
+
+            string status;
+            if (store == null) status = "NotApplied";
+            else if (store.IsVerified == null) status = "Pending";
+            else status = store.IsVerified.Value ? "Approved" : "Rejected";
+
+            bool isBanned = (store?.User?.IsBlacklisted == true) || (store?.StoreStatus == 3);
+            return (status, isBanned);
         }
 
         public async Task<UpdateStoreInfoRequestDto> GetStoreInfoAsync(int userId)
@@ -342,8 +371,9 @@ namespace ISpanShop.Services.Stores
                     CreatedAt = o.CreatedAt,
                     FinalAmount = o.FinalAmount,
                     Status = (OrderStatus)o.Status,
-                    StatusName = ((OrderStatus)o.Status).GetDisplayName(),
+                    StatusName = GetStatusName(o.Status),
                     BuyerName = o.User?.Account ?? "未知買家",
+                    BuyerId = o.UserId,
                     RecipientName = o.RecipientName,
                     FirstProductName = firstDetail?.ProductName,
                     FirstProductImage = image,
@@ -425,6 +455,7 @@ namespace ISpanShop.Services.Stores
                 TotalAmount = order.TotalAmount,
                 ShippingFee = order.ShippingFee,
                 DiscountAmount = order.DiscountAmount,
+                LevelDiscount = order.LevelDiscount,
                 PointDiscount = order.PointDiscount,
                 FinalAmount = order.FinalAmount,
 
@@ -527,9 +558,11 @@ namespace ISpanShop.Services.Stores
 
             var order = await _context.Orders
                 .Include(o => o.User)
-                .Include(o => o.OrderDetails)
                 .Include(o => o.ReturnRequests)
                     .ThenInclude(r => r.ReturnRequestImages)
+                .Include(o => o.ReturnRequests)
+                    .ThenInclude(r => r.ReturnRequestItems)
+                        .ThenInclude(ri => ri.OrderDetail)
                 .FirstOrDefaultAsync(o => o.Id == orderId && o.StoreId == store.Id);
 
             if (order == null || !order.ReturnRequests.Any()) throw new Exception("找不到該筆退貨申請");
@@ -553,17 +586,44 @@ namespace ISpanShop.Services.Stores
                 ImageUrls = latestReturn.ReturnRequestImages.Select(img => img.ImageUrl).ToList(),
                 BuyerAccount = order.User?.Account ?? "未知",
 
-                Items = order.OrderDetails.Select(od => new SellerOrderItemDto
-                {
-                    Id = od.Id,
-                    ProductId = od.ProductId,
-                    VariantId = od.VariantId,
-                    ProductName = od.ProductName,
-                    VariantName = od.VariantName,
-                    SkuCode = od.SkuCode,
-                    CoverImage = od.CoverImage, // 詳情頁面可再優化圖片抓取，先簡單處理
-                    Price = od.Price ?? 0,
-                    Quantity = od.Quantity
+                TotalAmount = order.TotalAmount,
+                ShippingFee = order.ShippingFee,
+                LevelDiscount = order.LevelDiscount,
+                DiscountAmount = order.DiscountAmount,
+                PointDiscount = order.PointDiscount,
+                FinalAmount = order.FinalAmount,
+
+                // 關鍵：這裡只列出「退貨品項」及其數量
+                Items = latestReturn.ReturnRequestItems.Select(ri => {
+                    string image = ri.OrderDetail.CoverImage;
+                    
+                    // [優化] 若訂單明細無快照圖，嘗試抓取商品目前的主圖
+                    if (string.IsNullOrEmpty(image))
+                    {
+                        image = _context.ProductImages
+                            .Where(pi => pi.ProductId == ri.OrderDetail.ProductId && pi.IsMain == true)
+                            .Select(pi => pi.ImageUrl)
+                            .FirstOrDefault();
+                    }
+
+                    // 確保路徑格式正確
+                    if (!string.IsNullOrEmpty(image) && !image.StartsWith("http") && !image.StartsWith("/"))
+                    {
+                        image = "/" + image;
+                    }
+
+                    return new SellerOrderItemDto
+                    {
+                        Id = ri.OrderDetailId,
+                        ProductId = ri.OrderDetail.ProductId,
+                        VariantId = ri.OrderDetail.VariantId,
+                        ProductName = ri.OrderDetail.ProductName,
+                        VariantName = ri.OrderDetail.VariantName,
+                        SkuCode = ri.OrderDetail.SkuCode,
+                        CoverImage = image,
+                        Price = ri.OrderDetail.Price ?? 0,
+                        Quantity = ri.Quantity // 這是退貨的數量
+                    };
                 }).ToList()
             };
         }
@@ -601,6 +661,21 @@ namespace ISpanShop.Services.Stores
 
             _context.Orders.Update(order);
             return await _context.SaveChangesAsync() > 0;
+        }
+
+        private string GetStatusName(byte? status)
+        {
+            return status switch
+            {
+                0 => "待付款",
+                1 => "待出貨",
+                2 => "運送中",
+                3 => "已完成",
+                4 => "已取消",
+                5 => "退貨/款中",
+                6 => "已退款",
+                _ => "未知"
+            };
         }
     }
 }

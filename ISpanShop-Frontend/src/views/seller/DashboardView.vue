@@ -8,7 +8,7 @@
     <!-- 區塊 A：頂部統計卡片 -->
     <el-row :gutter="16" class="stat-cards">
       <el-col :xs="24" :sm="12" :lg="6" v-for="stat in statCards" :key="stat.label">
-        <el-card class="stat-card" shadow="never">
+        <el-card class="stat-card clickable-card" shadow="never" @click="router.push(stat.route)">
           <div class="stat-inner">
             <div class="stat-icon" :style="{ background: stat.iconBg }">
               <el-icon :size="22" :color="stat.iconColor">
@@ -29,7 +29,6 @@
               <div class="stat-label">{{ stat.label }}</div>
             </div>
           </div>
-          <!-- TODO: 呼叫後端 GET /api/seller/dashboard/stats 取得真實數據 -->
         </el-card>
       </el-col>
     </el-row>
@@ -47,17 +46,21 @@
           </div>
         </div>
       </template>
-      <!-- TODO: 呼叫後端 GET /api/seller/dashboard/analytics 取得真實數據 -->
       <el-row :gutter="0" class="analytics-row">
         <el-col
           v-for="metric in analyticsMetrics"
           :key="metric.label"
-          :xs="12" :sm="8" :lg="metric.wide ? 6 : 4"
+          :xs="12" :sm="12" :lg="6"
           class="metric-col"
         >
           <div class="metric-item">
             <div class="metric-value">{{ metric.value }}</div>
-            <div class="metric-label">{{ metric.label }}</div>
+            <div class="metric-label">
+              {{ metric.label }}
+              <el-tooltip v-if="metric.hasTooltip" :content="metric.tooltip" placement="top">
+                <el-icon class="info-icon"><QuestionFilled /></el-icon>
+              </el-tooltip>
+            </div>
           </div>
         </el-col>
       </el-row>
@@ -86,12 +89,16 @@
     <el-card class="recent-orders" shadow="never">
       <template #header>
         <div class="card-header">
-          <span class="card-title">📋 近期訂單</span>
+          <span class="card-title">📋 近期訂單 (前 10 筆)</span>
           <el-button text type="primary" @click="router.push('/seller/orders')">查看全部</el-button>
         </div>
       </template>
-      <!-- TODO: 呼叫後端 GET /api/seller/orders?pageSize=5&page=1 取得真實訂單 -->
-      <el-table :data="recentOrders" stripe class="orders-table">
+      <el-table 
+        :data="recentOrders" 
+        stripe 
+        class="orders-table clickable-table"
+        @row-click="handleRowClick"
+      >
         <el-table-column prop="orderNumber" label="訂單編號" min-width="200" class-name="no-wrap" />
         <el-table-column prop="buyerName" label="買家" min-width="150" class-name="no-wrap" />
         <el-table-column prop="amount" label="金額" min-width="140">
@@ -117,7 +124,7 @@ import { useRouter } from 'vue-router'
 import {
   Document, Box, WarningFilled,
   CaretTop, CaretBottom,
-  Plus, List, StarFilled, DataLine
+  Plus, List, StarFilled, DataLine, QuestionFilled
 } from '@element-plus/icons-vue'
 import { getStoreStatusApi, getSellerDashboardApi } from '@/api/store'
 import { useAuthStore } from '@/stores/auth'
@@ -129,20 +136,21 @@ const authStore = useAuthStore()
 
 const loading = ref(false)
 const dashboardData = ref<SellerDashboardData | null>(null)
+const isRedirecting = ref(false)
 
 /** 安全性複核：確保使用者確實具備賣家身分 */
 const checkAccess = async () => {
+  if (isRedirecting.value) return
   loading.value = true
   try {
     const res = await getStoreStatusApi()
     if (res.data.status !== 'Approved') {
+      isRedirecting.value = true
       authStore.updateSellerStatus(false)
       ElMessage.warning('您的賣家權限已變更')
-      router.replace('/member/mystore')
+      await router.replace('/member/mystore')
       return
     }
-    
-    // 取得儀表板數據
     const dashboardRes = await getSellerDashboardApi()
     dashboardData.value = dashboardRes.data
   } catch (error) {
@@ -174,6 +182,7 @@ const statCards = computed(() => {
       icon: Document,
       iconBg: '#fff7ed',
       iconColor: '#ee4d2d',
+      route: '/seller/orders'
     },
     {
       label: '待審核退貨',
@@ -182,6 +191,7 @@ const statCards = computed(() => {
       icon: List,
       iconBg: '#f0fdf4',
       iconColor: '#22c55e',
+      route: '/seller/returns'
     },
     {
       label: '低庫存警告',
@@ -190,6 +200,7 @@ const statCards = computed(() => {
       icon: WarningFilled,
       iconBg: '#fef9c3',
       iconColor: '#eab308',
+      route: '/seller/products'
     },
     {
       label: '已上架商品',
@@ -198,6 +209,7 @@ const statCards = computed(() => {
       icon: Box,
       iconBg: '#eff6ff',
       iconColor: '#3b82f6',
+      route: '/seller/products'
     }
     ]
     })
@@ -206,18 +218,22 @@ const statCards = computed(() => {
 const analyticsMetrics = computed(() => {
   const kpis = dashboardData.value?.kpis
   return [
-    { label: '總累積營收', value: `NT$ ${kpis?.totalRevenue?.toLocaleString() || '0'}`, wide: true },
-    { label: '不重複訪客數', value: '0', wide: false },
-    { label: '商品點擊數', value: '0', wide: false },
-    { label: '訂單數', value: kpis?.totalOrders?.toString() || '0', wide: false },
-    { label: '訂單轉換率', value: '0.00%', wide: false },
+    { label: '總累積營收', value: `NT$ ${kpis?.totalRevenue?.toLocaleString() || '0'}` },
+    { label: '商品點擊數', value: kpis?.totalViews?.toLocaleString() || '0' },
+    { label: '訂單數', value: kpis?.totalOrders?.toLocaleString() || '0' },
+    { 
+      label: '訂單轉換率', 
+      value: kpis?.conversionRate || '0.00%', 
+      hasTooltip: true,
+      tooltip: '計算公式：(總訂單數 / 商品總瀏覽數) x 100%。反映進店訪客轉化為實際買家的比例。'
+    },
   ]
 })
 
 // 區塊 C 快捷操作
 const quickActions = [
-  { label: '新增商品', route: '/seller/products/new', icon: Plus,      bg: '#fff7ed', color: '#ee4d2d' },
-  { label: '查看訂單', route: '/seller/orders',        icon: List,      bg: '#f0fdf4', color: '#22c55e' },
+  { label: '新增商品', route: '/seller/products/new', icon: Plus,       bg: '#fff7ed', color: '#ee4d2d' },
+  { label: '查看訂單', route: '/seller/orders',        icon: List,       bg: '#f0fdf4', color: '#22c55e' },
   { label: '建立活動', route: '/seller/promotions',    icon: StarFilled, bg: '#fef9c3', color: '#eab308' },
   { label: '查看數據', route: '/seller/analytics/sales', icon: DataLine, bg: '#eff6ff', color: '#3b82f6' },
 ]
@@ -226,6 +242,10 @@ const quickActions = [
 const recentOrders = computed(() => {
   return dashboardData.value?.recentOrders || []
 })
+
+const handleRowClick = (row: any) => {
+  router.push(`/seller/orders/${row.orderId}`)
+}
 
 function statusTagType(status: string): 'success' | 'warning' | 'danger' | 'info' {
   const map: Record<string, 'success' | 'warning' | 'danger' | 'info'> = {
@@ -271,6 +291,16 @@ function statusTagType(status: string): 'success' | 'warning' | 'danger' | 'info
   height: 100px;
   display: flex;
   align-items: center;
+}
+
+.clickable-card {
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.clickable-card:hover {
+  border-color: #ee4d2d !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
 }
 :deep(.el-card__body) {
   width: 100%;
@@ -350,6 +380,18 @@ function statusTagType(status: string): 'success' | 'warning' | 'danger' | 'info
   font-size: 12px;
   color: #64748b;
   margin-top: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.info-icon {
+  font-size: 14px;
+  color: #94a3b8;
+  cursor: help;
+}
+.info-icon:hover {
+  color: #ee4d2d;
 }
 
 /* 快捷操作 */
@@ -395,9 +437,14 @@ function statusTagType(status: string): 'success' | 'warning' | 'danger' | 'info
 }
 .orders-table { width: 100%; }
 
+.clickable-table :deep(.el-table__row) {
+  cursor: pointer;
+}
+
 :deep(.no-wrap),
 :deep(.no-wrap .cell) {
   white-space: nowrap !important;
   word-break: keep-all !important;
 }
+
 </style>

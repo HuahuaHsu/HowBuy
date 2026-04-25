@@ -11,36 +11,38 @@
     <div class="three-column-layout">
       <!-- 左側:填寫建議 -->
       <aside class="left-sidebar">
-        <div class="tips-card">
-          <div class="tips-header">填寫建議</div>
-          <div class="tips-list">
-            <div class="tip-item" :class="{ completed: isImageComplete }">
-              <el-icon class="tip-icon">
-                <CircleCheck v-if="isImageComplete" />
-                <CircleClose v-else />
-              </el-icon>
-              <span>新增至少 3 張圖片</span>
-            </div>
-            <div class="tip-item" :class="{ completed: isNameComplete }">
-              <el-icon class="tip-icon">
-                <CircleCheck v-if="isNameComplete" />
-                <CircleClose v-else />
-              </el-icon>
-              <span>商品名稱的字數需介於 5~100</span>
-            </div>
-            <div class="tip-item" :class="{ completed: isDescriptionComplete }">
-              <el-icon class="tip-icon">
-                <CircleCheck v-if="isDescriptionComplete" />
-                <CircleClose v-else />
-              </el-icon>
-              <span>商品描述需填入至少 100 個文字或是 1 張圖片</span>
-            </div>
-            <div class="tip-item" :class="{ completed: isBrandComplete }">
-              <el-icon class="tip-icon">
-                <CircleCheck v-if="isBrandComplete" />
-                <CircleClose v-else />
-              </el-icon>
-              <span>新增品牌資訊</span>
+        <div class="sticky-wrapper">
+          <div class="tips-card">
+            <div class="tips-header">填寫建議</div>
+            <div class="tips-list">
+              <div class="tip-item" :class="{ completed: isImageComplete }">
+                <el-icon class="tip-icon">
+                  <CircleCheck v-if="isImageComplete" />
+                  <CircleClose v-else />
+                </el-icon>
+                <span>新增至少 3 張圖片</span>
+              </div>
+              <div class="tip-item" :class="{ completed: isNameComplete }">
+                <el-icon class="tip-icon">
+                  <CircleCheck v-if="isNameComplete" />
+                  <CircleClose v-else />
+                </el-icon>
+                <span>商品名稱的字數需介於 5~100</span>
+              </div>
+              <div class="tip-item" :class="{ completed: isDescriptionComplete }">
+                <el-icon class="tip-icon">
+                  <CircleCheck v-if="isDescriptionComplete" />
+                  <CircleClose v-else />
+                </el-icon>
+                <span>商品描述需填入至少 100 個文字或是 1 張圖片</span>
+              </div>
+              <div class="tip-item" :class="{ completed: isBrandComplete }">
+                <el-icon class="tip-icon">
+                  <CircleCheck v-if="isBrandComplete" />
+                  <CircleClose v-else />
+                </el-icon>
+                <span>新增品牌資訊</span>
+              </div>
             </div>
           </div>
         </div>
@@ -61,7 +63,17 @@
           </div>
         </div>
 
-        <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
+        <el-form ref="formRef" :model="form" :rules="rules" label-position="top" :disabled="isUnderReview">
+          <!-- 審核中提示 (status=2) -->
+          <el-alert
+            v-if="isUnderReview"
+            type="warning"
+            :closable="false"
+            show-icon
+            title="商品審核中，暫時無法編輯"
+            style="margin-bottom: 20px;"
+          />
+
           <!-- 退回原因提示 (status=3) -->
           <el-alert
             v-if="isEditMode && productData?.status === 3 && productData?.rejectReason"
@@ -100,13 +112,14 @@
                 <span class="image-count">({{ form.images.length }}/9)</span>
               </template>
               <el-upload
-                v-model:file-list="form.images"
+                :file-list="form.images"
                 list-type="picture-card"
                 :limit="9"
                 :auto-upload="false"
                 accept=".jpg,.jpeg,.png,.webp"
                 :on-exceed="handleImageExceed"
                 :on-change="handleImageChange"
+                :on-remove="handleImageRemove"
                 draggable
               >
                 <el-icon><Plus /></el-icon>
@@ -198,10 +211,11 @@
                   <el-select
                     v-if="!attr.isMultiple"
                     v-model="form.dynamicAttributes[attr.id]"
-                    :placeholder="`選擇${attr.name}`"
+                    :placeholder="attr.allowCustom !== false ? `選擇或自行輸入${attr.name}` : `選擇${attr.name}`"
                     clearable
-                    filterable
-                    allow-create
+                    :filterable="attr.allowCustom !== false"
+                    :allow-create="attr.allowCustom !== false"
+                    default-first-option
                     :reserve-keyword="false"
                     style="width: 100%"
                   >
@@ -219,10 +233,11 @@
                     v-model="form.dynamicAttributes[attr.id]"
                     multiple
                     :multiple-limit="attr.maxSelect || 5"
-                    :placeholder="`選擇${attr.name}（最多${attr.maxSelect || 5}個）`"
+                    :placeholder="attr.allowCustom !== false ? `選擇或多個輸入${attr.name}` : `選擇${attr.name}（最多${attr.maxSelect || 5}個）`"
                     clearable
-                    filterable
-                    allow-create
+                    :filterable="attr.allowCustom !== false"
+                    :allow-create="attr.allowCustom !== false"
+                    default-first-option
                     :reserve-keyword="false"
                     style="width: 100%"
                   >
@@ -245,25 +260,30 @@
               <template #label>
                 <span class="required-label">* 商品描述</span>
               </template>
-              <div class="description-toolbar">
-                <el-button size="small" @click="handleAddDescriptionImage">
-                  <el-icon><Picture /></el-icon>
-                  新增圖片 ({{ descriptionImageCount }}/12)
-                </el-button>
-                <span class="char-count">{{ form.description.length }}/3000</span>
+              <div class="description-editor-container">
+                <!-- 隱藏的檔案輸入框 (由 Quill 圖片按鈕觸發) -->
+                <input
+                  ref="descImageInput"
+                  type="file"
+                  accept="image/*"
+                  style="display: none"
+                  @change="handleDescriptionImageFileChange"
+                />
+
+                <QuillEditor
+                  v-if="!loading"
+                  ref="quillEditorRef"
+                  v-model:content="form.description"
+                  content-type="html"
+                  :options="editorOptions"
+                  placeholder="請輸入詳細的商品描述，展示商品特色..."
+                  class="description-quill"
+                />
               </div>
-              <el-input
-                v-model="form.description"
-                type="textarea"
-                :rows="10"
-                placeholder="請輸入商品描述或點選以新增圖片"
-                maxlength="3000"
-              />
-              <div class="form-hint">
-                建議至少 100 字。TODO: 之後可換成 Tiptap 或 Quill 富文字編輯器
+              <div class="description-hint">
+                建議至少 100 字。
               </div>
-            </el-form-item>
-          </section>
+            </el-form-item>          </section>
 
           <!-- 銷售資訊 -->
           <section id="section-sales" class="form-section">
@@ -503,12 +523,13 @@
 
       <!-- 右側:即時預覽 -->
       <aside class="right-sidebar">
-        <div class="preview-card">
-          <div class="preview-header">
-            <div class="preview-title">預覽</div>
-            <div class="preview-subtitle">商品詳情</div>
-          </div>
-          <div class="preview-content">
+        <div class="sticky-wrapper">
+          <div class="preview-card">
+            <div class="preview-header">
+              <div class="preview-title">預覽</div>
+              <div class="preview-subtitle">商品詳情</div>
+            </div>
+            <div class="preview-content">
             <!-- 主圖輪播 -->
             <div class="preview-image">
               <el-carousel
@@ -548,40 +569,27 @@
 
             <!-- 屬性 -->
             <div class="preview-attrs">
-              <div v-if="form.attributes.brandId" class="attr-item">
-                <span class="attr-label">品牌:</span>
-                <span class="attr-value">{{ getBrandName(form.attributes.brandId) }}</span>
-              </div>
               <div v-if="form.categoryPath" class="attr-item">
                 <span class="attr-label">種類:</span>
                 <span class="attr-value">{{ form.categoryPath }}</span>
               </div>
-              <div v-if="form.attributes.productType" class="attr-item">
-                <span class="attr-label">商品種類:</span>
-                <span class="attr-value">{{ form.attributes.productType }}</span>
+              <div v-if="form.attributes.brandId" class="attr-item">
+                <span class="attr-label">品牌:</span>
+                <span class="attr-value">{{ getBrandName(form.attributes.brandId) }}</span>
               </div>
-              <div v-if="form.attributes.materials.length > 0" class="attr-item">
-                <span class="attr-label">材質:</span>
-                <span class="attr-value">{{ form.attributes.materials.join('、') }}</span>
+              <!-- 動態屬性預覽 -->
+              <div v-for="attr in previewAttributes" :key="attr.label" class="attr-item">
+                <span class="attr-label">{{ attr.label }}:</span>
+                <span class="attr-value">{{ attr.value }}</span>
               </div>
               <div v-if="specsEnabled && variants.length > 0" class="attr-item">
                 <span class="attr-label">規格:</span>
-                <span class="attr-value">{{ variants.length }} 個規格可用</span>
+                <span class="attr-value">{{ variants.length }} 個組合可用</span>
               </div>
-
-              <!-- 動態屬性預覽 -->
-              <template v-if="filledAttributes.length > 0">
-                <div v-for="item in filledAttributes" :key="item.name" class="attr-item">
-                  <span class="attr-label">{{ item.name }}:</span>
-                  <span class="attr-value">{{ item.displayValue }}</span>
-                </div>
-              </template>
             </div>
 
             <!-- 描述 -->
-            <div class="preview-description">
-              {{ form.description ? form.description.slice(0, 50) + (form.description.length > 50 ? '...' : '') : '商品描述...' }}
-            </div>
+            <div class="preview-description" v-html="form.description || '商品描述...'"></div>
 
             <!-- 底部按鈕 -->
             <div class="preview-actions">
@@ -591,38 +599,41 @@
             </div>
           </div>
         </div>
-      </aside>
-    </div>
+      </div>
+    </aside>
+  </div>
 
     <!-- 底部按鈕列 -->
     <div class="bottom-actions">
       <div class="actions-wrapper">
+        <!-- 取消（永遠顯示） -->
         <el-button @click="handleCancel">取消</el-button>
 
-        <!-- 已退回 (status=3)：只能重新送審 -->
-        <template v-if="isEditMode && productData?.status === 3">
-          <el-button type="primary" :loading="saving" @click="handleSubmit(true)">
-            修改完成，重新送審
-          </el-button>
+        <!-- 情況 6：審核中 → 僅提示，無儲存按鈕 -->
+        <template v-if="isUnderReview">
+          <el-button type="info" disabled>審核中，無法編輯</el-button>
         </template>
 
-        <!-- 已上架 (status=1)：直接儲存，不走送審 -->
-        <template v-else-if="isEditMode && productData?.status === 1">
-          <el-button type="primary" :loading="saving" @click="handleSubmit(false)">
-            儲存修改
-          </el-button>
+        <!-- 情況 1 & 2：新增商品 或 草稿 -->
+        <template v-else-if="isNewProduct || isDraft">
+          <el-button :loading="saving" @click="handleSaveDraft">儲存草稿</el-button>
+          <el-button type="primary" :loading="saving" @click="handleSaveAndSubmit">儲存並送審</el-button>
         </template>
 
-        <!-- 未上架/其他編輯狀態 (status=0,2)：可儲存或送審 -->
-        <template v-else-if="isEditMode">
-          <el-button :loading="saving" @click="handleSubmit(false)">儲存</el-button>
-          <el-button type="primary" :loading="saving" @click="handleSubmit(true)">儲存並送審</el-button>
+        <!-- 情況 3：已上架 → 直接生效 -->
+        <template v-else-if="isOnShelf">
+          <el-button type="primary" :loading="saving" @click="handleSave">儲存修改</el-button>
         </template>
 
-        <!-- 新增商品 -->
-        <template v-else>
-          <el-button :loading="saving" @click="handleSubmit(false)">儲存草稿</el-button>
-          <el-button type="primary" :loading="saving" @click="handleSubmit(true)">儲存並送審</el-button>
+        <!-- 情況 4：賣家自己下架（曾通過審核） → 可儲存或直接上架 -->
+        <template v-else-if="isSelfOffShelf">
+          <el-button :loading="saving" @click="handleSave">儲存</el-button>
+          <el-button type="success" :loading="saving" @click="handleReShelf">上架</el-button>
+        </template>
+
+        <!-- 情況 5：已退回 / 強制下架 → 修改後重新送審 -->
+        <template v-else-if="isRejectedOrForced">
+          <el-button type="primary" :loading="saving" @click="handleSaveAndSubmit">儲存並送審</el-button>
         </template>
       </div>
     </div>
@@ -638,12 +649,15 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules, UploadUserFile, UploadProps, UploadFile } from 'element-plus'
 import { Plus, CircleCheck, CircleClose, ArrowRight, Picture, Close, Delete } from '@element-plus/icons-vue'
+import { QuillEditor } from '@vueup/vue-quill'
+import '@vueup/vue-quill/dist/vue-quill.snow.css'
 import { fetchBrands } from '@/api/brand'
-import { createSellerProduct, addSellerProductVariant, getSellerProductDetail, updateSellerProduct, updateProductImages } from '@/api/product'
+import { createSellerProduct, addSellerProductVariant, getSellerProductDetail, updateSellerProduct, updateProductImages, updateProductStatus, uploadDescriptionImage } from '@/api/product'
 import type { Brand } from '@/types/brand'
+import type { SellerProductDetail } from '@/types/product'
 import { getCategoryAttributes, type CategoryAttribute } from '@/api/categoryAttribute'
 import CategoryPicker from '@/components/seller/CategoryPicker.vue'
 
@@ -654,6 +668,9 @@ const route = useRoute()
 const productId = computed(() => route.params.id ? Number(route.params.id) : null)
 const isEditMode = computed(() => !!productId.value)
 const pageTitle = computed(() => isEditMode.value ? '編輯商品' : '新增商品')
+
+// 從 Query 取得來源 Tab
+const fromTab = computed(() => (route.query.fromTab as string) || 'all')
 
 const tabs = [
   { id: 'section-basic', label: '基本資訊' },
@@ -674,6 +691,7 @@ interface Spec {
 }
 
 interface Variant {
+  id?: number
   spec1: string
   spec2: string | null
   price: number | null
@@ -718,10 +736,42 @@ const loadingAttributes = ref<boolean>(false)
 const currentTab = ref<string>('section-basic')
 const showCategoryPicker = ref<boolean>(false)
 const specsEnabled = ref<boolean>(false)
-const descriptionImageCount = ref<number>(0)
+const descImageInput = ref<HTMLInputElement | null>(null)
+const quillEditorRef = ref<any>(null)
 const currentImageIndex = ref<number>(0)
-const productData = ref<any>(null) // 儲存載入的商品原始資料
+const productData = ref<SellerProductDetail | null>(null)
 const originalImageCount = ref<number>(0) // 記錄載入時的圖片數量
+
+// 編輯器配置
+const editorOptions = {
+  theme: 'snow',
+  modules: {
+    toolbar: {
+      container: [
+        ['bold', 'italic', 'underline', 'strike'],
+        [{ header: 1 }, { header: 2 }],
+        [{ list: 'ordered' }, { list: 'bullet' }],
+        [{ color: [] }, { background: [] }],
+        ['clean'],
+        ['image'], // 保留圖片按鈕，但會被自定義攔截
+      ],
+      handlers: {
+        image: function () {
+          // 攔截點擊圖片按鈕事件，觸發隱藏的 input
+          document.querySelector<HTMLInputElement>('input[ref="descImageInput"]')?.click()
+          // 由於我們使用的是 ref 綁定，這裡直接用我們定義的 handleAddDescriptionImage
+          handleAddDescriptionImage()
+        },
+      },
+    },
+  },
+}
+
+// 描述中的圖片數量 (計算 <img> 標籤)
+const descriptionImageCount = computed(() => {
+  const matches = form.description.match(/<img/g)
+  return matches ? matches.length : 0
+})
 
 const batchPrice = ref<number | null>(null)
 const batchStock = ref<number | null>(null)
@@ -820,6 +870,28 @@ const isNameComplete = computed(() => form.name.length >= 5 && form.name.length 
 const isDescriptionComplete = computed(() => form.description.length >= 100 || descriptionImageCount.value >= 1)
 const isBrandComplete = computed(() => form.attributes.brandId !== null)
 
+// ── 商品狀態判斷 ────────────────────────────────────────────────
+// status: 0=未上架, 1=已上架, 2=待審核, 3=審核退回
+// reviewStatus: 0=待審核, 1=通過, 2=退回, 3=重新送審
+
+const isNewProduct = computed(() => !route.params.id)
+
+const isOnShelf = computed(() => productData.value?.status === 1)
+
+const isUnderReview = computed(() => productData.value?.status === 2)
+
+const isRejectedOrForced = computed(() => productData.value?.status === 3)
+
+const hasBeenApproved = computed(() => productData.value?.reviewStatus === 1)
+
+const isSelfOffShelf = computed(
+  () => productData.value?.status === 0 && hasBeenApproved.value,
+)
+
+const isDraft = computed(
+  () => isEditMode.value && productData.value?.status === 0 && !hasBeenApproved.value,
+)
+
 const filledAttributes = computed(() => {
   return categoryAttributes.value
     .filter(attr => {
@@ -906,11 +978,58 @@ const variants = computed<Variant[]>(() => {
 
 // Sync variant spec combinations → editable variantData, preserving user-entered price/stock/sku
 watch(variants, (newVariants) => {
-  variantData.value = newVariants.map(nv => {
-    const existing = variantData.value.find(v => v.spec1 === nv.spec1 && v.spec2 === nv.spec2)
-    return existing ?? { ...nv }
+  const oldData = [...variantData.value]
+  
+  variantData.value = newVariants.map((nv, idx) => {
+    // 1. 策略 A：完全匹配 (名稱沒變的情況，優先保留)
+    const exactMatch = oldData.find(v => v.spec1 === nv.spec1 && v.spec2 === nv.spec2)
+    if (exactMatch) return { ...exactMatch }
+
+    // 2. 策略 B：智慧合併 (Smart Merge)
+    // 若長度一致，通常代表使用者只是在修改某個選項的文字，我們依索引繼承資料
+    if (oldData.length === newVariants.length) {
+      const prev = oldData[idx]
+      return {
+        ...nv,
+        id: prev.id,       // 關鍵：保留資料庫 ID
+        price: prev.price,
+        stock: prev.stock,
+        sku: prev.sku
+      }
+    }
+
+    // 3. 策略 C：全新組合
+    return { ...nv }
   })
 }, { immediate: true })
+
+/** 預覽顯示的動態屬性 */
+const previewAttributes = computed(() => {
+  const result: Array<{ label: string; value: string }> = []
+  
+  Object.entries(form.dynamicAttributes).forEach(([attrId, val]) => {
+    if (val === null || val === undefined || val === '') return
+    
+    const id = parseInt(attrId)
+    const attrDef = categoryAttributes.value.find(a => a.id === id)
+    if (!attrDef) return
+
+    const label = attrDef.name
+    const values = Array.isArray(val) ? val : [val]
+    
+    const displayValues = values.map(v => {
+      // 若是選項 ID
+      const opt = attrDef.options.find(o => o.id === v || o.value === v)
+      return opt ? opt.value : String(v)
+    })
+
+    if (displayValues.length > 0) {
+      result.push({ label, value: displayValues.join('、') })
+    }
+  })
+  
+  return result
+})
 
 async function loadBrands(): Promise<void> {
   try {
@@ -926,84 +1045,179 @@ async function loadProductData(): Promise<void> {
   
   loading.value = true
   try {
-    // getSellerProductDetail 已經 return response.data，所以 res 就是商品物件
     const product = await getSellerProductDetail(productId.value)
-    
-    // 儲存原始資料（用於顯示退回原因等）
     productData.value = product
-    
+
     console.log('載入商品資料:', product)
-    console.log('name:', product.name)
-    console.log('categoryName:', product.categoryName)
-    console.log('images:', product.images)
-    console.log('rejectReason:', product.rejectReason)
     
-    // 基本資訊
+    // 1. 基本資訊還原
     form.name = product.name || ''
     form.description = product.description || ''
     form.categoryId = product.categoryId || null
-    
-    // 分類路徑 - 後端直接回傳 categoryName 字串
     form.categoryPath = product.categoryName || ''
+    form.minPurchase = product.minPurchase || 1
     
-    // 品牌
     if (product.brandId) {
       form.attributes.brandId = product.brandId
     }
     
-    // 價格和庫存（無規格時）
+    // 無規格時的價格和庫存
     form.price = product.minPrice || 0
-    form.stock = 0 // 後端沒有 totalStock，variants 為空時預設 0
+    form.stock = 0 
     
-    // 圖片 - 後端回傳的是字串陣列，如 ['/uploads/products/xxx.jpg']
+    // 2. 圖片還原
     if (product.images && product.images.length > 0) {
-      form.images = product.images.map((url: string, idx: number) => ({
-        uid: -(idx + 1), // 負數 uid 避免與新上傳的衝突
-        name: `image-${idx}`,
-        url: url.startsWith('http') ? url : `https://localhost:7125${url}`,
-        status: 'success' as const,
-      }))
-      
-      // 記錄原始圖片數量
+      form.images = product.images.map((url: string, idx: number) => {
+        const originalUrl = url.startsWith('http')
+          ? (() => { try { return new URL(url).pathname } catch { return url } })()
+          : url
+        return {
+          uid: -(idx + 1),
+          name: `image-${idx}`,
+          url: url.startsWith('http') ? url : `https://localhost:7125${url}`,
+          status: 'success' as const,
+          _originalUrl: originalUrl,
+        }
+      }) as UploadUserFile[]
       originalImageCount.value = product.images.length
     } else {
       originalImageCount.value = 0
     }
     
-    // 規格和變體 - 後端回傳 specDefinitionJson 字串
-    if (product.specDefinitionJson && product.specDefinitionJson !== '[]') {
+    // 3. 規格還原與舊資料相容邏輯
+    let reconstructedSpecs: Spec[] = []
+    const hasSpecDef = product.specDefinitionJson && product.specDefinitionJson !== '[]' && product.specDefinitionJson !== 'null'
+    const hasVariants = product.variants && product.variants.length > 0
+
+    // A. 嘗試從 specDefinitionJson 還原
+    if (hasSpecDef) {
       try {
-        const specs = JSON.parse(product.specDefinitionJson)
-        if (specs && specs.length > 0) {
-          specsEnabled.value = true
-          
-          // 重建規格定義
-          form.specs = specs.map((spec: any) => ({
-            name: spec.name || '',
-            options: (spec.options || []).map((optName: string) => ({
-              name: optName,
-              image: null,
-              imagePreview: null,
-            })),
+        const specsDef = JSON.parse(product.specDefinitionJson)
+        if (Array.isArray(specsDef) && specsDef.length > 0) {
+          reconstructedSpecs = specsDef.map((s: any) => ({
+            name: s.name || '',
+            // 如果 specDefinitionJson 裡已經有 options，就直接用；否則初始化為空陣列
+            options: Array.isArray(s.options) 
+              ? s.options.map((opt: any) => ({
+                  name: typeof opt === 'string' ? opt : (opt.name || ''),
+                  image: null,
+                  imagePreview: null
+                }))
+              : []
           }))
         }
       } catch (e) {
         console.error('解析規格定義失敗:', e)
       }
     }
+
+    // B. 舊商品相容邏輯：如果沒有規格定義或選項為空，則從 variants 反推
+    const needsInference = reconstructedSpecs.length === 0 || reconstructedSpecs.every(s => s.options.length === 0)
     
-    // 變體資料
-    if (product.variants && product.variants.length > 0) {
+    if (needsInference && hasVariants) {
+      const specOptionsMap = new Map<string, Set<string>>()
+      const specNamesOrder: string[] = reconstructedSpecs.length > 0 ? reconstructedSpecs.map(s => s.name) : []
+
+      product.variants.forEach((v: any) => {
+        try {
+          const specValues = typeof v.specValueJson === 'string' ? JSON.parse(v.specValueJson) : v.specValueJson
+          if (specValues) {
+            Object.entries(specValues).forEach(([name, value]) => {
+              if (!specOptionsMap.has(name)) {
+                specOptionsMap.set(name, new Set())
+                if (!specNamesOrder.includes(name)) specNamesOrder.push(name)
+              }
+              specOptionsMap.get(name)?.add(value as string)
+            })
+          }
+        } catch (e) {
+          console.error('解析變體規格值失敗:', e)
+        }
+      })
+
+      if (specNamesOrder.length > 0) {
+        reconstructedSpecs = specNamesOrder.map(name => ({
+          name,
+          options: Array.from(specOptionsMap.get(name) || []).map(optName => ({
+            name: optName,
+            image: null,
+            imagePreview: null
+          }))
+        }))
+        console.log('偵測到舊資料，已自動重建規格定義結構')
+      }
+    }
+
+    // 4. 賦值並同步變體表格
+    if (reconstructedSpecs.length > 0) {
       specsEnabled.value = true
-      variantData.value = product.variants.map((v: any) => ({
-        spec1: Object.values(v.specValues || {})[0] || '',
-        spec2: Object.values(v.specValues || {})[1] || null,
-        price: v.price || null,
-        stock: v.stock || 0,
-        sku: v.skuCode || '',
-      }))
+      form.specs = reconstructedSpecs
+      
+      // 確保在 nextTick 之後或直接在同一個 tick 更新 variantData
+      // 由於 watch(variants) 會在 reactive 更新後執行，我們在這裡先準備好對應的資料
+      if (hasVariants) {
+        const specNames = reconstructedSpecs.map(s => s.name)
+        variantData.value = product.variants.map((v: any) => {
+          const specValues = typeof v.specValueJson === 'string' ? JSON.parse(v.specValueJson) : v.specValueJson
+          return {
+            id: v.id,
+            spec1: specValues[specNames[0]] || '',
+            spec2: specNames[1] ? (specValues[specNames[1]] || null) : null,
+            price: v.price || null,
+            stock: v.stock || 0,
+            sku: v.skuCode || '',
+          }
+        })
+      }
+    } else {
+      specsEnabled.value = false
     }
     
+    // 5. 屬性還原
+    if (product.categoryId) {
+      loadingAttributes.value = true
+      try {
+        const attrRes = await getCategoryAttributes(product.categoryId)
+        if (attrRes.success && attrRes.data) {
+          categoryAttributes.value = attrRes.data
+          
+          if (product.attributesJson) {
+            try {
+              const savedAttrs = JSON.parse(product.attributesJson)
+              if (Array.isArray(savedAttrs)) {
+                savedAttrs.forEach((saved: any) => {
+                  const id = saved.attributeId || saved.AttributeId
+                  const value = saved.optionId || saved.OptionId || saved.customValue || saved.CustomValue
+                  if (value === undefined || value === null) return
+
+                  // 尋找定義，判斷是否多選
+                  const def = categoryAttributes.value.find(c => c.id === id)
+                  const isMultiple = def?.isMultiple
+
+                  if (isMultiple) {
+                    // 多選：確保是陣列並 push
+                    if (!Array.isArray(form.dynamicAttributes[id])) {
+                      form.dynamicAttributes[id] = []
+                    }
+                    ;(form.dynamicAttributes[id] as any[]).push(value)
+                  } else {
+                    // 單選：直接賦值
+                    form.dynamicAttributes[id] = value
+                  }
+                })
+              }
+            } catch (e) {
+              console.error('解析屬性 JSON 失敗:', e)
+            }
+          }
+        }
+      } catch (e) {
+        console.error('載入屬性定義失敗:', e)
+      } finally {
+        loadingAttributes.value = false
+      }
+    }
+
     ElMessage.success('商品資料載入成功')
   } catch (error) {
     console.error('載入商品資料失敗:', error)
@@ -1074,49 +1288,103 @@ function handleImageExceed(): void {
   ElMessage.warning('最多只能上傳 9 張圖片')
 }
 
+const handleImageRemove: UploadProps['onRemove'] = (_uploadFile, uploadFiles) => {
+  form.images = uploadFiles
+}
+
 const handleImageChange: UploadProps['onChange'] = (uploadFile, uploadFiles) => {
-  // === 圖片驗證 ===
+  // === 圖片驗證（新上傳的檔案才驗證）===
   if (uploadFile.raw) {
     // 1. 格式驗證
     const validTypes = ['image/jpeg', 'image/png', 'image/webp']
     if (!validTypes.includes(uploadFile.raw.type)) {
       ElMessage.error('只支援 JPG、PNG、WEBP 格式')
-      const idx = form.images.findIndex(f => f.uid === uploadFile.uid)
-      if (idx !== -1) form.images.splice(idx, 1)
+      form.images = uploadFiles.filter(f => f.uid !== uploadFile.uid)
       return
     }
-    
+
     // 2. 大小驗證
     if (uploadFile.raw.size > 2 * 1024 * 1024) {
       ElMessage.error('圖片大小不能超過 2MB')
-      const idx = form.images.findIndex(f => f.uid === uploadFile.uid)
-      if (idx !== -1) form.images.splice(idx, 1)
+      form.images = uploadFiles.filter(f => f.uid !== uploadFile.uid)
       return
     }
-    
+
     // 3. 重複檔案檢查
     const isDuplicate = form.images.some(
-      f => f.uid !== uploadFile.uid && 
-           f.raw && 
-           f.raw.name === uploadFile.raw.name && 
-           f.raw.size === uploadFile.raw.size
+      f => f.uid !== uploadFile.uid &&
+           f.raw &&
+           f.raw.name === uploadFile.raw!.name &&
+           f.raw.size === uploadFile.raw!.size
     )
     if (isDuplicate) {
       ElMessage.warning('此圖片已上傳過，請勿重複上傳')
-      const idx = form.images.findIndex(f => f.uid === uploadFile.uid)
-      if (idx !== -1) form.images.splice(idx, 1)
+      form.images = uploadFiles.filter(f => f.uid !== uploadFile.uid)
       return
     }
-  }
-  
-  // 設定上傳狀態為成功（顯示打勾圖示）
-  if (uploadFile.status === 'ready') {
+
+    // 設定上傳狀態為成功（顯示打勾圖示）
     uploadFile.status = 'success'
   }
+
+  // 以 uploadFiles 為準同步 form.images，避免舊圖消失
+  form.images = uploadFiles
 }
 
 function handleAddDescriptionImage(): void {
-  ElMessage.info('TODO: 實作描述圖片上傳功能')
+  if (descriptionImageCount.value >= 12) {
+    ElMessage.warning('商品描述最多只能包含 12 張圖片')
+    return
+  }
+  descImageInput.value?.click()
+}
+
+async function handleDescriptionImageFileChange(event: Event): Promise<void> {
+  const input = event.target as HTMLInputElement
+  if (!input.files || input.files.length === 0) return
+
+  const file = input.files[0]
+  
+  // 1. 基本檢查
+  const validTypes = ['image/jpeg', 'image/png', 'image/webp']
+  if (!validTypes.includes(file.type)) {
+    ElMessage.error('只支援 JPG、PNG、WEBP 格式')
+    input.value = ''
+    return
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    ElMessage.error('圖片大小不能超過 5MB')
+    input.value = ''
+    return
+  }
+
+  // 2. 上傳圖片
+  try {
+    const res = await uploadDescriptionImage(file)
+    if (res.success && (res as any).url) {
+      const imgUrl = (res as any).url
+      
+      // 使用 Quill API 插入圖片，避免直接修改字串導致狀態不同步
+      if (quillEditorRef.value) {
+        const quill = quillEditorRef.value.getQuill()
+        const range = quill.getSelection(true)
+        quill.insertEmbed(range.index, 'image', imgUrl)
+        quill.setSelection(range.index + 1)
+        ElMessage.success('圖片上傳成功')
+      } else {
+        // Fallback: 如果抓不到實體，才用字串附加
+        form.description += `<img src="${imgUrl}" style="max-width: 100%;" />`
+      }
+    } else {
+      ElMessage.error('圖片上傳失敗')
+    }
+  } catch (error) {
+    console.error('上傳描述圖片失敗:', error)
+    console.error('上傳失敗詳細資訊:', error)
+    ElMessage.error('圖片上傳發生錯誤')
+  } finally {
+    input.value = ''
+  }
 }
 
 function handleOptionImageChange(specIndex: number, optIndex: number, file: UploadFile): void {
@@ -1182,184 +1450,192 @@ function getBrandName(brandId: number): string {
   return brand?.name || ''
 }
 
-async function handleSubmit(publishNow: boolean): Promise<void> {
-  // 草稿模式：只驗證商品名稱（最低要求）
-  // 送審模式：全欄位驗證
+async function handleSubmit(publishNow: boolean, redirectAfter = true, isDraftAction = false): Promise<boolean> {
+  const mode = publishNow ? 'submit' : 'draft'
+  console.log('[儲存模式]', mode)
+
+  // 1. 驗證
   if (publishNow) {
     const valid = await formRef.value?.validate().catch(() => false)
     if (!valid) {
-      ElMessage.warning('請填寫所有必填欄位（商品名稱、分類' + (specsEnabled.value ? '' : '、價格、庫存') + '）')
-      return
+      ElMessage.warning('請填寫所有必填欄位')
+      return false
     }
-  } else {
-    // 草稿至少要有名稱
-    if (!form.name || form.name.length < 1) {
-      ElMessage.warning('請輸入商品名稱才能儲存草稿')
-      return
-    }
+  } else if (!form.name) {
+    ElMessage.warning('請輸入商品名稱才能儲存草稿')
+    return false
   }
 
   saving.value = true
   try {
-    let res: any
-    let targetProductId: number | null = null
+    // 準備變體資料 (格式轉換與型別檢查)
+    const processedVariants = specsEnabled.value ? variantData.value.map(v => {
+      const specNames = form.specs.map(s => s.name)
+      const specValueMap: Record<string, string> = {}
+      if (specNames[0] && v.spec1) specValueMap[specNames[0]] = v.spec1
+      if (specNames[1] && v.spec2) specValueMap[specNames[1]] = v.spec2
+
+      return {
+        id: v.id, // 保留 ID
+        skuCode: v.sku || '',
+        variantName: Object.values(specValueMap).join('/'),
+        specValueJson: JSON.stringify(specValueMap),
+        price: Number(v.price) || 0,
+        stock: Number(v.stock) || 0
+      }
+    }) : []
+
+    const variantsJson = JSON.stringify(processedVariants)
+
+    // 準備屬性資料 (分流 OptionId 與 CustomValue)
+    const processedAttributes: any[] = []
+    Object.entries(form.dynamicAttributes).forEach(([attrId, value]) => {
+      const attributeId = parseInt(attrId)
+      const values = Array.isArray(value) ? value : [value]
+      
+      values.forEach(val => {
+        if (val === null || val === undefined || val === '') return
+
+        // 判斷方式：若能轉為純數字，代表是選中的選項 ID；否則視為自填文字
+        const numericValue = Number(val)
+        const isOptionId = !isNaN(numericValue) && typeof val !== 'boolean'
+
+        if (isOptionId) {
+          processedAttributes.push({
+            AttributeId: attributeId,
+            OptionId: numericValue,
+            CustomValue: null
+          })
+        } else {
+          processedAttributes.push({
+            AttributeId: attributeId,
+            OptionId: null,
+            CustomValue: String(val)
+          })
+        }
+      })
+    })
+
+    const attributesJson = JSON.stringify(processedAttributes)
 
     if (isEditMode.value && productId.value) {
-      // ===== 編輯模式：使用 JSON (application/json) =====
+      // ===== 編輯模式：使用 JSON =====
       const updateData = {
         name: form.name,
         description: form.description || '',
         categoryId: form.categoryId,
         brandId: form.attributes.brandId || null,
-        price: form.price || 0,
-        stock: form.stock || 0,
-        minPurchase: form.minPurchase || 1,
+        price: Number(form.price) || 0,
+        stock: Number(form.stock) || 0,
+        minPurchase: Number(form.minPurchase) || 1,
+        mode: mode,
         specDefinitionJson: specsEnabled.value && form.specs.length > 0
           ? JSON.stringify(form.specs.map(s => ({ name: s.name })))
           : '[]',
+        variantsJson: variantsJson,
+        attributesJson: attributesJson // 加入屬性 JSON
       }
 
-      console.log('送出資料 (編輯模式/JSON):', {
-        Mode: 'UPDATE',
-        ProductId: productId.value,
-        ...updateData,
-      })
-
-      // 1. 先更新商品基本資料
-      res = await updateSellerProduct(productId.value, updateData)
-      targetProductId = productId.value
+      await updateSellerProduct(productId.value, updateData)
       
-      // 2. 檢查圖片是否有變動
+      // 更新圖片
       const newFiles = form.images.filter(f => f.raw)
-      const hasNewImages = newFiles.length > 0
-      const hasRemovedImages = form.images.length !== originalImageCount.value
-      
-      // 只有在圖片真正有變動時才呼叫圖片 API
-      if (hasNewImages || hasRemovedImages) {
+      if (newFiles.length > 0 || form.images.length !== originalImageCount.value) {
         const formData = new FormData()
-        const existingImageUrls: string[] = []
-
-        // 遍歷所有圖片
-        for (const file of form.images) {
+        form.images.forEach(file => {
           if (file.raw) {
-            // 新上傳的圖片
             formData.append('images', file.raw)
-          } else if (file.url) {
-            // 舊圖片的 URL，取相對路徑（跟資料庫格式一致）
-            let imageUrl = file.url
-            try {
-              const parsedUrl = new URL(imageUrl)
-              imageUrl = parsedUrl.pathname  // 例如：/uploads/products/xxx.jpg
-            } catch {
-              // 已經是相對路徑，不需要轉換
-            }
-            existingImageUrls.push(imageUrl)
-            formData.append('existingImages', imageUrl)
+          } else {
+            const f = file as any
+            const url = f._originalUrl ?? f.url ?? ''
+            if (url) formData.append('existingImages', url)
           }
-        }
-
-        // 印出實際送出的 URL，確認格式與後端 DB 儲存格式一致
-        console.log('[圖片更新] existingImages 送出的 URL:', existingImageUrls)
-        console.log('[圖片更新] 統計:', {
-          newImages: newFiles.length,
-          existingImages: existingImageUrls.length,
-          totalImages: form.images.length,
-          originalCount: originalImageCount.value,
         })
-
         await updateProductImages(productId.value, formData)
-      } else {
-        console.log('圖片無變動，跳過圖片更新 API')
       }
-      
-      // 3. 更新成功訊息並跳轉
-      const origStatus = productData.value?.status
-      let successMsg: string
-      if (origStatus === 3 && publishNow) {
-        successMsg = '商品已重新送審，請等待管理員審核'
-      } else if (origStatus === 1) {
-        successMsg = '商品資料已更新'
-      } else if (publishNow) {
-        successMsg = '商品已提交審核，請等待管理員審核'
-      } else {
-        successMsg = '商品已儲存'
-      }
-      ElMessage.success(successMsg)
-      void router.push('/seller/products')
     } else {
-      // ===== 新增模式：使用 FormData (multipart/form-data) =====
+      // ===== 新增模式：使用 FormData =====
       const fd = new FormData()
-      fd.append('Name', form.name)
-      fd.append('Description', form.description)
-      if (form.categoryId !== null) fd.append('CategoryId', String(form.categoryId))
-      if (form.attributes.brandId !== null) fd.append('BrandId', String(form.attributes.brandId))
-
-      console.log('送出資料 (新增模式/FormData):', {
-        Mode: 'CREATE',
-        Name: form.name,
-        CategoryId: form.categoryId,
-        BrandId: form.attributes.brandId ?? '(未選擇)',
-        Description: form.description,
-        SpecDefinitionJson: form.specs.map(s => s.name),
-        ImageCount: form.images.filter(i => i.raw).length,
-      })
-
-      // 規格定義 JSON：[{"name":"顏色"},{"name":"尺寸"}]
-      if (specsEnabled.value && form.specs.length > 0) {
-        const specDef = form.specs.map(s => ({ name: s.name }))
-        fd.append('SpecDefinitionJson', JSON.stringify(specDef))
-      }
-
-      // 圖片（UploadUserFile 的 raw 就是 File）
-      let mainIdx = 0
-      form.images.forEach((img, idx) => {
-        if (img.raw) {
-          fd.append('Images', img.raw)
-          if (img.raw === form.images[0]?.raw) mainIdx = idx
-        }
-      })
+      fd.append('name', form.name)
+      fd.append('description', form.description)
+      fd.append('mode', mode)
+      if (form.categoryId) fd.append('categoryId', String(form.categoryId))
+      if (form.attributes.brandId) fd.append('brandId', String(form.attributes.brandId))
+      fd.append('price', String(form.price || 0))
+      fd.append('stock', String(form.stock || 0))
+      fd.append('minPurchase', String(form.minPurchase || 1))
       
-      // 如果有上傳圖片，設定主圖索引
-      if (form.images.some(img => img.raw)) {
-        fd.append('MainImageIndex', String(mainIdx))
+      fd.append('variantsJson', variantsJson)
+      fd.append('attributesJson', attributesJson) // 加入屬性 JSON
+
+      if (specsEnabled.value && form.specs.length > 0) {
+        fd.append('specDefinitionJson', JSON.stringify(form.specs.map(s => ({ name: s.name }))))
       }
 
-      res = await createSellerProduct(fd)
-      targetProductId = res.data?.productId || null
+      form.images.forEach((img, idx) => {
+        if (img.raw) fd.append('images', img.raw)
+      })
 
-      // 如果有規格，依次建立 variants
-      if (specsEnabled.value && targetProductId && variantData.value.length > 0) {
-        const specNames = form.specs.map(s => s.name)
-        for (const v of variantData.value) {
-          // 組成 specValueJson：{"顏色":"紅色","尺寸":"L"}
-          const specValueMap: Record<string, string> = {}
-          if (specNames[0] && v.spec1) specValueMap[specNames[0]] = v.spec1
-          if (specNames[1] && v.spec2) specValueMap[specNames[1]] = v.spec2
-
-          await addSellerProductVariant(targetProductId, {
-            skuCode: v.sku || '',
-            variantName: Object.values(specValueMap).join('/'),
-            specValueJson: JSON.stringify(specValueMap),
-            price: v.price ?? 0,
-            stock: v.stock,
-          })
-        }
-      }
-
-      const successMsg = publishNow ? '商品已提交審核，請等待管理員審核' : '草稿已儲存'
-      ElMessage.success(successMsg)
-      void router.push('/seller/products')
+      await createSellerProduct(fd)
     }
+
+    ElMessage.success(publishNow ? '商品已提交審核' : '商品資料已儲存')
+    if (redirectAfter) {
+      const targetTab = publishNow ? 'review' : (isDraftAction ? 'draft' : fromTab.value)
+      void router.push({ path: '/seller/products', query: { tab: targetTab } })
+    }
+    return true
   } catch (error) {
     console.error('儲存失敗:', error)
     ElMessage.error('儲存失敗，請稍後再試')
+    return false
   } finally {
     saving.value = false
   }
 }
 
 function handleCancel(): void {
-  void router.push('/seller/products')
+  void router.push({ path: '/seller/products', query: { tab: fromTab.value } })
+}
+
+async function handleSaveDraft(): Promise<void> {
+  // 強制去草稿頁籤
+  await handleSubmit(false, true, true)
+}
+
+async function handleSave(): Promise<void> {
+  // 儲存後回到來源頁籤
+  await handleSubmit(false, true, false)
+}
+
+async function handleSaveAndSubmit(): Promise<void> {
+  try {
+    await ElMessageBox.confirm(
+      '確定要送出審核嗎？審核期間將無法編輯商品。',
+      '送審確認',
+      { type: 'warning' },
+    )
+  } catch {
+    return
+  }
+  await handleSubmit(true)
+}
+
+async function handleReShelf(): Promise<void> {
+  try {
+    await ElMessageBox.confirm('確定要重新上架嗎？', '上架確認', { type: 'warning' })
+  } catch {
+    return
+  }
+  const saved = await handleSubmit(false, false)
+  if (!saved) return
+  try {
+    await updateProductStatus(productId.value!, 1)
+    ElMessage.success('商品已上架')
+    void router.push('/seller/products?tab=on')
+  } catch {
+    ElMessage.error('上架失敗，請稍後再試')
+  }
 }
 </script>
 
@@ -1368,6 +1644,7 @@ function handleCancel(): void {
   background: #f5f5f5;
   min-height: 100vh;
   padding: 16px 24px 80px;
+  overflow: visible !important; /* 強制解除溢出限制，確保 sticky 生效 */
 }
 
 :deep(.el-breadcrumb) {
@@ -1380,12 +1657,22 @@ function handleCancel(): void {
   gap: 20px;
   max-width: 1400px;
   margin: 0 auto;
+  align-items: flex-start; /* 確保子元素不會被拉伸，讓 sticky 有滑動空間 */
 }
 
-/* 左側:填寫建議 */
-.left-sidebar {
+/* 側邊欄容器 */
+.left-sidebar,
+.right-sidebar {
   width: 280px;
   flex-shrink: 0;
+}
+
+/* 終極 Sticky 包裹器 */
+.sticky-wrapper {
+  position: sticky;
+  top: 20px;
+  z-index: 10;
+  height: fit-content;
 }
 
 .tips-card {
@@ -1393,8 +1680,6 @@ function handleCancel(): void {
   border-radius: 8px;
   padding: 20px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
-  position: sticky;
-  top: 20px;
 }
 
 .tips-header {
@@ -1513,20 +1798,26 @@ function handleCancel(): void {
 .right-sidebar {
   width: 280px;
   flex-shrink: 0;
+  position: sticky;
+  top: 20px;
+  height: fit-content;
+  align-self: flex-start; /* 防止 flex 延伸 */
 }
 
 .preview-card {
   background: #fff;
   border-radius: 8px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
-  position: sticky;
-  top: 20px;
   overflow: hidden;
+  max-height: calc(100vh - 40px); /* 限制最大高度，避免超出視窗 */
+  display: flex;
+  flex-direction: column;
 }
 
 .preview-header {
   padding: 16px;
   border-bottom: 1px solid #f0f0f0;
+  flex-shrink: 0;
 }
 
 .preview-title {
@@ -1543,6 +1834,8 @@ function handleCancel(): void {
 
 .preview-content {
   padding: 16px;
+  overflow-y: auto; /* 內容過多時可捲動 */
+  flex: 1;
 }
 
 .preview-image {
@@ -1635,6 +1928,14 @@ function handleCancel(): void {
   line-height: 1.6;
   margin-bottom: 16px;
   min-height: 40px;
+  overflow: hidden;
+}
+
+.preview-description :deep(img) {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 8px 0;
 }
 
 .preview-actions {
@@ -1716,6 +2017,23 @@ function handleCancel(): void {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
+}
+
+.description-editor-container {
+  width: 100%;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+}
+
+.description-quill {
+  min-height: 300px;
+}
+
+.description-hint {
+  font-size: 12px;
+  color: #999;
+  margin-top: 8px;
+  width: 100%;
 }
 
 /* 規格設定 */

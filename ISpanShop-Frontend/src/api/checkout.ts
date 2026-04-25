@@ -14,6 +14,7 @@ export interface CheckoutRequest {
   storeId: number;
   usePoints: boolean;
   couponId: number | null;
+  levelDiscount?: number; // 會員等級折扣金額
   items: CheckoutItem[];
   recipientName: string;
   recipientPhone: string;
@@ -24,6 +25,11 @@ export interface CheckoutRequest {
 export const checkoutApi = {
   createOrder(data: CheckoutRequest) {
     return instance.post('/api/checkout', data);
+  },
+
+  /** 獲取既有訂單的支付路徑 (不產生新訂單) */
+  getRepaymentUrl(orderId: number) {
+    return instance.get<{ success: boolean, paymentUrl: string }>(`/api/checkout/repay/${orderId}`);
   },
   
   getAvailableCoupons(storeId: number, subtotal: number, productIds: number[]) {

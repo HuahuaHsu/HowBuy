@@ -134,6 +134,7 @@ namespace ISpanShop.MVC.Controllers.Api.Products
                 return Unauthorized(new { success = false, message = "無法識別賣家身份，請確認您已開通店家" });
             }
 
+            var mode = request.Mode?.ToLower() ?? "draft";
             var dto = new ProductCreateDto
             {
                 StoreId            = storeId,  // 使用 JWT 中的 StoreId，忽略前端傳入的值
@@ -143,7 +144,10 @@ namespace ISpanShop.MVC.Controllers.Api.Products
                 Description        = request.Description,
                 VideoUrl           = request.VideoUrl,
                 SpecDefinitionJson = request.SpecDefinitionJson ?? "[]",
-                Variants           = new List<ProductVariantCreateDto>()
+                Variants           = new List<ProductVariantCreateDto>(),
+                Status             = 0, // 絕對規則：新增商品一律設為 0 (未上架)
+                ReviewStatus       = (mode == "submit") ? 0 : 4, // 0=待審核, 4=草稿
+                AttributesJson     = request.AttributesJson
             };
 
             var productId = _productService.CreateProduct(dto);
@@ -192,7 +196,8 @@ namespace ISpanShop.MVC.Controllers.Api.Products
                 }
             }
 
-            return StatusCode(StatusCodes.Status201Created, new { success = true, data = new { productId }, message = "商品建立成功，等待審核" });
+            var successMsg = (mode == "submit") ? "商品已提交審核，請等待管理員審核" : "商品草稿已儲存";
+            return StatusCode(StatusCodes.Status201Created, new { success = true, data = new { productId }, message = successMsg });
         }
 
         // ──────────────────────────────────────────────────────────
@@ -226,10 +231,11 @@ namespace ISpanShop.MVC.Controllers.Api.Products
                 return StatusCode(StatusCodes.Status403Forbidden, new { message = "無權修改此商品" });
             }
 
-            // 待審核商品不允許編輯
-            if (existing.Status == 2)
+            // 待審核商品不允許編輯 (ReviewStatus 0=待審核, 3=重新送審)
+            if (existing.ReviewStatus == 0 || existing.ReviewStatus == 3 || existing.Status == 2)
                 return BadRequest(new { success = false, message = "商品審核中，無法編輯" });
 
+            var mode = request.Mode?.ToLower() ?? "draft";
             var dto = new ProductUpdateDto
             {
                 Id                 = id,
@@ -238,11 +244,22 @@ namespace ISpanShop.MVC.Controllers.Api.Products
                 Name               = request.Name,
                 Description        = request.Description,
                 SpecDefinitionJson = request.SpecDefinitionJson,
-                MainImageUrl       = request.MainImageUrl
+                MainImageUrl       = request.MainImageUrl,
+                Status             = 0, // 絕對規則：編輯商品時保持 Status=0 (未上架)
+                ReviewStatus       = (mode == "submit") ? 0 : (existing.ReviewStatus == 2 ? 4 : existing.ReviewStatus),
+                VariantsJson       = request.VariantsJson,
+                AttributesJson     = request.AttributesJson
             };
 
+            // 如果原本是退回狀態(2)且現在要送審，則改為重新送審(3)
+            if (mode == "submit" && (existing.ReviewStatus == 2 || existing.Status == 3))
+            {
+                dto.ReviewStatus = 3; // 重新送審
+            }
+
             _productService.UpdateProduct(dto);
-            var message = existing.Status == 3 ? "商品更新成功，已重新送審" : "商品更新成功";
+            
+            var message = (mode == "submit") ? "商品已送審" : "商品已儲存為草稿";
             return Ok(new { success = true, message });
         }
 
@@ -316,6 +333,15 @@ namespace ISpanShop.MVC.Controllers.Api.Products
                 return Ok(new { success = true, message = "未變更圖片" });
             }
 
+            // Debug：印出前後端 URL 格式以利排查不一致問題
+            Console.WriteLine("=== 圖片更新 Debug ===");
+            Console.WriteLine("收到的 existingImages:");
+            foreach (var img in existingImages ?? new List<string>())
+                Console.WriteLine("  前端送來: " + img);
+            Console.WriteLine("資料庫中的圖片:");
+            foreach (var img in existing.Images)
+                Console.WriteLine("  資料庫: " + img);
+
             // 驗證新上傳的圖片格式和大小
             if (images != null && images.Count > 0)
             {
@@ -333,7 +359,7 @@ namespace ISpanShop.MVC.Controllers.Api.Products
                 }
             }
 
-            // 刪除不在 existingImages 中的舊圖片
+            // 刪除不在 existingImages 中的舊圖片（內部會做 URL 正規化比對）
             _productService.DeleteProductImagesExcept(id, existingImages ?? new List<string>(), _env.WebRootPath);
 
             // 上傳新圖片
@@ -343,7 +369,7 @@ namespace ISpanShop.MVC.Controllers.Api.Products
                 var uploadDir = Path.Combine(_env.WebRootPath, "uploads", "products");
                 Directory.CreateDirectory(uploadDir);
 
-                // 計算排序起始值（從保留的圖片數量開始）
+                // 計算排序起始值（從實際保留的圖片數量開始，repository 已重排 SortOrder 從 0 起）
                 int sortOrder = existingImages?.Count ?? 0;
 
                 for (int i = 0; i < images.Count; i++)
@@ -433,14 +459,60 @@ namespace ISpanShop.MVC.Controllers.Api.Products
         }
 
         // ──────────────────────────────────────────────────────────
+        // POST api/seller/products/upload-image
+        // 上傳商品描述圖片 (供編輯器使用)
+        // ──────────────────────────────────────────────────────────
+        [HttpPost("upload-image")]
+        [Consumes("multipart/form-data")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> UploadDescriptionImage(IFormFile image)
+        {
+            if (image == null || image.Length == 0)
+                return BadRequest(new { success = false, message = "請選擇圖片" });
+
+            // 限制 5MB
+            if (image.Length > 5 * 1024 * 1024)
+                return BadRequest(new { success = false, message = "圖片大小不能超過 5MB" });
+
+            var allowedExts = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+            var ext = Path.GetExtension(image.FileName).ToLowerInvariant();
+            if (!allowedExts.Contains(ext))
+                return BadRequest(new { success = false, message = "只支援 JPG、PNG、WEBP 格式" });
+
+            var uploadPath = Path.Combine(_env.WebRootPath, "uploads", "descriptions");
+            Directory.CreateDirectory(uploadPath);
+
+            var fileName = $"{Guid.NewGuid()}{ext}";
+            var filePath = Path.Combine(uploadPath, fileName);
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await image.CopyToAsync(stream);
+            }
+
+            var relativeUrl = $"/uploads/descriptions/{fileName}";
+            var baseUrl = $"{Request.Scheme}://{Request.Host}{Request.PathBase}";
+            var fullUrl = $"{baseUrl}{relativeUrl}";
+
+            return Ok(new { 
+                success = true, 
+                url = fullUrl,          // 完整網址
+                imageUrl = relativeUrl  // 相對路徑 (保留相容性)
+            });
+        }
+
+        // ──────────────────────────────────────────────────────────
         // 內部映射方法
         // ──────────────────────────────────────────────────────────
-        private static string ToStatusText(byte? status) => status switch
+        private static string ToStatusText(byte? status, int reviewStatus) => status switch
         {
             1 => "已上架",
             2 => "待審核",
             3 => "審核退回",
-            0 => "未上架",
+            4 => "強制下架",
+            0 => (reviewStatus == 0 || reviewStatus == 3) ? "待審核" : "未上架",
             _ => "未知"
         };
 
@@ -454,7 +526,7 @@ namespace ISpanShop.MVC.Controllers.Api.Products
             MinPrice     = dto.MinPrice,
             MaxPrice     = dto.MaxPrice,
             Status       = dto.Status,
-            StatusText   = ToStatusText(dto.Status),
+            StatusText   = ToStatusText(dto.Status, dto.ReviewStatus),
             MainImageUrl = dto.MainImageUrl,
             CreatedAt    = dto.CreatedAt,
             TotalStock   = dto.TotalStock,
@@ -477,13 +549,15 @@ namespace ISpanShop.MVC.Controllers.Api.Products
             BrandName          = dto.BrandName,
             Description        = dto.Description,
             Status             = dto.Status,
-            StatusText         = ToStatusText(dto.Status),
+            StatusText         = ToStatusText(dto.Status, dto.ReviewStatus),
             MinPrice           = dto.MinPrice,
             MaxPrice           = dto.MaxPrice,
             SpecDefinitionJson = dto.SpecDefinitionJson,
             RejectReason       = dto.RejectReason,
+            ReviewStatus       = dto.ReviewStatus,
             CreatedAt          = dto.CreatedAt,
             UpdatedAt          = dto.UpdatedAt,
+            AttributesJson     = dto.AttributesJson,
             Images             = dto.Images,
             Variants           = dto.Variants
                 .Where(v => v.IsDeleted != true)

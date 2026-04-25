@@ -40,12 +40,17 @@ namespace ISpanShop.Services.Orders
                     OrderNumber = o.OrderNumber.StartsWith("ORD") ? o.OrderNumber : "ORD" + o.OrderNumber,
                     CreatedAt = o.CreatedAt,
                     FinalAmount = o.FinalAmount,
+                    DiscountAmount = o.DiscountAmount,
+                    LevelDiscount = o.LevelDiscount, // 從資料庫讀取
                     Status = (OrderStatus)(o.Status ?? 0),
                     StatusName = GetStatusName(o.Status),
                     StoreName = o.Store?.StoreName ?? "未知商店",
+                    StoreId = o.StoreId,
+                    SellerId = o.Store?.UserId ?? 0,
                     FirstProductName = firstDetail?.ProductName,
                     FirstProductImage = GetFinalImage(firstDetail),
-                    TotalItemCount = o.OrderDetails.Sum(od => od.Quantity)
+                    TotalItemCount = o.OrderDetails.Sum(od => od.Quantity),
+                    IsReviewed = o.OrderReviews.Any()
                 };
             }).ToList();
         }
@@ -59,6 +64,9 @@ namespace ISpanShop.Services.Orders
                 return null;
             }
 
+            // [安全性強化] 如果是為了結帳而讀取，或是在任何詳情檢查中
+            // 這裡保留通用讀取，但在下面 API 調用處會做更嚴格的攔截。
+            
             return new FrontOrderDetailDto
             {
                 Id = o.Id,
@@ -70,12 +78,14 @@ namespace ISpanShop.Services.Orders
                 ShippingFee = o.ShippingFee,
                 PointDiscount = o.PointDiscount,
                 DiscountAmount = o.DiscountAmount,
+                LevelDiscount = o.LevelDiscount, // 從資料庫讀取
                 CouponId = o.CouponId,
                 CouponTitle = o.Coupon?.Title ?? (o.CouponId.HasValue ? "優惠券" : null),
                 FinalAmount = o.FinalAmount,
                 Status = (OrderStatus)(o.Status ?? 0),
                 StatusName = GetStatusName(o.Status),
                 StoreName = o.Store?.StoreName ?? "未知商店",
+                StoreStatus = o.Store?.StoreStatus ?? 1,
                 RecipientName = o.RecipientName,
                 RecipientPhone = o.RecipientPhone,
                 RecipientAddress = o.RecipientAddress,
@@ -89,8 +99,10 @@ namespace ISpanShop.Services.Orders
                     VariantName = od.VariantName,
                     CoverImage = GetFinalImage(od),
                     Price = od.Price ?? 0,
-                    Quantity = od.Quantity
+                    Quantity = od.Quantity,
+                    StoreStatus = o.Store?.StoreStatus ?? 1
                 }).ToList(),
+                IsReviewed = o.OrderReviews.Any(),
                 
                 // 抓取最新的一筆退貨申請作為資訊展示
                 ReturnInfo = o.ReturnRequests.OrderByDescending(r => r.CreatedAt).Select(r => new FrontReturnDetailDto
@@ -100,7 +112,25 @@ namespace ISpanShop.Services.Orders
                     RefundAmount = r.RefundAmount,
                     Status = r.Status,
                     CreatedAt = r.CreatedAt,
-                    ImageUrls = r.ReturnRequestImages.Select(img => img.ImageUrl).ToList()
+                    ImageUrls = r.ReturnRequestImages.Select(img => img.ImageUrl).ToList(),
+                    // 關鍵：抓取退貨品項清單
+                    Items = r.ReturnRequestItems.Select(ri => {
+                        var img = GetFinalImage(ri.OrderDetail);
+                        // 統一補斜線邏輯，這與 o.OrderDetails.Select 的處理保持一致
+                        if (!string.IsNullOrEmpty(img) && !img.StartsWith("http") && !img.StartsWith("/"))
+                        {
+                            img = "/" + img;
+                        }
+
+                        return new FrontReturnItemDto
+                        {
+                            ProductName = ri.OrderDetail.ProductName,
+                            VariantName = ri.OrderDetail.VariantName,
+                            CoverImage = img,
+                            Price = ri.OrderDetail.Price ?? 0,
+                            ReturnQuantity = ri.Quantity
+                        };
+                    }).ToList()
                 }).FirstOrDefault()
             };
         }
@@ -140,7 +170,7 @@ namespace ISpanShop.Services.Orders
             // 只有待出貨(1)、運送中(2)或已完成(3)可以申請退貨
             if (o.Status != 1 && o.Status != 2 && o.Status != 3) return false;
 
-            // 計算退款金額 (含折抵比例)
+            // 1. 計算退款金額 (含折抵比例)
             decimal itemsOriginalTotal = 0;
             foreach (var item in dto.Items)
             {
@@ -153,7 +183,8 @@ namespace ISpanShop.Services.Orders
             }
 
             decimal totalRefund = 0;
-            bool isFullReturn = dto.Items.Count == o.OrderDetails.Count && 
+            // 判斷是否為全退：明細數量一致 且 每個品項數量都退滿
+            bool isFullReturn = dto.Items.Count == o.OrderDetails.Count &&
                                 dto.Items.All(i => i.Quantity == o.OrderDetails.First(od => od.Id == i.OrderDetailId).Quantity);
 
             if (isFullReturn)
@@ -165,26 +196,22 @@ namespace ISpanShop.Services.Orders
                 decimal orderTotal = o.TotalAmount; // 商品總原價
                 if (orderTotal > 0)
                 {
+                    // 按原價比例分攤折扣
                     decimal ratio = itemsOriginalTotal / orderTotal;
                     decimal totalDiscount = (o.PointDiscount ?? 0) + (o.DiscountAmount ?? 0);
                     decimal proportionDiscount = Math.Round(totalDiscount * ratio);
-                    
+
                     totalRefund = itemsOriginalTotal - proportionDiscount;
                     if (totalRefund < 0) totalRefund = 0;
                 }
             }
 
-            // 如果是部分退貨，我們把資訊寫在 ReasonDescription 中
-            var itemsInfo = string.Join("\n", dto.Items.Select(i => {
-                var d = o.OrderDetails.FirstOrDefault(od => od.Id == i.OrderDetailId);
-                return $"- {d?.ProductName ?? "未知"}: {i.Quantity} 件";
-            }));
-
+            // 2. 建立退貨申請實體
             var request = new ReturnRequest
             {
                 OrderId = orderId,
                 ReasonCategory = dto.ReasonCategory,
-                ReasonDescription = $"{dto.ReasonDescription}\n\n退貨清單:\n{itemsInfo}",
+                ReasonDescription = dto.ReasonDescription, // 移除舊的明細拼湊，保持乾淨
                 RefundAmount = totalRefund,
                 Status = 0, // 待處理
                 CreatedAt = DateTime.Now,
@@ -192,7 +219,14 @@ namespace ISpanShop.Services.Orders
                 {
                     ImageUrl = url,
                     CreatedAt = DateTime.Now
-                }).ToList() ?? new List<ReturnRequestImage>()
+                }).ToList() ?? new List<ReturnRequestImage>(),
+
+                // 3. 關鍵：寫入新表 ReturnRequestItems
+                ReturnRequestItems = dto.Items.Select(i => new ReturnRequestItem
+                {
+                    OrderDetailId = i.OrderDetailId,
+                    Quantity = i.Quantity
+                }).ToList()
             };
 
             await _orderRepository.CreateReturnRequestAsync(request);
@@ -203,7 +237,6 @@ namespace ISpanShop.Services.Orders
 
             return true;
         }
-
         private async Task ReturnOrderAssetsAsync(Order o)
         {
             // 1. 退回點數

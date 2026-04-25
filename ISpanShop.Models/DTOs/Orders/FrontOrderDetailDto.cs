@@ -15,6 +15,7 @@ namespace ISpanShop.Models.DTOs.Orders
         public decimal? ShippingFee { get; set; }
         public int? PointDiscount { get; set; }
         public decimal? DiscountAmount { get; set; }
+        public decimal? LevelDiscount { get; set; }
         public int? CouponId { get; set; }
         public string CouponTitle { get; set; }
         public decimal FinalAmount { get; set; }
@@ -22,6 +23,7 @@ namespace ISpanShop.Models.DTOs.Orders
         public string StatusName { get; set; }
         
         public string StoreName { get; set; }
+        public int StoreStatus { get; set; }
         
         public string RecipientName { get; set; }
         public string RecipientPhone { get; set; }
@@ -29,6 +31,7 @@ namespace ISpanShop.Models.DTOs.Orders
         public string Note { get; set; }
         
         public List<FrontOrderItemDto> Items { get; set; } = new List<FrontOrderItemDto>();
+        public bool IsReviewed { get; set; }
 
         // 退貨退款資訊快照
         public FrontReturnDetailDto ReturnInfo { get; set; }
@@ -42,6 +45,16 @@ namespace ISpanShop.Models.DTOs.Orders
         public byte Status { get; set; }
         public DateTime CreatedAt { get; set; }
         public List<string> ImageUrls { get; set; }
+        public List<FrontReturnItemDto> Items { get; set; } = new List<FrontReturnItemDto>();
+    }
+
+    public class FrontReturnItemDto
+    {
+        public string ProductName { get; set; }
+        public string VariantName { get; set; }
+        public string CoverImage { get; set; }
+        public decimal Price { get; set; }
+        public int ReturnQuantity { get; set; }
     }
 
     public class FrontOrderItemDto
@@ -54,5 +67,6 @@ namespace ISpanShop.Models.DTOs.Orders
         public string CoverImage { get; set; }
         public decimal Price { get; set; }
         public int Quantity { get; set; }
+        public int StoreStatus { get; set; }
     }
 }

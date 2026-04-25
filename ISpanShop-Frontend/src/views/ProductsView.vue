@@ -76,6 +76,15 @@
       <!-- ── 右側商品區 ────────────────────────────────────── -->
       <div class="search-main">
 
+        <!-- 活動橫幅 (當 promoText 存在時顯示) -->
+        <div v-if="promoText" class="promo-banner">
+          <div class="promo-content">
+            <span class="promo-badge">活動專區</span>
+            <h3 class="promo-text">{{ promoText }}</h3>
+          </div>
+          <div class="promo-decoration">🔥</div>
+        </div>
+
         <!-- 排序列 -->
         <div class="sort-bar">
           <span class="sort-label">排序：</span>
@@ -218,6 +227,9 @@ const totalPages = computed<number>(() => Math.ceil(total.value / pageSize.value
 // ── 從 route.query 讀取當前狀態（computed = 唯一資料來源）──────────
 const keyword = computed<string>(() =>
   typeof route.query['keyword'] === 'string' ? route.query['keyword'] : '',
+)
+const promoText = computed<string>(() =>
+  typeof route.query['promoText'] === 'string' ? route.query['promoText'] : '',
 )
 const selectedCategoryId = computed<number | null>(() => {
   const v = route.query['categoryId']
@@ -515,6 +527,50 @@ watch(
   flex: 1;
   min-width: 0;
 }
+
+/* 活動橫幅 */
+.promo-banner {
+  background: linear-gradient(135deg, #ff7e5f 0%, #feb47b 100%);
+  border-radius: 12px;
+  padding: 16px 24px;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: white;
+  box-shadow: 0 4px 12px rgba(255, 126, 95, 0.25);
+  position: relative;
+  overflow: hidden;
+}
+.promo-content {
+  z-index: 1;
+}
+.promo-badge {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(4px);
+  padding: 2px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+.promo-text {
+  font-size: 20px;
+  font-weight: 800;
+  margin: 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+.promo-decoration {
+  font-size: 48px;
+  opacity: 0.3;
+  transform: rotate(15deg);
+  user-select: none;
+}
+
 .sort-bar {
   display: flex;
   align-items: center;

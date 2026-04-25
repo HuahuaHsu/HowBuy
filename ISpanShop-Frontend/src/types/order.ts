@@ -3,12 +3,17 @@ export interface OrderListItem {
   orderNumber: string;
   createdAt: string;
   finalAmount: number;
+  discountAmount?: number;
+  levelDiscount?: number;
   status: number;
   statusName: string;
   storeName: string;
+  storeId: number;
+  sellerId: number;
   firstProductName: string;
   firstProductImage: string;
   totalItemCount: number;
+  isReviewed: boolean;
 }
 
 export interface OrderItem {
@@ -32,6 +37,7 @@ export interface OrderDetail {
   shippingFee: number | null;
   pointDiscount: number | null;
   discountAmount: number | null;
+  levelDiscount: number | null;
   couponId: number | null;
   couponTitle: string | null;
   finalAmount: number;
@@ -43,4 +49,5 @@ export interface OrderDetail {
   recipientAddress: string;
   note: string;
   items: OrderItem[];
+  isReviewed: boolean;
 }

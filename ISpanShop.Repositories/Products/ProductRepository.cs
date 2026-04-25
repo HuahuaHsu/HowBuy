@@ -254,11 +254,13 @@ namespace ISpanShop.Repositories.Products
         {
             var product = _context.Products
                 .Include(p => p.ProductImages)
+                .Include(p => p.ProductVariants)
                 .FirstOrDefault(p => p.Id == dto.Id);
             if (product == null) return;
 
             var originalStatus = product.Status;
 
+            // 1. 更新基本欄位
             product.Name               = dto.Name;
             product.Description        = dto.Description;
             product.CategoryId         = dto.CategoryId;
@@ -266,17 +268,22 @@ namespace ISpanShop.Repositories.Products
             product.SpecDefinitionJson = dto.SpecDefinitionJson;
             product.UpdatedAt          = DateTime.Now;
 
-            if (originalStatus == 3) // 審核退回 → 重新送審
+            // 2. 處理審核狀態
+            if (dto.ReviewStatus.HasValue)
             {
-                product.Status       = 2;           // 待審核
-                product.ReviewStatus = 3;           // 重新申請審核
-                product.ReApplyDate  = DateTime.Now;
-                product.ReviewedBy   = null;
-                product.ReviewDate   = null;
-                // 保留 RejectReason，讓後台知道上次退回原因
+                product.ReviewStatus = dto.ReviewStatus.Value;
+                
+                // 如果是送審 (0 或 3)
+                if (product.ReviewStatus == 0 || product.ReviewStatus == 3)
+                {
+                    product.Status = 2; // 待審核
+                    product.ReApplyDate = DateTime.Now;
+                    product.ReviewedBy = null;
+                    product.ReviewDate = null;
+                }
             }
-            // 已上架(1) 或未上架(0)：直接更新內容，狀態與審核記錄維持不變
 
+            // 3. 處理圖片更新 (主圖)
             if (!string.IsNullOrWhiteSpace(dto.MainImageUrl))
             {
                 var mainImg = product.ProductImages.FirstOrDefault(i => i.IsMain == true);
@@ -288,7 +295,106 @@ namespace ISpanShop.Repositories.Products
                         ImageUrl = dto.MainImageUrl, IsMain = true, SortOrder = 0
                     });
             }
-            _context.SaveChanges();
+
+            // 4. 處理變體更新 (Variants)
+            if (!string.IsNullOrWhiteSpace(dto.VariantsJson))
+            {
+                try
+                {
+                    var incomingVariants = System.Text.Json.JsonSerializer.Deserialize<List<ProductVariantUpdateItem>>(dto.VariantsJson, new System.Text.Json.JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    });
+
+                    if (incomingVariants != null)
+                    {
+                        var existingVariants = product.ProductVariants.Where(v => v.IsDeleted != true).ToList();
+                        
+                        // Delete: 存在於舊資料但不在新資料中的 Id
+                        var incomingIds = incomingVariants.Where(v => v.Id > 0).Select(v => v.Id).ToList();
+                        foreach (var oldVar in existingVariants)
+                        {
+                            if (!incomingIds.Contains(oldVar.Id))
+                            {
+                                oldVar.IsDeleted = true; // 軟刪除
+								oldVar.SkuCode = Guid.NewGuid().ToString();
+							}
+                        }
+
+                        // Add / Update
+                        foreach (var v in incomingVariants)
+                        {
+                            if (v.Id > 0)
+                            {
+                                // Update
+                                var target = existingVariants.FirstOrDefault(ev => ev.Id == v.Id);
+                                if (target != null)
+                                {
+									// 空字串轉 null，避免多筆 "" 違反 UNIQUE KEY
+									target.SkuCode = string.IsNullOrWhiteSpace(v.SkuCode) ? Guid.NewGuid().ToString() : v.SkuCode; target.VariantName   = v.VariantName;
+                                    target.SpecValueJson = v.SpecValueJson;
+                                    target.Price         = v.Price;
+                                    target.Stock         = v.Stock;
+                                }
+                            }
+                            else
+                            {
+                                // Add
+                                product.ProductVariants.Add(new ProductVariant
+                                {
+                                    ProductId     = product.Id,
+									// 空字串轉 null，避免多筆 "" 違反 UNIQUE KEY
+									SkuCode = string.IsNullOrWhiteSpace(v.SkuCode) ? Guid.NewGuid().ToString() : v.SkuCode,
+									VariantName   = v.VariantName,
+                                    SpecValueJson = v.SpecValueJson,
+                                    Price         = v.Price,
+                                    Stock         = v.Stock,
+                                    IsDeleted     = false
+                                });
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // 解析失敗則不處理變體更新，或根據需求拋出異常
+                    Console.WriteLine("解析 VariantsJson 失敗: " + ex.Message);
+                }
+            }
+
+			// 5. 處理屬性更新 (Attributes)
+			if (!string.IsNullOrWhiteSpace(dto.AttributesJson))
+			{
+				// 直接存入主商品的 AttributesJson 欄位 (已透過 Partial Class 擴充)
+				product.AttributesJson = dto.AttributesJson;
+			}
+
+			// 6. 【關鍵】重算快取欄位 (MinPrice, MaxPrice)
+			var activeVariants = product.ProductVariants.Where(v => v.IsDeleted != true).ToList();
+
+			if (activeVariants.Any())
+			{
+				product.MinPrice = activeVariants.Min(v => v.Price);
+				product.MaxPrice = activeVariants.Max(v => v.Price);
+			}
+			else
+			{
+				product.MinPrice = null;
+				product.MaxPrice = null;
+			}
+
+			_context.SaveChanges();
+		}
+
+        // 定義一個內部的輔助類別來解析 JSON
+        private class ProductVariantUpdateItem
+        {
+            public int Id { get; set; }
+            public string? SkuCode { get; set; }
+            public string? VariantName { get; set; }
+            public string? SpecValueJson { get; set; }
+            public decimal Price { get; set; }
+            public int Stock { get; set; }
         }
 
         public void SoftDeleteProduct(int id)
@@ -381,7 +487,14 @@ namespace ISpanShop.Repositories.Products
             }
 
             if (criteria.StoreId.HasValue)
+            {
                 query = query.Where(p => p.StoreId == criteria.StoreId.Value);
+            }
+            else
+            {
+                // 非賣家後台查詢時，過濾掉「非營業中」的店家商品 (營業中 = 1)
+                query = query.Where(p => p.Store != null && p.Store.StoreStatus == 1);
+            }
 
             if (criteria.BrandId.HasValue)
                 query = query.Where(p => p.BrandId == criteria.BrandId.Value);
@@ -1000,7 +1113,7 @@ namespace ISpanShop.Repositories.Products
         {
             var query = _context.Products
                 .AsNoTracking()
-                .Where(p => p.IsDeleted != true && p.Status == 1)
+                .Where(p => p.IsDeleted != true && p.Status == 1 && p.Store.StoreStatus != 3 && p.Store.User.IsBlacklisted != true)
                 .AsQueryable();
 
             // ── 分類篩選 ───────────────────────────────────────────
@@ -1114,6 +1227,7 @@ namespace ISpanShop.Repositories.Products
                 .AsNoTracking()
                 .Include(p => p.Brand)
                 .Include(p => p.Store)
+                    .ThenInclude(s => s.User)
                 .Include(p => p.Category)
                     .ThenInclude(c => c.Parent)
                         .ThenInclude(c2 => c2!.Parent)
@@ -1156,6 +1270,7 @@ namespace ISpanShop.Repositories.Products
                 .AsNoTracking()
                 .Where(p => p.IsDeleted != true
                          && p.Status == 1
+                         && p.Store.StoreStatus != 3
                          && p.Id != productId
                          && p.CategoryId == categoryId)
                 .OrderByDescending(p => p.TotalSales ?? 0)
@@ -1190,11 +1305,19 @@ namespace ISpanShop.Repositories.Products
         public async Task<List<string>> GetHotKeywordsAsync(int limit)
         {
             return await _context.Products
-                .Where(p => p.Status == 1 && p.IsDeleted == false)
+                .Where(p => p.Status == 1 && p.IsDeleted == false && p.Store.StoreStatus != 3)
                 .OrderByDescending(p => p.ViewCount)
                 .Take(limit)
                 .Select(p => p.Name.Length > 10 ? p.Name.Substring(0, 10) : p.Name)
                 .ToListAsync();
+        }
+
+        /// <inheritdoc/>
+        public async Task IncrementViewCountAsync(int productId)
+        {
+            await _context.Products
+                .Where(p => p.Id == productId)
+                .ExecuteUpdateAsync(s => s.SetProperty(p => p.ViewCount, p => (p.ViewCount ?? 0) + 1));
         }
 
         /// <inheritdoc/>
@@ -1243,35 +1366,58 @@ namespace ISpanShop.Repositories.Products
         /// <inheritdoc/>
         public void DeleteProductImagesExcept(int productId, List<string> keepImageUrls, string webRootPath)
         {
+            // 正規化 URL：不論前端送來完整 URL 還是相對路徑，統一只取路徑部分
+            static string NormalizeUrl(string? url)
+            {
+                if (string.IsNullOrEmpty(url)) return string.Empty;
+                if (Uri.TryCreate(url, UriKind.Absolute, out var uri))
+                    return uri.AbsolutePath;
+                return url;
+            }
+
+            var normalizedKeep = keepImageUrls
+                .Select(NormalizeUrl)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
             var images = _context.ProductImages
                 .Where(pi => pi.ProductId == productId)
                 .ToList();
 
-            // 刪除不在 keepImageUrls 中的圖片
-            foreach (var img in images)
-            {
-                if (!keepImageUrls.Contains(img.ImageUrl))
-                {
-                    // 刪除實體檔案
-                    if (!string.IsNullOrEmpty(img.ImageUrl))
-                    {
-                        var filePath = Path.Combine(webRootPath, img.ImageUrl.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
-                        if (System.IO.File.Exists(filePath))
-                        {
-                            try
-                            {
-                                System.IO.File.Delete(filePath);
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogWarning(ex, "無法刪除圖片檔案：{FilePath}", filePath);
-                            }
-                        }
-                    }
+            var toDelete = images
+                .Where(img => !normalizedKeep.Contains(NormalizeUrl(img.ImageUrl)))
+                .ToList();
+            var toKeep = images
+                .Where(img => normalizedKeep.Contains(NormalizeUrl(img.ImageUrl)))
+                .OrderBy(img => img.SortOrder)
+                .ToList();
 
-                    // 刪除資料庫記錄
-                    _context.ProductImages.Remove(img);
+            Console.WriteLine($"=== DeleteProductImagesExcept (productId={productId}) ===");
+            Console.WriteLine($"  保留清單 ({normalizedKeep.Count}): {string.Join(", ", normalizedKeep)}");
+            Console.WriteLine($"  DB 圖片  ({images.Count}): {string.Join(", ", images.Select(i => i.ImageUrl))}");
+            Console.WriteLine($"  要刪除: {toDelete.Count} 張，要保留: {toKeep.Count} 張");
+
+            // 刪除不在保留清單的圖片
+            foreach (var img in toDelete)
+            {
+                if (!string.IsNullOrEmpty(img.ImageUrl))
+                {
+                    var filePath = Path.Combine(webRootPath, img.ImageUrl.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+                    if (System.IO.File.Exists(filePath))
+                    {
+                        try { System.IO.File.Delete(filePath); }
+                        catch (Exception ex) { _logger.LogWarning(ex, "無法刪除圖片檔案：{FilePath}", filePath); }
+                    }
                 }
+                _context.ProductImages.Remove(img);
+            }
+
+            // 重新排序保留的圖片（確保 SortOrder 連續從 0 開始）
+            int sortOrder = 0;
+            foreach (var img in toKeep)
+            {
+                img.SortOrder = sortOrder;
+                img.IsMain    = (sortOrder == 0);
+                sortOrder++;
             }
 
             _context.SaveChanges();

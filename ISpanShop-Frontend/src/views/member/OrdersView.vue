@@ -29,14 +29,13 @@
       <div v-loading="loading" class="order-list">
         <el-empty v-if="filteredOrders.length === 0" description="暫無訂單資料" />
         
-        <div v-for="order in filteredOrders" :key="order.id" class="order-card">
+        <div v-for="order in pagedOrders" :key="order.id" class="order-card">
           <div class="order-card-header">
             <div class="store-info">
               <span class="store-tag">賣場</span>
               <span class="store-name">{{ order.storeName }}</span>
-              <el-button link type="primary" size="small" class="chat-btn">聊聊</el-button>
-              <el-divider direction="vertical" />
-              <el-button link size="small">查看賣場</el-button>
+              <el-button size="small" class="header-action-btn" @click.stop="handleChat(order)">好聊</el-button>
+              <el-button size="small" class="header-action-btn" @click.stop="handleGoToStore(order.storeId)">查看賣場</el-button>
             </div>
             <div class="status-info">
               <span class="status-text" :class="getStatusClass(order.status)">
@@ -62,6 +61,10 @@
               </div>
             </div>
             <div class="price-info">
+              <div class="discount-tags" v-if="(order.discountAmount && order.discountAmount > 0) || (order.levelDiscount && order.levelDiscount > 0)">
+                <el-tag v-if="order.discountAmount && order.discountAmount > 0" size="small" type="danger" effect="plain">優惠券折抵</el-tag>
+                <el-tag v-if="order.levelDiscount && order.levelDiscount > 0" size="small" type="warning" effect="plain">會員折扣</el-tag>
+              </div>
               <div class="total-label">訂單金額：</div>
               <div class="total-amount">${{ formatPrice(order.finalAmount) }}</div>
             </div>
@@ -77,14 +80,24 @@
                 :order-id="order.id" 
                 :order-number="order.orderNumber"
                 :status="order.status" 
+                :is-reviewed="order.isReviewed || (order as any).IsReviewed"
                 @refresh="fetchOrders"
               />
-              <el-button @click="goToDetail(order.id)" size="default" class="detail-btn">
-                查看訂單詳情
-              </el-button>
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- 分頁 -->
+      <div v-if="filteredOrders.length > 0" class="pagination-wrap">
+        <el-pagination
+          background
+          layout="prev, pager, next, jumper, total"
+          :total="filteredOrders.length"
+          :page-size="pageSize"
+          v-model:current-page="currentPage"
+          :disabled="loading"
+        />
       </div>
     </div>
   </div>
@@ -98,13 +111,19 @@ import { getMyOrdersApi } from '@/api/order';
 import type { OrderListItem } from '@/types/order';
 import { ElMessage } from 'element-plus';
 import OrderActionButtons from '@/components/order/OrderActionButtons.vue';
+import { useChatStore } from '@/stores/chat';
 
 const router = useRouter();
 const route = useRoute();
+const chatStore = useChatStore();
 const loading = ref(false);
 const orders = ref<OrderListItem[]>([]);
 const activeTab = ref('all');
 const searchQuery = ref('');
+
+// 分頁狀態
+const currentPage = ref(1);
+const pageSize = ref(5); // 訂單卡片較大，每頁顯示 5 筆較合適
 
 // 監聽路由參數變化，以便在頁面內切換標籤時也能生效
 watch(() => route.query.tab, (newTab) => {
@@ -113,6 +132,12 @@ watch(() => route.query.tab, (newTab) => {
   } else {
     activeTab.value = 'all';
   }
+  currentPage.value = 1; // 切換標籤時重置分頁
+});
+
+// 監聽搜尋字串變化，重置分頁
+watch(searchQuery, () => {
+  currentPage.value = 1;
 });
 
 const fetchOrders = async () => {
@@ -120,6 +145,7 @@ const fetchOrders = async () => {
   try {
     const res = await getMyOrdersApi();
     orders.value = res.data;
+    console.log('Orders data:', res.data);
   } catch (error) {
     console.error('獲取訂單失敗', error);
     ElMessage.error('獲取訂單失敗，請稍後再試');
@@ -146,6 +172,12 @@ const filteredOrders = computed(() => {
   return result;
 });
 
+const pagedOrders = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return filteredOrders.value.slice(start, end);
+});
+
 const handleTabChange = (tabName: string) => {
   // 當使用者點擊標籤時，同步更新 URL 參數（選用，增加體驗）
   router.replace({ query: { ...route.query, tab: tabName === 'all' ? undefined : tabName } });
@@ -153,6 +185,18 @@ const handleTabChange = (tabName: string) => {
 
 const goToDetail = (id: number) => {
   router.push(`/member/orders/${id}`);
+};
+
+const handleChat = (order: OrderListItem) => {
+  if (order.sellerId) {
+    chatStore.openChatWithUser(order.sellerId, order.storeName);
+  } else {
+    ElMessage.warning('無法取得賣家資訊');
+  }
+};
+
+const handleGoToStore = (storeId: number) => {
+  router.push(`/store/${storeId}`);
 };
 
 const formatPrice = (price: number) => {
@@ -202,6 +246,21 @@ onMounted(() => {
   max-width: 1000px; /* 稍微縮小寬度以適應側邊欄後的空間 */
   margin: 0;
   padding: 0;
+}
+
+.pagination-wrap {
+  margin-top: 24px;
+  display: flex;
+  justify-content: center;
+  padding-bottom: 40px;
+
+  :deep(.el-pagination.is-background .el-pager li:not(.is-disabled).is-active) {
+    background-color: #ee4d2d;
+  }
+  
+  :deep(.el-pagination.is-background .el-pager li:not(.is-disabled):hover) {
+    color: #ee4d2d;
+  }
 }
 
 /* Tabs 樣式優化 */
@@ -278,7 +337,7 @@ onMounted(() => {
     .store-info {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
 
       .store-tag {
         background-color: #ee4d2d;
@@ -291,10 +350,22 @@ onMounted(() => {
       .store-name {
         font-weight: 500;
         color: #333;
+        margin-right: 2px;
       }
 
-      .chat-btn {
-        margin-left: 5px;
+      .header-action-btn {
+        margin-left: 0;
+        height: 24px;
+        padding: 0 8px;
+        font-size: 12px;
+        border-color: #dcdfe6;
+        color: #606266;
+
+        &:hover {
+          color: #ee4d2d;
+          border-color: #f7a696;
+          background-color: #fffbf8;
+        }
       }
     }
 
@@ -370,6 +441,12 @@ onMounted(() => {
       display: flex;
       align-items: center;
       gap: 10px;
+
+      .discount-tags {
+        display: flex;
+        gap: 4px;
+        margin-right: 4px;
+      }
 
       .total-label {
         font-size: 14px;

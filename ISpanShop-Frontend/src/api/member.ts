@@ -1,5 +1,6 @@
 import axios from './axios';
 import type { ChangePasswordRequest } from '@/types/auth';
+import type { AddressDto, CreateAddressDto, UpdateAddressDto, LevelInfo, LevelDetail } from '@/types/member';
 
 /** 會員資料 DTO (用於讀取) */
 export interface MemberDto {
@@ -28,24 +29,31 @@ export interface UpdateMemberProfileDto {
 }
 
 /**
- * 取得會員等級資訊與規則 (真實消費金額)
+ * 取得會員等級詳細資訊 (含進度、計算區間、最新消費額)
+ */
+export const getLevelDetail = () => {
+  return axios.get<LevelDetail>('/api/member/level-detail');
+};
+
+/**
+ * 取得會員等級基本資訊
  */
 export const getLevelInfo = () => {
-  return axios.get<any>('/api/member/level-info');
+  return axios.get<LevelInfo>('/api/member/level-info');
 };
 
 /**
  * 取得會員個人資料
  */
-export const getMemberProfile = (id: number) => {
-  return axios.get<MemberDto>(`/api/front/profile/${id}`);
+export const getMemberProfile = () => {
+  return axios.get<MemberDto>('/api/front/profile');
 };
 
 /**
  * 更新會員個人資料
  */
-export const updateMemberProfile = (id: number, data: UpdateMemberProfileDto) => {
-  return axios.put<{ message: string }>(`/api/front/profile/${id}`, data);
+export const updateMemberProfile = (data: UpdateMemberProfileDto) => {
+  return axios.put<{ message: string }>('/api/front/profile', data);
 };
 
 /**
@@ -54,7 +62,7 @@ export const updateMemberProfile = (id: number, data: UpdateMemberProfileDto) =>
 export const uploadAvatar = (file: File) => {
   const formData = new FormData();
   formData.append('file', file);
-  return axios.post<{ url: string }>('/api/front/upload/avatar', formData, {
+  return axios.post<{ url: string }>('/api/front/profile/upload', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   });
 };

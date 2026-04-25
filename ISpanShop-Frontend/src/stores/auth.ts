@@ -18,6 +18,7 @@ export const useAuthStore = defineStore('auth', () => {
     pointBalance: number | null;
     avatarUrl: string | null;
     isSeller: boolean;
+    isBlacklisted: boolean;
   }>(storage.getUser() || {
     memberId: null,
     email: null,
@@ -26,11 +27,13 @@ export const useAuthStore = defineStore('auth', () => {
     levelName: null,
     pointBalance: null,
     avatarUrl: null,
-    isSeller: false
+    isSeller: false,
+    isBlacklisted: false
   });
 
   // Getters
   const isLoggedIn = computed(() => !!token.value);
+  const isBlacklisted = computed(() => memberInfo.value.isBlacklisted);
 
   // Actions
   async function login(loginData: LoginRequest) {
@@ -51,14 +54,16 @@ export const useAuthStore = defineStore('auth', () => {
         levelName: data.levelName,
         pointBalance: data.pointBalance,
         avatarUrl: data.avatarUrl || null,
-        isSeller: data.isSeller
+        isSeller: data.isSeller,
+        isBlacklisted: data.isBlacklisted
       };
 
       // 2. 持久化到 localStorage
-        storage.setToken(data.token);
-        storage.setUser(memberInfo.value);;
-    try {
-        const profileRes = await getMemberProfile(data.memberId)
+      storage.setToken(data.token);
+      storage.setUser(memberInfo.value);
+
+      try {
+        const profileRes = await getMemberProfile()
         memberInfo.value.avatarUrl = profileRes.data.avatarUrl ?? null
         storage.setUser(memberInfo.value)
       } catch {
@@ -84,7 +89,8 @@ export const useAuthStore = defineStore('auth', () => {
       levelName: null,
       pointBalance: null,
       avatarUrl: null,
-      isSeller: false
+      isSeller: false,
+      isBlacklisted: false
     };
 
     // 2. 清除 localStorage
@@ -99,11 +105,41 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  /** 更新等級名稱並同步持久化到 localStorage */
+  function updateLevel(levelName: string) {
+    if (memberInfo.value) {
+      memberInfo.value.levelName = levelName;
+      storage.setUser(memberInfo.value);
+    }
+  }
+
   /** 更新賣家身分並同步持久化到 localStorage */
   function updateSellerStatus(isSeller: boolean) {
     if (memberInfo.value) {
       memberInfo.value.isSeller = isSeller;
       storage.setUser(memberInfo.value);
+    }
+  }
+
+  /** 獲取最新會員資料並同步到 store 與 localStorage */
+  async function fetchUserInfo() {
+    try {
+      const response = await getMemberProfile();
+      const { data } = response;
+      memberInfo.value = {
+        ...memberInfo.value,
+        memberId: data.id,
+        email: data.email,
+        account: data.account,
+        memberName: data.fullName,
+        levelName: data.levelName || '一般會員',
+        pointBalance: data.pointBalance ?? memberInfo.value.pointBalance,
+        avatarUrl: data.avatarUrl || null,
+        isBlacklisted: data.isBlacklisted ?? data.IsBlacklisted ?? false // 同步封鎖狀態
+      };
+      storage.setUser(memberInfo.value);
+    } catch (error) {
+      console.error('獲取會員資料失敗:', error);
     }
   }
 
@@ -120,10 +156,13 @@ export const useAuthStore = defineStore('auth', () => {
     isLoginDialogOpen,
     memberInfo,
     isLoggedIn,
+    isBlacklisted,
     login,
     logout,
     updatePoints,
+    updateLevel,
     updateSellerStatus,
+    fetchUserInfo,
     openLoginDialog,
     closeLoginDialog
   };

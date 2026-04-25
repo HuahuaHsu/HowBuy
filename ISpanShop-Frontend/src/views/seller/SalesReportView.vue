@@ -84,9 +84,9 @@
           </el-col>
         </el-row>
 
-        <!-- 圖表與排行 -->
+        <!-- 圖表區域 (滿版) -->
         <el-row :gutter="16" class="main-row">
-          <el-col :lg="16" :md="24">
+          <el-col :span="24">
             <el-card class="chart-card" shadow="never">
               <template #header>
                 <div class="card-header">
@@ -103,17 +103,31 @@
               </div>
             </el-card>
           </el-col>
-          <el-col :lg="8" :md="24">
+        </el-row>
+
+        <!-- 熱銷商品排行 (滿版橫幅) -->
+        <el-row :gutter="16">
+          <el-col :span="24">
             <el-card class="top-products-card" shadow="never">
               <template #header>
                 <div class="card-header">
                   <span class="card-title">🏆 熱銷商品排行</span>
                 </div>
               </template>
-              <el-table :data="dashboardData.topProducts" stripe style="width: 100%">
-                <el-table-column type="index" label="#" width="50" align="center" />
-                <el-table-column prop="productName" label="商品名稱" show-overflow-tooltip />
-                <el-table-column prop="salesVolume" label="銷量" width="80" align="right" />
+              <el-table 
+                :data="dashboardData.topProducts" 
+                stripe 
+                style="width: 100%"
+                class="clickable-table"
+                @row-click="handleRowClick"
+              >
+                <el-table-column type="index" label="排名" width="80" align="center" />
+                <el-table-column prop="productName" label="商品名稱" min-width="400" />
+                <el-table-column prop="salesVolume" label="總銷量" width="150" align="right">
+                  <template #default="scope">
+                    <span style="font-weight: 700; color: #ee4d2d">{{ scope.row.salesVolume }}</span> 件
+                  </template>
+                </el-table-column>
               </el-table>
               <el-empty v-if="dashboardData.topProducts.length === 0" description="暫無數據" :image-size="60" />
             </el-card>
@@ -186,6 +200,13 @@ const chartOptions = ref({
 
 const formatPrice = (price: number) => {
   return price.toLocaleString();
+};
+
+const handleRowClick = (row: any) => {
+  const id = row.productId || row.ProductId;
+  if (id) {
+    router.push(`/product/${id}`);
+  }
 };
 
 const checkStatus = async () => {
@@ -346,5 +367,9 @@ onMounted(() => {
 .status-tip {
   margin-bottom: 15px;
   color: #64748b;
+}
+
+.clickable-table :deep(.el-table__row) {
+  cursor: pointer;
 }
 </style>

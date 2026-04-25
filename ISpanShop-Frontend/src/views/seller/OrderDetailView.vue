@@ -5,17 +5,24 @@
       <h2 class="title">訂單詳情：{{ order?.orderNumber }}</h2>
       <div class="actions">
         <!-- 待出貨狀態才顯示出貨按鈕 -->
-        <el-button 
-          v-if="order?.status === 2" 
-          type="primary" 
-          size="large"
+        <el-button
+          v-if="order?.status === 1"
+          type="primary"
           @click="handleShip"
         >
           確認出貨
         </el-button>
-        <el-button 
-          type="info" 
-          plain 
+        <!-- 退貨中狀態顯示審核按鈕 -->
+        <el-button
+          v-if="order?.status === 5"
+          type="primary"
+          @click="router.push(`/seller/returns/${order?.id}`)"
+        >
+          前往審核退貨
+        </el-button>
+        <el-button
+          type="info"
+          plain
           @click="contactBuyer"
         >
           聯繫買家
@@ -26,18 +33,14 @@
     <el-row :gutter="20" v-if="order">
       <!-- 左側：訂單資訊與商品明細 -->
       <el-col :span="16">
-        <!-- 訂單狀態卡片 -->
-        <el-card class="status-card" shadow="never">
-          <div class="status-box">
-            <div class="status-label">目前訂單狀態</div>
-            <div class="status-value" :class="statusClass">{{ order.statusName }}</div>
-          </div>
-          <el-divider />
-          <div class="timeline">
-            <div class="time-item">下單時間：{{ order.createdAt }}</div>
-            <div v-if="order.paymentDate" class="time-item">付款時間：{{ order.paymentDate }}</div>
-            <div v-if="order.completedAt" class="time-item">完成時間：{{ order.completedAt }}</div>
-          </div>
+        <!-- 訂單進度條 -->
+        <el-card class="steps-card" shadow="never">
+          <OrderSteps 
+            :status="order.status"
+            :created-at="order.createdAt"
+            :payment-date="order.paymentDate"
+            :completed-at="order.completedAt"
+          />
         </el-card>
 
         <!-- 商品明細 -->
@@ -74,34 +77,32 @@
             </el-table-column>
           </el-table>
 
-          <div class="order-summary">
-            <div class="summary-line">
-              <span>商品總額</span>
-              <span>NT$ {{ order.totalAmount.toLocaleString() }}</span>
-            </div>
-            <div class="summary-line">
-              <span>運費</span>
-              <span>NT$ {{ order.shippingFee.toLocaleString() }}</span>
-            </div>
-            <div class="summary-line discount" v-if="order.discountAmount > 0">
-              <span>活動折扣</span>
-              <span>- NT$ {{ order.discountAmount.toLocaleString() }}</span>
-            </div>
-            <div class="summary-line discount" v-if="order.pointDiscount > 0">
-              <span>點數折抵</span>
-              <span>- NT$ {{ order.pointDiscount.toLocaleString() }}</span>
-            </div>
-            <el-divider />
-            <div class="summary-line total">
-              <span>買家實付</span>
-              <span class="final-amount">NT$ {{ order.finalAmount.toLocaleString() }}</span>
-            </div>
+          <!-- 價格結算 (使用抽取的組件) -->
+          <div class="seller-summary-wrapper">
+            <OrderSummary 
+              v-if="order"
+              :total-amount="order.totalAmount"
+              :shipping-fee="order.shippingFee"
+              :point-discount="order.pointDiscount"
+              :discount-amount="order.discountAmount"
+              :level-discount="order.levelDiscount"
+              :final-amount="order.finalAmount"
+              payment-method="線上支付"
+            />
           </div>
         </el-card>
       </el-col>
 
-      <!-- 右側：買家與收件資訊 -->
+      <!-- 右側：訂單狀態、買家與收件資訊 -->
       <el-col :span="8">
+        <!-- 精簡版訂單狀態 -->
+        <el-card class="info-card condensed-status-card" shadow="never">
+          <div class="status-box">
+            <div class="status-label">目前訂單狀態</div>
+            <div class="status-value" :class="statusClass">{{ order.statusName }}</div>
+          </div>
+        </el-card>
+
         <el-card class="info-card" shadow="never" header="買家資訊">
           <div class="info-group">
             <div class="label">買家帳號</div>
@@ -151,9 +152,13 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Picture, ArrowLeft } from '@element-plus/icons-vue'
 import { getSellerOrderDetailApi, updateSellerOrderStatusApi } from '@/api/store'
 import type { SellerOrderDetail } from '@/types/store'
+import { useChatStore } from '@/stores/chat'
+import OrderSteps from '@/components/order/OrderSteps.vue'
+import OrderSummary from '@/components/order/OrderSummary.vue'
 
 const route = useRoute()
 const router = useRouter()
+const chatStore = useChatStore()
 const loading = ref(false)
 const order = ref<SellerOrderDetail | null>(null)
 
@@ -212,7 +217,11 @@ const handleShip = async () => {
 }
 
 const contactBuyer = () => {
-  ElMessage.info('即時聊天功能開發中')
+  if (order.value?.userId) {
+    chatStore.openChatWithUser(order.value.userId, order.value.buyerName || order.value.buyerAccount);
+  } else {
+    ElMessage.warning('無法取得買家資訊');
+  }
 }
 
 onMounted(() => {
@@ -238,6 +247,11 @@ onMounted(() => {
   flex: 1;
   font-size: 20px;
   color: #1e293b;
+}
+
+.steps-card {
+  margin-bottom: 20px;
+  border-radius: 8px;
 }
 
 .status-card {
@@ -308,29 +322,8 @@ onMounted(() => {
   color: #1e293b;
 }
 
-.order-summary {
+.seller-summary-wrapper {
   margin-top: 24px;
-  width: 300px;
-  margin-left: auto;
-}
-.summary-line {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 8px;
-  font-size: 14px;
-  color: #64748b;
-}
-.summary-line.discount {
-  color: #ef4444;
-}
-.summary-line.total {
-  font-weight: 700;
-  color: #1e293b;
-  font-size: 16px;
-}
-.final-amount {
-  color: #ee4d2d;
-  font-size: 20px;
 }
 
 .info-card {

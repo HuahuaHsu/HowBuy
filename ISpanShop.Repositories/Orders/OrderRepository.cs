@@ -43,6 +43,12 @@ namespace ISpanShop.Repositories.Orders
 							.ThenInclude(pv => pv.ProductImages)
 				.Include(o => o.ReturnRequests)
 					.ThenInclude(rr => rr.ReturnRequestImages)
+				.Include(o => o.ReturnRequests)
+					.ThenInclude(rr => rr.ReturnRequestItems)
+						.ThenInclude(ri => ri.OrderDetail)
+							.ThenInclude(od => od.Product)
+								.ThenInclude(p => p.ProductImages)
+				.Include(o => o.OrderReviews)
 				.AsSplitQuery()
 				.FirstOrDefaultAsync(o => o.Id == id);
 		}
@@ -106,7 +112,9 @@ namespace ISpanShop.Repositories.Orders
 		public async Task<List<Order>> GetOrdersByMemberIdAsync(int memberId)
 		{
 			return await _context.Orders
+				.AsNoTracking()
 				.Include(o => o.Store)
+				.Include(o => o.OrderReviews)
 				.Include(o => o.OrderDetails)
 					.ThenInclude(od => od.Product)
 						.ThenInclude(p => p.ProductImages)

@@ -53,7 +53,7 @@
             <div class="buyer-info">
               <span class="buyer-tag">買家</span>
               <span class="buyer-name">{{ order.buyerName }}</span>
-              <el-button link type="primary" size="small" icon="ChatDotRound" class="chat-btn">聊聊</el-button>
+              <el-button link type="primary" size="small" class="chat-btn" @click.stop="handleChat(order)">好聊</el-button>
             </div>
             <div class="status-info">
               <span class="status-text" :class="getStatusClass(order.status)">
@@ -142,9 +142,11 @@ import { Search, Picture, Location, ChatDotRound } from '@element-plus/icons-vue
 import { getSellerOrdersApi, updateSellerOrderStatusApi } from '@/api/store';
 import type { SellerOrder } from '@/types/store';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { useChatStore } from '@/stores/chat';
 
 const router = useRouter();
 const route = useRoute();
+const chatStore = useChatStore();
 const loading = ref(false);
 const orders = ref<SellerOrder[]>([]);
 const totalCount = ref(0);
@@ -192,6 +194,18 @@ const handleSizeChange = (size: number) => {
 const handleSearch = () => {
   currentPage.value = 1;
   fetchOrders();
+};
+
+const handleChat = (order: SellerOrder) => {
+  const buyerId = order.buyerId || (order as any).BuyerId;
+  console.log('Chat clicked for order:', order.orderNumber, 'BuyerId:', buyerId);
+  
+  if (buyerId) {
+    chatStore.openChatWithUser(buyerId, order.buyerName);
+  } else {
+    console.warn('Order object:', order);
+    ElMessage.warning('無法取得買家資訊');
+  }
 };
 
 const handleReset = () => {
@@ -345,7 +359,7 @@ onMounted(() => {
     .buyer-info {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
 
       .buyer-tag {
         background-color: #3b82f6;
@@ -358,9 +372,24 @@ onMounted(() => {
       .buyer-name {
         font-weight: 500;
         color: #333;
+        margin-right: 2px;
       }
       
-      .chat-btn { margin-left: 5px; }
+      .chat-btn {
+        margin-left: 0;
+        height: 24px;
+        padding: 0 8px;
+        font-size: 12px;
+        border-color: #dcdfe6;
+        color: #606266;
+        background-color: #fff;
+
+        &:hover {
+          color: #ee4d2d;
+          border-color: #f7a696;
+          background-color: #fffbf8;
+        }
+      }
     }
 
     .status-info {
@@ -515,13 +544,5 @@ onMounted(() => {
     background-color: #fff;
     &:hover { background-color: #fffbf8; }
   }
-}
-
-/* 聊聊按鈕特別修正 */
-.chat-btn.el-button--primary.is-link {
-  color: #ee4d2d;
-  background: transparent;
-  border: none;
-  &:hover { color: #f05d40; text-decoration: underline; }
 }
 </style>

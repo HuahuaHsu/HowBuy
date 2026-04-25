@@ -6,6 +6,7 @@ import type {
   ProductDetail,
   ProductListItem,
   SellerProductListResponse,
+  SellerProductDetail,
 } from '@/types/product'
 
 export async function fetchProductList(
@@ -108,9 +109,10 @@ export async function addSellerProductVariant(
 /**
  * 取得賣家商品詳情（用於編輯）
  * GET /api/seller/products/{id}
+ * 後端直接回傳 ProductDetailResponse，不包在 ApiResponse 裡
  */
-export async function getSellerProductDetail(id: number): Promise<ApiResponse<ProductDetail>> {
-  const response = await request.get<ApiResponse<ProductDetail>>(`/api/seller/products/${id}`)
+export async function getSellerProductDetail(id: number): Promise<SellerProductDetail> {
+  const response = await request.get<SellerProductDetail>(`/api/seller/products/${id}`)
   return response.data
 }
 
@@ -169,6 +171,23 @@ export async function deleteSellerProduct(
 ): Promise<ApiResponse<unknown>> {
   const response = await request.delete<ApiResponse<unknown>>(
     `/api/seller/products/${id}`,
+  )
+  return response.data
+}
+
+/**
+ * 上傳商品描述圖片 (供編輯器使用)
+ * POST /api/seller/products/upload-image (multipart/form-data)
+ */
+export async function uploadDescriptionImage(
+  image: File,
+): Promise<ApiResponse<{ url: string; imageUrl: string }>> {
+  const formData = new FormData()
+  formData.append('image', image)
+  const response = await request.post<ApiResponse<{ url: string; imageUrl: string }>>(
+    '/api/seller/products/upload-image',
+    formData,
+    { headers: { 'Content-Type': 'multipart/form-data' } },
   )
   return response.data
 }

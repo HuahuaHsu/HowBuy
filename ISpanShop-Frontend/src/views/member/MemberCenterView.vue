@@ -59,7 +59,7 @@ onMounted(async () => {
       pending: allOrders.filter(o => o.status === 0).length,
       processing: allOrders.filter(o => o.status === 1).length,
       shipped: allOrders.filter(o => o.status === 2).length,
-      completed: allOrders.filter(o => o.status === 3).length
+      completed: allOrders.filter(o => o.status === 3 && !o.isReviewed && !(o as any).IsReviewed).length
     };
 
     // 同步更新 store 中的資料並持久化
@@ -86,7 +86,7 @@ const go = (name: string) => {
     case '待收貨':
       router.push({ path: '/member/orders', query: { tab: '2' } });
       break;
-    case '評價':
+    case '待評價':
       router.push({ path: '/member/orders', query: { tab: '3' } });
       break;
     case '紅利點數':
@@ -97,6 +97,12 @@ const go = (name: string) => {
       break;
     case '我的賣場':
       router.push('/seller');
+      break;
+    case '再買一次':
+      router.push({ path: '/member/orders', query: { tab: '3' } });
+      break;
+    case '會員權益':
+      router.push('/member/level');
       break;
     case '客服專區':
       router.push('/member/support');
@@ -114,7 +120,7 @@ const orders = computed(() => [
   { label: "待付款", icon: "💳", badge: orderCounts.value.pending },
   { label: "待出貨", icon: "📦", badge: orderCounts.value.processing },
   { label: "待收貨", icon: "🚚", badge: orderCounts.value.shipped },
-  { label: "評價",   icon: "⭐", badge: orderCounts.value.completed },
+  { label: "待評價",   icon: "⭐", badge: orderCounts.value.completed },
 ]);
 
 const services = [
@@ -127,7 +133,24 @@ const services = [
 
 <template>
   <div class="page">
-    <!-- 原本的 Header 已經整合到 MemberLayout 中 -->
+    <!-- 停權提示 Banner -->
+    <div v-if="authStore.isBlacklisted" class="blacklist-banner">
+      <el-alert
+        title="您的帳號目前已停權"
+        type="error"
+        description="您的帳號因違反平台規範已暫時停權，目前的權限為「唯讀」。如有任何疑問或欲進行復權申訴，請聯繫平台管理員。"
+        show-icon
+        :closable="false"
+      >
+        <template #default>
+          <div class="banner-actions">
+            <el-button type="danger" size="small" @click="go('客服專區')">
+              前往申訴管道
+            </el-button>
+          </div>
+        </template>
+      </el-alert>
+    </div>
 
     <!-- 購買清單 -->
     <div class="card">
@@ -206,6 +229,13 @@ const services = [
   margin: 0 auto;
   position: relative;
   overflow-x: hidden;
+}
+
+.blacklist-banner {
+  margin: 12px;
+}
+.banner-actions {
+  margin-top: 10px;
 }
 
 @media (max-width: 1200px) {

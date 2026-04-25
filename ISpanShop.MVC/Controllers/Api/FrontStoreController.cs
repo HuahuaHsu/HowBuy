@@ -156,8 +156,8 @@ namespace ISpanShop.MVC.Controllers.Api
                     return Unauthorized(new { message = "無效的使用者身分" });
                 }
 
-                var status = await _storeService.GetStoreStatusAsync(userId);
-                return Ok(new { status });
+                var (status, isBanned) = await _storeService.GetStoreStatusDetailAsync(userId);
+                return Ok(new { status, isBanned });
             }
             catch (Exception ex)
             {

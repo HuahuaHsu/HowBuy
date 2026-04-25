@@ -6,6 +6,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using System;
 using Microsoft.AspNetCore.Authorization;
+using ISpanShop.Services.Members;
 
 namespace ISpanShop.MVC.Controllers.Api
 {
@@ -16,11 +17,26 @@ namespace ISpanShop.MVC.Controllers.Api
     {
         private readonly PointService _pointService;
         private readonly ISpanShopDBContext _context;
+        private readonly IMemberLevelService _levelService;
 
-        public MemberApiController(PointService pointService, ISpanShopDBContext context)
+        public MemberApiController(PointService pointService, ISpanShopDBContext context, IMemberLevelService levelService)
         {
             _pointService = pointService;
             _context = context;
+            _levelService = levelService;
+        }
+
+        [HttpGet("level-detail")]
+        public async Task<IActionResult> GetLevelDetail()
+        {
+            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdStr) || !int.TryParse(userIdStr, out int userId))
+            {
+                return Unauthorized();
+            }
+
+            var levelInfo = await _levelService.GetMemberLevelInfoAsync(userId);
+            return Ok(levelInfo);
         }
 
         [HttpGet("level-info")]

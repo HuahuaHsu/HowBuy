@@ -103,9 +103,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { Trophy, InfoFilled } from '@element-plus/icons-vue'
-import { getLevelInfo } from '@/api/member'
+import { getLevelDetail } from '@/api/member'
 import { ElMessage } from 'element-plus'
+import { useAuthStore } from '@/stores/auth'
 
+const authStore = useAuthStore()
 // 修改 Interface 以符合 API 回傳的 camelCase
 interface MembershipLevel {
   id: number;
@@ -118,6 +120,10 @@ interface MembershipLevel {
 const loading = ref(true)
 const realTotalSpending = ref(0)
 const levelRules = ref<MembershipLevel[]>([])
+const progressPercentage = ref(0)
+const neededForNext = ref(0)
+const nextLevelName = ref('')
+const currentLevelName = ref('')
 
 // 模擬等級配色 (對應 ID)
 const levelColors: Record<number, string> = {
@@ -135,24 +141,29 @@ const statsInfo = ref({
 const fetchLevelData = async () => {
   try {
     loading.value = true
-    const response = await getLevelInfo()
+    const response = await getLevelDetail()
     const data = response.data
     
-    realTotalSpending.value = data.totalSpending
-    // 修正點：API 回傳的是 id 而非 Id
-    levelRules.value = data.levels.map((l: any) => ({
-      ...l,
-      color: levelColors[l.id] || '#94a3b8'
+    realTotalSpending.value = data.currentTotalSpending
+    currentLevelName.value = data.currentLevelName
+    nextLevelName.value = data.nextLevelName
+    progressPercentage.value = data.progressPercent
+    neededForNext.value = data.nextLevelThreshold - data.currentTotalSpending
+    
+    // 映射所有等級規則
+    levelRules.value = data.allLevels.map((l: any) => ({
+      id: l.levelId,
+      levelName: l.name,
+      minSpending: l.minSpending,
+      discountRate: l.discountRate,
+      color: levelColors[l.levelId] || '#94a3b8'
     }))
     
-    const now = new Date()
-    const oneYearAgo = new Date()
-    oneYearAgo.setFullYear(now.getFullYear() - 1)
-    const formatDate = (date: Date) => date.toISOString().split('T')[0]
+    const formatDate = (dateStr: string) => dateStr.split('T')[0]
     
     statsInfo.value = {
-      startDate: formatDate(oneYearAgo),
-      endDate: formatDate(now),
+      startDate: formatDate(data.calculationStartDate),
+      endDate: formatDate(data.calculationEndDate),
       updatedAt: new Date().toLocaleString()
     }
   } catch (error) {
@@ -171,29 +182,19 @@ const currentLevel = computed(() => {
   if (levelRules.value.length === 0) return { levelName: '載入中...', color: '#94a3b8' }
   const spending = Number(realTotalSpending.value)
   const sorted = [...levelRules.value].sort((a, b) => Number(b.minSpending) - Number(a.minSpending))
-  return sorted.find(l => spending >= Number(l.minSpending)) || levelRules.value[0]
+  const level = sorted.find(l => spending >= Number(l.minSpending)) || levelRules.value[0]
+  
+  // 同步更新 authStore 的等級資訊，讓側邊欄同步
+  if (level.levelName && level.levelName !== '載入中...') {
+    authStore.updateLevel(level.levelName)
+  }
+  
+  return level
 })
 
 const nextLevel = computed(() => {
   if (levelRules.value.length === 0) return null
-  const spending = Number(realTotalSpending.value)
-  const sorted = [...levelRules.value].sort((a, b) => Number(a.minSpending) - Number(b.minSpending))
-  return sorted.find(l => Number(l.minSpending) > spending)
-})
-
-const neededForNext = computed(() => {
-  if (!nextLevel.value) return 0
-  return Number(nextLevel.value.minSpending) - realTotalSpending.value
-})
-
-const progressPercentage = computed(() => {
-  if (!nextLevel.value || levelRules.value.length === 0) return 100
-  const spending = Number(realTotalSpending.value)
-  const currentBase = Number(currentLevel.value.minSpending)
-  const nextTarget = Number(nextLevel.value.minSpending)
-  
-  const progress = ((spending - currentBase) / (nextTarget - currentBase)) * 100
-  return Math.min(Math.max(progress, 0), 100)
+  return levelRules.value.find(l => l.levelName === nextLevelName.value) || null
 })
 
 const currentLevelStyles = computed(() => {
@@ -203,7 +204,7 @@ const currentLevelStyles = computed(() => {
 })
 
 const formatNumber = (num: number) => {
-  return Number(num).toLocaleString()
+  return Math.max(0, Math.floor(num)).toLocaleString()
 }
 
 const progressFormat = () => {
