@@ -18,6 +18,11 @@
         <div v-if="product.totalStock === 0" class="sold-out-overlay">
           <span class="sold-out-text">已售完</span>
         </div>
+
+        <!-- 活動標籤 (當網址帶有 promoText 時顯示) -->
+        <div v-if="route.query.promoText" class="promo-badge">
+          促銷中
+        </div>
       </div>
 
       <div class="card-body">
@@ -32,10 +37,12 @@
 </template>
 
 <script setup lang="ts">
+import { useRoute } from 'vue-router'
 import { Picture } from '@element-plus/icons-vue'
 import type { ProductListItem } from '@/types/product'
 import { formatPrice, formatSoldCount } from '@/utils/format'
 
+const route = useRoute()
 const props = defineProps<{
   product: ProductListItem
 }>()
@@ -156,5 +163,20 @@ void props
   background: rgba(0, 0, 0, 0.7);
   padding: 6px 16px;
   border-radius: 4px;
+}
+
+/* 促銷標籤 */
+.promo-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background-color: #EE4D2D;
+  color: white;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: bold;
+  border-bottom-left-radius: 8px;
+  z-index: 2;
+  box-shadow: -2px 2px 8px rgba(0, 0, 0, 0.15);
 }
 </style>
