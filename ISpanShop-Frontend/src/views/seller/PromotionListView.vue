@@ -284,6 +284,7 @@
             placeholder="選擇開始時間"
             format="YYYY-MM-DD HH:mm:ss"
             value-format="YYYY-MM-DDTHH:mm:ss"
+            :disabled-date="disabledDate"
             style="width: 100%;"
           />
         </el-form-item>
@@ -294,6 +295,7 @@
             placeholder="選擇結束時間"
             format="YYYY-MM-DD HH:mm:ss"
             value-format="YYYY-MM-DDTHH:mm:ss"
+            :disabled-date="disabledDate"
             style="width: 100%;"
           />
         </el-form-item>
@@ -967,6 +969,16 @@ function canEdit(statusText: string): boolean {
 
 function canDelete(statusText: string): boolean {
   return statusText === '待審核'
+}
+
+/** 限制活動時間不能選擇過去的日期 */
+const disabledDate = (time: Date) => {
+  // 取得今天的日期，並將時分秒歸零，避免把「今天的此時此刻之前」也鎖死
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  
+  // 只要月曆上的時間小於今天凌晨 00:00，就禁用 (回傳 true)
+  return time.getTime() < today.getTime()
 }
 
 // ─── 生命週期 ─────────────────────────────────────────────────────
