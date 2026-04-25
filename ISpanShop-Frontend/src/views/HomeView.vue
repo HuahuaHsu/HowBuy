@@ -36,22 +36,41 @@
             </el-carousel-item>
           </el-carousel>
         </div>
-        <div class="side-banners">
+        <div class="side-banners-grid" style="display: grid; grid-template-rows: repeat(2, 1fr); gap: 16px; height: 320px;">
+          <!-- 真實活動副版塊 (第 2, 3 筆) -->
           <div
-            v-for="promo in promotions.slice(1, 3)"
+            v-for="promo in sideBanners"
             :key="promo.id"
-            class="side-banner"
-            :style="{ backgroundImage: `url(${getBannerImage(promo)})`, backgroundSize: 'cover', backgroundPosition: 'center' }"
+            class="side-banner-dynamic"
+            style="position: relative; cursor: pointer; border-radius: 12px; overflow: hidden;"
             @click="goToActivity(promo)"
           >
-            <div class="sb-tag">{{ promo.typeLabel }}</div>
-            <h3>{{ promo.title }}</h3>
-            <p v-if="promo.subtitle">{{ promo.subtitle }}</p>
+            <!-- 背景圖 (破圖防呆) -->
+            <img
+              :src="getBannerImage(promo)"
+              alt=""
+              class="sb-bg-img"
+              @error="(e: any) => e.target.style.display = 'none'"
+              style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0;"
+            />
+            
+            <!-- 漸層遮罩 -->
+            <div class="sb-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(to right, rgba(26,27,46,0.9) 0%, rgba(26,27,46,0.3) 100%); z-index: 1;"></div>
+
+            <!-- 文字內容 -->
+            <div class="sb-content" style="position: relative; z-index: 2; padding: 16px 20px; color: white; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: flex-start;">
+              <span class="sb-tag" style="background-color: #EE4D2D; padding: 3px 10px; border-radius: 4px; font-size: 11px; margin-bottom: 8px;">{{ promo.typeLabel }}</span>
+              <h3 class="sb-title" style="margin: 0 0 4px; font-size: 18px; font-weight: 700; line-height: 1.4;">{{ promo.title }}</h3>
+              <p v-if="promo.subtitle" class="sb-subtitle" style="margin: 0; font-size: 13px; opacity: 0.85; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">{{ promo.subtitle }}</p>
+            </div>
           </div>
+
+          <!-- 補位用 (若資料不足 3 筆時顯示) -->
           <div
-            v-for="n in Math.max(0, 2 - (promotions.length - 1))"
+            v-for="n in Math.max(0, 2 - sideBanners.length)"
             :key="`placeholder-${n}`"
             class="side-banner side-banner-empty"
+            style="border-radius: 12px; background: #1e293b; opacity: 0.3;"
           />
         </div>
       </template>
@@ -373,6 +392,12 @@ const drawerOpen = ref<boolean>(false)
 
 // ── 活動/輪播 ────────────────────────────────────────────────────
 const promotions = ref<Promotion[]>([])
+
+/** 側邊小 Banner 資料：拿取第 2、3 筆活動 */
+const sideBanners = computed(() => {
+  if (promotions.value.length <= 1) return []
+  return promotions.value.slice(1, 3)
+})
 
 // ── API 呼叫 ─────────────────────────────────────────────────────
 
@@ -747,33 +772,58 @@ const quickItems = [
   font-size: 180px;
   filter: drop-shadow(0 10px 30px rgba(238,77,45,0.3));
 }
-.side-banners { display: flex; flex-direction: column; gap: 16px; }
-.side-banner {
+.side-banner-dynamic {
   flex: 1;
   border-radius: 12px;
-  padding: 20px 24px;
-  color: white;
-  position: relative;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  position: relative;
   cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
   transition: transform 0.3s;
 }
-.side-banner:hover { transform: translateY(-3px); }
-.side-banner-empty { background: #1e293b; opacity: 0.3; cursor: default; }
-.side-banner-empty:hover { transform: none; }
-.sb-tag {
-  display: inline-block;
-  background: #EE4D2D;
-  color: white;
-  padding: 3px 10px;
-  border-radius: 4px;
-  font-size: 11px;
-  margin-bottom: 8px;
+.side-banner-dynamic:hover {
+  transform: translateY(-3px);
 }
-.side-banner h3 { margin: 0 0 6px; font-size: 18px; }
-.side-banner p { margin: 0; font-size: 13px; opacity: 0.85; }
-.sb-emoji { position: absolute; right: 16px; bottom: 10px; font-size: 70px; opacity: 0.7; }
+.sb-bg-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+.sb-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to right, rgba(26,27,46,0.9) 0%, rgba(26,27,46,0.3) 100%);
+  z-index: 1;
+}
+.sb-content {
+  position: relative;
+  z-index: 2;
+  padding: 16px 20px;
+  color: white;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+}
+.sb-title {
+  margin: 0 0 4px;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+.sb-subtitle {
+  margin: 0;
+  font-size: 13px;
+  opacity: 0.85;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 
 /* ── 快捷服務 ── */
 .quick-icons {
