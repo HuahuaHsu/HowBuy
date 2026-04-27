@@ -512,6 +512,8 @@ async function loadBrands(params: { categoryId: number } | { subCategoryId: numb
 async function loadPromotions(): Promise<void> {
   try {
     const res = await fetchActivePromotions()
+    console.log('[首頁活動] API 回傳數量:', res.data?.length ?? 0)
+    console.log('[首頁活動] 活動標題:', res.data?.map(p => `[${p.id}] ${p.title}`))
     if (res.success) promotions.value = res.data
   } catch {
     // 靜默失敗，fallback 到靜態內容

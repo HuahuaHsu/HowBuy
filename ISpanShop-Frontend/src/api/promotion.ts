@@ -1,8 +1,8 @@
 import request from './request'
 import type { ApiPromotionsResponse, Promotion } from '@/types/promotion'
 
-export async function fetchActivePromotions(): Promise<ApiPromotionsResponse> {
-  const response = await request.get<ApiPromotionsResponse>('/api/promotions/active')
+export async function fetchActivePromotions(limit = 10): Promise<ApiPromotionsResponse> {
+  const response = await request.get<ApiPromotionsResponse>('/api/promotions/active', { params: { limit } })
   return response.data
 }
 
