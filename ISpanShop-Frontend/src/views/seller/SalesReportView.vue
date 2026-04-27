@@ -98,7 +98,7 @@
             <el-card class="chart-card" shadow="never">
               <template #header>
                 <div class="card-header">
-                  <span class="card-title">📈 銷售金額趨勢 (近 {{ timeRange }} 天)</span>
+                  <span class="card-title">📈 訂單數量趨勢 (近 {{ timeRange }} 天)</span>
                 </div>
               </template>
               <div class="chart-wrapper">
@@ -230,12 +230,14 @@ const chartOptions = computed(() => ({
   },
   yaxis: {
     labels: {
-      formatter: (val: number) => `$${val.toLocaleString()}`
-    }
+      formatter: (val: number) => `${Math.round(val)} 筆`
+    },
+    min: 0,
+    forceNiceScale: true
   },
   tooltip: {
     y: {
-      formatter: (val: number) => `$ ${val.toLocaleString()}`
+      formatter: (val: number) => `${val} 筆`
     }
   }
 }));

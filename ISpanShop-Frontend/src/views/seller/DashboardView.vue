@@ -39,7 +39,7 @@
         <div class="card-header">
           <span class="card-title">📈 賣家數據中心</span>
           <div style="display:flex;align-items:center;gap:12px">
-            <el-tag type="info" size="small">近 30 天</el-tag>
+            <el-tag type="info" size="small">全部時間</el-tag>
             <el-button text type="primary" size="small" @click="router.push('/seller/analytics/sales')">
               更多 &gt;
             </el-button>

@@ -117,22 +117,22 @@ namespace ISpanShop.Services.Stores
                 ? ((double)kpis.TotalOrders / totalViews).ToString("P2") 
                 : "0.00%";
 
-            // 2. 銷售趨勢 (根據傳入天數動態產生)
-            var dailySales = await _context.Orders
-                .Where(o => o.StoreId == storeId && o.Status == (byte)OrderStatus.Completed && o.CreatedAt >= currentStart && o.CreatedAt < now)
+            // 2. 訂單量趨勢 (根據傳入天數動態產生)
+            var dailyOrders = await _context.Orders
+                .Where(o => o.StoreId == storeId && o.CreatedAt >= currentStart && o.CreatedAt < now)
                 .GroupBy(o => o.CreatedAt.Value.Date)
-                .Select(g => new { Date = g.Key, Amount = g.Sum(o => o.FinalAmount) })
+                .Select(g => new { Date = g.Key, Count = g.Count() })
                 .ToListAsync();
 
             var salesTrend = new ApexChartDataDto();
-            var series = new ChartSeriesDto { Name = "營收" };
+            var series = new ChartSeriesDto { Name = "訂單數" };
 
             for (int i = 0; i < days; i++)
             {
                 var date = currentStart.AddDays(i);
                 salesTrend.Labels.Add(date.ToString("MM/dd"));
-                var dayData = dailySales.FirstOrDefault(d => d.Date == date);
-                series.Data.Add(dayData?.Amount ?? 0);
+                var dayData = dailyOrders.FirstOrDefault(d => d.Date == date);
+                series.Data.Add(dayData?.Count ?? 0);
             }
             salesTrend.Series.Add(series);
 
