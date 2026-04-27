@@ -393,33 +393,10 @@ const sideBanners = computed(() => {
 
 // ── API 呼叫 ─────────────────────────────────────────────────────
 
-/** 處理活動跳轉：通用傳遞版，確保所有 Banner 點擊後都有活動橫幅 */
 function goToActivity(banner: any): void {
   if (!banner) return
-
-  const title = banner.title || ''
-  const queryParams: any = {}
-
-  // 🌟 核心規則：只要有標題，一律帶過去作為活動橫幅
-  if (title) {
-    queryParams.promoText = title
-  }
-
-  // 🔽 自訂搜尋對照表
-  if (banner.id === 1 || title.includes('腳架')) {
-    queryParams.keyword = '腳架'
-  } else if (title.includes('3C') || title.includes('筆電')) {
-    queryParams.categoryId = '1'
-  } else if (title.includes('春夏') || title.includes('穿搭')) {
-    queryParams.categoryId = '3'
-  } else if (title.includes('氣泡水')) {
-    queryParams.keyword = '氣泡水'
-  } else if (title.includes('123123')) {
-    queryParams.keyword = '123123'
-  }
-
-  // 統一跳轉
-  void router.push({ path: '/products', query: queryParams })
+  const target = (banner.linkUrl as string | undefined) || `/promotion/${banner.id as number}`
+  void router.push(target)
 }
 
 const API_BASE = (import.meta.env['VITE_API_BASE_URL'] as string) || 'https://localhost:7125'

@@ -1,7 +1,9 @@
+using ISpanShop.Models.EfModels;
 using ISpanShop.MVC.Models.Dto;
 using ISpanShop.Services.Promotions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace ISpanShop.MVC.Controllers.Api.Promotions
 {
@@ -12,10 +14,12 @@ namespace ISpanShop.MVC.Controllers.Api.Promotions
     public class PromotionApiController : ControllerBase
     {
         private readonly PromotionService _promotionSvc;
+        private readonly ISpanShopDBContext _db;
 
-        public PromotionApiController(PromotionService promotionSvc)
+        public PromotionApiController(PromotionService promotionSvc, ISpanShopDBContext db)
         {
             _promotionSvc = promotionSvc;
+            _db = db;
         }
 
         // ──────────────────────────────────────────────────────────
@@ -70,6 +74,146 @@ namespace ISpanShop.MVC.Controllers.Api.Promotions
                 success = true,
                 data    = items,
                 message = ""
+            });
+        }
+
+        // ──────────────────────────────────────────────────────────
+        // GET /api/promotions/{id}
+        // 公開活動詳情（含 bannerImageUrl、productImages）
+        // ──────────────────────────────────────────────────────────
+
+        /// <summary>取得單一活動詳情（公開）</summary>
+        [HttpGet("{id:int}")]
+        [AllowAnonymous]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetPromotion(int id)
+        {
+            var promo = await _db.Promotions
+                .AsNoTracking()
+                .Include(p => p.PromotionItems)
+                    .ThenInclude(pi => pi.Product)
+                        .ThenInclude(prod => prod.ProductImages)
+                .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted && p.Status == 1);
+
+            if (promo == null)
+                return NotFound(new { success = false, message = "活動不存在或已結束" });
+
+            var productImageUrls = promo.PromotionItems
+                .Select(pi => pi.Product?.ProductImages?
+                    .OrderBy(img => img.IsMain == true ? 0 : 1)
+                    .ThenBy(img => img.SortOrder ?? 999)
+                    .FirstOrDefault()?.ImageUrl)
+                .Where(url => !string.IsNullOrEmpty(url))
+                .Distinct()
+                .Take(4)
+                .ToList();
+
+            return Ok(new
+            {
+                success = true,
+                data = new PromotionListItemDto
+                {
+                    Id             = promo.Id,
+                    Title          = promo.Name,
+                    Subtitle       = string.IsNullOrWhiteSpace(promo.Description) ? null : promo.Description,
+                    Type           = PromotionService.GetTypeCode(promo.PromotionType),
+                    TypeLabel      = PromotionService.GetTypeLabel(promo.PromotionType),
+                    BannerImageUrl = productImageUrls.FirstOrDefault(),
+                    ProductImages  = productImageUrls!,
+                    LinkUrl        = $"/promotion/{promo.Id}",
+                    StartDate      = promo.StartTime,
+                    EndDate        = promo.EndTime,
+                }
+            });
+        }
+
+        // ──────────────────────────────────────────────────────────
+        // GET /api/promotions/{id}/products
+        // 公開活動商品列表（分頁）
+        // ──────────────────────────────────────────────────────────
+
+        /// <summary>取得活動的商品列表（公開，支援分頁）</summary>
+        [HttpGet("{id:int}/products")]
+        [AllowAnonymous]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetPromotionProducts(
+            int id,
+            [FromQuery] int    page      = 1,
+            [FromQuery] int    pageSize  = 20,
+            [FromQuery] string sortBy    = "default",
+            [FromQuery] string priceOrder = "")
+        {
+            page     = Math.Max(1, page);
+            pageSize = Math.Clamp(pageSize, 1, 50);
+
+            var exists = await _db.Promotions
+                .AnyAsync(p => p.Id == id && !p.IsDeleted && p.Status == 1);
+
+            if (!exists)
+                return NotFound(new { success = false, message = "活動不存在或已結束" });
+
+            var query = _db.PromotionItems
+                .AsNoTracking()
+                .Where(pi => pi.PromotionId == id)
+                .Include(pi => pi.Product)
+                    .ThenInclude(p => p.ProductImages);
+
+            var totalCount = await query.CountAsync();
+            var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+
+            // 排序
+            IQueryable<PromotionItem> ordered = sortBy switch
+            {
+                "sales"   => query.OrderByDescending(pi => pi.SoldCount),
+                "priceAsc"  when priceOrder == "asc"  => query.OrderBy(pi => pi.DiscountPrice ?? pi.OriginalPrice),
+                "priceDesc" when priceOrder == "desc" => query.OrderByDescending(pi => pi.DiscountPrice ?? pi.OriginalPrice),
+                _ => query.OrderBy(pi => pi.Id)
+            };
+
+            if (!string.IsNullOrEmpty(priceOrder) && sortBy != "priceAsc" && sortBy != "priceDesc")
+            {
+                ordered = priceOrder == "asc"
+                    ? query.OrderBy(pi => pi.DiscountPrice ?? pi.OriginalPrice)
+                    : query.OrderByDescending(pi => pi.DiscountPrice ?? pi.OriginalPrice);
+            }
+
+            var items = await ordered
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(pi => new
+                {
+                    productId     = pi.ProductId,
+                    productName   = pi.Product.Name,
+                    imageUrl      = pi.Product.ProductImages
+                                       .Where(img => img.IsMain == true)
+                                       .Select(img => img.ImageUrl)
+                                       .FirstOrDefault()
+                                   ?? pi.Product.ProductImages
+                                       .OrderBy(img => img.SortOrder)
+                                       .Select(img => img.ImageUrl)
+                                       .FirstOrDefault(),
+                    originalPrice = pi.OriginalPrice,
+                    discountPrice = pi.DiscountPrice,
+                    discountPercent = pi.DiscountPercent,
+                    soldCount     = pi.SoldCount,
+                    quantityLimit = pi.QuantityLimit,
+                    stockLimit    = pi.StockLimit,
+                })
+                .ToListAsync();
+
+            return Ok(new
+            {
+                success = true,
+                data = new
+                {
+                    items,
+                    totalCount,
+                    page,
+                    pageSize,
+                    totalPages
+                }
             });
         }
     }
