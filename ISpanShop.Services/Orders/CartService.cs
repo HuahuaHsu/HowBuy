@@ -37,7 +37,25 @@ namespace ISpanShop.Services.Orders
             return cart.CartItems.Select(ci => {
                 var itemPromotions = activePromotions
                     .Where(ap => ap.ProductId == ci.ProductId)
-                    .Select(ap => {
+                    .ToList();
+
+                // 計算促銷價 (優先取限時特賣或限量搶購)
+                decimal? promoPrice = null;
+                var directPromo = itemPromotions.FirstOrDefault(ap => ap.Promotion.PromotionType == 1 || ap.Promotion.PromotionType == 3);
+                if (directPromo != null)
+                {
+                    if (directPromo.DiscountPrice.HasValue)
+                    {
+                        promoPrice = directPromo.DiscountPrice.Value;
+                    }
+                    else if (directPromo.DiscountPercent.HasValue)
+                    {
+                        decimal original = ci.UnitPrice ?? ci.Variant?.Price ?? ci.Product?.MinPrice ?? 0;
+                        promoPrice = Math.Round(original * (decimal)(100 - directPromo.DiscountPercent.Value) / 100m, 0);
+                    }
+                }
+
+                var promoDtos = itemPromotions.Select(ap => {
                         var rule = ap.Promotion.PromotionRules.FirstOrDefault();
                         return new CartItemPromotionDto
                         {
@@ -63,9 +81,10 @@ namespace ISpanShop.Services.Orders
                     VariantName = ci.Variant?.VariantName,
                     ProductImage = GetProductImage(ci),
                     UnitPrice = ci.UnitPrice ?? ci.Variant?.Price ?? ci.Product?.MinPrice ?? 0,
+                    PromotionPrice = promoPrice,
                     Quantity = ci.Quantity,
                     Selected = true,
-                    Promotions = itemPromotions
+                    Promotions = promoDtos
                 };
             }).ToList();
         }

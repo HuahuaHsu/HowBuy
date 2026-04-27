@@ -32,23 +32,46 @@ const groupedItems = computed(() => {
     groups[item.storeId].items.push(item)
   })
 
-  // 計算每個賣場的活動進度
+  // 計算每個賣場的活動進度與折扣
   Object.values(groups).forEach(group => {
     const promoMap: Record<number, any> = {}
     group.items.forEach(item => {
+      const currentPrice = item.promoPrice ?? item.price
       item.promotions.forEach((p: any) => {
         if (!promoMap[p.promotionId]) {
-          promoMap[p.promotionId] = { ...p, currentTotal: 0 }
+          promoMap[p.promotionId] = { ...p, currentTotal: 0, appliedDiscount: 0 }
         }
         if (item.selected) {
-          promoMap[p.promotionId].currentTotal += item.price * item.quantity
+          promoMap[p.promotionId].currentTotal += currentPrice * item.quantity
         }
       })
     })
-    group.storePromotions = Object.values(promoMap)
+    
+    // 計算滿額折扣 (Type 2)
+    group.storePromotions = Object.values(promoMap).map(promo => {
+      if (promo.promotionType === 2 && promo.currentTotal >= promo.threshold) {
+        if (promo.discountType === 1) { // 固定金額
+          promo.appliedDiscount = promo.discountValue
+        } else if (promo.discountType === 2) { // 百分比
+          promo.appliedDiscount = Math.round(promo.currentTotal * (promo.discountValue / 100), 0)
+        }
+      }
+      return promo
+    })
   })
 
   return Object.values(groups)
+})
+
+// 計算整台購物車的最終折扣金額 (滿額折扣總和)
+const totalStoreDiscount = computed(() => {
+  return groupedItems.value.reduce((total, group) => {
+    return total + group.storePromotions.reduce((sum, promo) => sum + (promo.appliedDiscount || 0), 0)
+  }, 0)
+})
+
+const finalTotal = computed(() => {
+  return cartStore.selectedPrice - totalStoreDiscount.value
 })
 
 /** 檢查已勾選項目中是否有休假中賣場的商品 */
@@ -188,7 +211,15 @@ function handleCheckout(): void {
                 {{ item.name }}
               </div>
               <div v-if="item.specLabel" class="item-spec">{{ item.specLabel }}</div>
-              <div class="item-price">NT$ {{ formatPrice(item.price) }}</div>
+              <div class="item-price">
+                <template v-if="item.promoPrice">
+                  <span class="original-price">NT$ {{ formatPrice(item.price) }}</span>
+                  <span class="promo-price">NT$ {{ formatPrice(item.promoPrice) }}</span>
+                </template>
+                <template v-else>
+                  NT$ {{ formatPrice(item.price) }}
+                </template>
+              </div>
             </div>
 
             <!-- 數量控制 -->
@@ -210,7 +241,7 @@ function handleCheckout(): void {
 
             <!-- 小計 -->
             <div class="item-subtotal">
-              NT$ {{ formatPrice(item.price * item.quantity) }}
+              NT$ {{ formatPrice((item.promoPrice ?? item.price) * item.quantity) }}
             </div>
 
             <!-- 刪除 -->
@@ -229,9 +260,13 @@ function handleCheckout(): void {
 
         <!-- 底部結帳列 -->
         <div class="cart-footer">
+          <div class="footer-left" v-if="totalStoreDiscount > 0">
+            <span class="discount-label">活動折扣：</span>
+            <span class="discount-amount">- NT$ {{ formatPrice(totalStoreDiscount) }}</span>
+          </div>
           <div class="footer-right">
             <span class="total-label">合計 ({{ cartStore.selectedQuantity }} 件)：</span>
-            <span class="total-price">NT$ {{ formatPrice(cartStore.selectedPrice) }}</span>
+            <span class="total-price">NT$ {{ formatPrice(finalTotal) }}</span>
             <el-button type="primary" size="large" @click="handleCheckout" :disabled="cartStore.selectedQuantity === 0">
               結帳
             </el-button>
@@ -413,6 +448,17 @@ function handleCheckout(): void {
 .item-price {
   font-size: 13px;
   color: #606266;
+  display: flex;
+  flex-direction: column;
+}
+.original-price {
+  text-decoration: line-through;
+  color: #909399;
+  font-size: 12px;
+}
+.promo-price {
+  color: #EE4D2D;
+  font-weight: 500;
 }
 .item-qty {
   display: flex;
@@ -442,10 +488,24 @@ function handleCheckout(): void {
   border-radius: 8px;
   padding: 16px 20px;
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: center;
   box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
   margin-top: 20px;
+}
+.footer-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.discount-label {
+  font-size: 14px;
+  color: #606266;
+}
+.discount-amount {
+  color: #f56c6c;
+  font-weight: 600;
+  font-size: 16px;
 }
 .footer-right {
   display: flex;

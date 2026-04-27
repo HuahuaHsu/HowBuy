@@ -31,7 +31,8 @@ namespace ISpanShop.Models.DTOs.Orders
         public string ProductName { get; set; }
         public string VariantName { get; set; }
         public string ProductImage { get; set; }
-        public decimal UnitPrice { get; set; }
+        public decimal UnitPrice { get; set; } // 這是原始單價
+        public decimal? PromotionPrice { get; set; } // 這是計算後的促銷價 (若無則為 null)
         public int Quantity { get; set; }
         public bool Selected { get; set; } = true; // 前端使用的選中狀態
         public int StoreStatus { get; set; } // 賣場狀態 (1: 正常, 2: 休假中)
