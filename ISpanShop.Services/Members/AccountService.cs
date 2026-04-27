@@ -31,22 +31,25 @@ namespace ISpanShop.Services.Members
 				return (false, "找不到該使用者");
 			}
 
-			// 2. 驗證舊密碼
-			if (!SecurityHelper.Verify(dto.OldPassword, user.Password))
+			// 2. 驗證舊密碼 (若為純 OAuth 帳號則跳過)
+			if (!string.IsNullOrEmpty(user.Password))
 			{
-				return (false, "舊密碼錯誤");
+				if (!SecurityHelper.Verify(dto.OldPassword, user.Password))
+				{
+					return (false, "舊密碼錯誤");
+				}
+
+				// 4. 確認新舊密碼不同
+				if (dto.OldPassword == dto.NewPassword)
+				{
+					return (false, "新密碼不能與舊密碼相同");
+				}
 			}
 
 			// 3. 確認新密碼與確認密碼一致
 			if (dto.NewPassword != dto.ConfirmPassword)
 			{
 				return (false, "兩次輸入的新密碼不一致");
-			}
-
-			// 4. 確認新舊密碼不同
-			if (dto.OldPassword == dto.NewPassword)
-			{
-				return (false, "新密碼不能與舊密碼相同");
 			}
 
 			// 5. 更新密碼

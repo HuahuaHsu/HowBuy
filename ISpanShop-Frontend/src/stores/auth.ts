@@ -19,6 +19,8 @@ export const useAuthStore = defineStore('auth', () => {
     avatarUrl: string | null;
     isSeller: boolean;
     isBlacklisted: boolean;
+    hasPassword: boolean;
+    provider: string | null;
   }>(storage.getUser() || {
     memberId: null,
     email: null,
@@ -28,7 +30,9 @@ export const useAuthStore = defineStore('auth', () => {
     pointBalance: null,
     avatarUrl: null,
     isSeller: false,
-    isBlacklisted: false
+    isBlacklisted: false,
+    hasPassword: true,
+    provider: null
   });
 
   // Getters
@@ -90,7 +94,9 @@ export const useAuthStore = defineStore('auth', () => {
       pointBalance: null,
       avatarUrl: null,
       isSeller: false,
-      isBlacklisted: false
+      isBlacklisted: false,
+      hasPassword: true,
+      provider: null
     };
 
     // 2. 清除 localStorage
@@ -135,7 +141,9 @@ export const useAuthStore = defineStore('auth', () => {
         levelName: data.levelName || '一般會員',
         pointBalance: data.pointBalance ?? memberInfo.value.pointBalance,
         avatarUrl: data.avatarUrl || null,
-        isBlacklisted: data.isBlacklisted ?? data.IsBlacklisted ?? false // 同步封鎖狀態
+        isBlacklisted: data.isBlacklisted ?? data.IsBlacklisted ?? false, // 同步封鎖狀態
+        hasPassword: data.hasPassword ?? true,
+        provider: data.provider || null
       };
       storage.setUser(memberInfo.value);
     } catch (error) {

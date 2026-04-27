@@ -6,6 +6,7 @@ using System.Security.Claims;
 using System;
 using System.Threading.Tasks;
 using ISpanShop.Services.Members;
+using ISpanShop.Common.Helpers;
 
 namespace ISpanShop.MVC.Controllers.Api
 {
@@ -26,8 +27,7 @@ namespace ISpanShop.MVC.Controllers.Api
         [Authorize(AuthenticationSchemes = "FrontendJwt")]
         public IActionResult GetMe()
         {
-            // ... (existing code)
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userId = User.GetUserId();
             var account = User.FindFirst(ClaimTypes.Name)?.Value;
             var role = User.FindFirst("RoleId")?.Value;
 
@@ -44,9 +44,7 @@ namespace ISpanShop.MVC.Controllers.Api
         {
             try
             {
-                // 取得 Client IP
                 var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
-
                 var response = await _authService.LoginAsync(request, ipAddress);
                 return Ok(response);
             }
@@ -59,7 +57,6 @@ namespace ISpanShop.MVC.Controllers.Api
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] FrontRegisterRequestDto request)
         {
-            // ... (existing code)
             try
             {
                 await _authService.RegisterAsync(request);
@@ -71,21 +68,13 @@ namespace ISpanShop.MVC.Controllers.Api
             }
         }
 
-		/// <summary>
-		/// 忘記密碼 - 申請重設
-		/// </summary>
 		[HttpPost("forgot-password")]
 		public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto)
 		{
 			try
 			{
 				var (isSuccess, message) = await _accountService.ForgotPasswordAsync(dto);
-
-				// 如果 Service 回傳 false，就丟出 BadRequest (HTTP 400)
-				if (!isSuccess)
-				{
-					return BadRequest(new { isSuccess, message });
-				}
+				if (!isSuccess) return BadRequest(new { isSuccess, message });
 
 				return Ok(new { isSuccess, message });
 			}
@@ -95,9 +84,6 @@ namespace ISpanShop.MVC.Controllers.Api
 			}
 		}
 
-		/// <summary>
-		/// 重設密碼 - 提交新密碼
-		/// </summary>
 		[HttpPost("reset-password")]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
         {
@@ -111,6 +97,73 @@ namespace ISpanShop.MVC.Controllers.Api
             catch (Exception ex)
             {
                 return BadRequest(new { isSuccess = false, message = ex.Message });
+            }
+        }
+
+        [HttpPost("oauth/google")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GoogleLogin([FromBody] OAuthExchangeDto dto)
+        {
+            try
+            {
+                var result = await _authService.OAuthLoginAsync(dto.Code, dto.RedirectUri);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPost("oauth/bind-callback")]
+        [Authorize(AuthenticationSchemes = "FrontendJwt")]
+        public async Task<IActionResult> BindOAuth([FromBody] OAuthExchangeDto dto)
+        {
+            try
+            {
+                var userId = User.GetUserId();
+                if (userId == null) return Unauthorized(new { message = "驗證失效，請重新登入" });
+
+                var success = await _authService.BindOAuthAsync(userId.Value, dto.Code, dto.RedirectUri);
+                return Ok(new { success, message = "綁定成功" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPost("oauth/merge")]
+        [AllowAnonymous]
+        public async Task<IActionResult> MergeOAuth([FromBody] OAuthMergeDto dto)
+        {
+            try
+            {
+                var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
+                var response = await _authService.MergeOAuthAccountAsync(dto, ipAddress);
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPost("oauth/unbind")]
+        [Authorize(AuthenticationSchemes = "FrontendJwt")]
+        public async Task<IActionResult> UnbindOAuth()
+        {
+            try
+            {
+                var userId = User.GetUserId();
+                if (userId == null) return Unauthorized(new { message = "驗證失效，請重新登入" });
+
+                var success = await _authService.UnbindOAuthAsync(userId.Value);
+                return Ok(new { success, message = "已解除綁定" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
         }
     }

@@ -51,5 +51,19 @@ namespace ISpanShop.Repositories.Members
             }
             return false;
         }
+
+        public async Task<User?> FindByProviderAsync(string provider, string providerId)
+        {
+            return await _db.Users
+                .Include(u => u.MemberProfile)
+                .FirstOrDefaultAsync(u => u.Provider == provider && u.ProviderId == providerId);
+        }
+
+        public async Task<User?> FindByEmailAsync(string email)
+        {
+            return await _db.Users
+                .Include(u => u.MemberProfile)
+                .FirstOrDefaultAsync(u => u.Email == email);
+        }
     }
 }

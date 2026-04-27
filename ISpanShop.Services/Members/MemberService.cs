@@ -145,7 +145,9 @@ namespace ISpanShop.Services.Members
 				AvatarUrl = avatarUrl,
 				City = address?.City ?? "",
 				Region = address?.Region ?? "",
-				Address = address?.Street ?? ""
+				Address = address?.Street ?? "",
+				Provider = u.Provider,
+				HasPassword = !string.IsNullOrEmpty(u.Password)
 			};
 		}
 

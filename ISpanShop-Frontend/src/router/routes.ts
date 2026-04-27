@@ -166,6 +166,18 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('../views/auth/ResetPasswordView.vue'),
     meta: { requiresAuth: false }
   },
+  {
+    path: '/auth/callback',
+    name: 'oauth-callback',
+    component: () => import('../views/auth/OAuthCallbackView.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/auth/oauth-merge',
+    name: 'oauth-merge',
+    component: () => import('../views/auth/OAuthMergeView.vue'),
+    meta: { requiresAuth: false }
+  },
 
   // ── 賣家中心（獨立 Layout，與前台完全分離） ──
   {

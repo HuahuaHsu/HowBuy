@@ -51,5 +51,11 @@ namespace ISpanShop.Models.DTOs.Members
 		public string Address { get; set; } // 對應 Street 欄位
 
 		public string RoleName { get; set; }
+
+		[Display(Name = "第三方登入")]
+		public string Provider { get; set; }
+
+		[Display(Name = "是否有密碼")]
+		public bool HasPassword { get; set; }
 	}
 }

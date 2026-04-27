@@ -3,14 +3,42 @@ import { reactive, ref, onMounted } from 'vue'
 import { useAuthStore } from '../../stores/auth'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
-import { User, Message, Iphone, Calendar } from '@element-plus/icons-vue'
+import { User, Message, Iphone, Calendar, SuccessFilled } from '@element-plus/icons-vue'
 import { getMemberProfile, updateMemberProfile, uploadAvatar, type UpdateMemberProfileDto, type MemberDto } from '../../api/member'
+import { unbindOAuth } from '../../api/auth'
 import { storage } from '../../utils/storage'
 
 const authStore = useAuthStore()
 const profileFormRef = ref<FormInstance>()
 const isSaving = ref(false)
 const isLoading = ref(true)
+
+// ── 第三方綁定處理 ──────────────────────────────────
+const handleUnbind = async () => {
+  if (!authStore.memberInfo.hasPassword) {
+    ElMessage.warning('請先設定登入密碼後再解除綁定')
+    return
+  }
+
+  try {
+    const res = await unbindOAuth()
+    if (res.data.success) {
+      ElMessage.success('已解除綁定')
+      authStore.memberInfo.provider = null
+      storage.setUser(authStore.memberInfo)
+    }
+  } catch (error: any) {
+    ElMessage.error(error.response?.data?.message || '解除綁定失敗')
+  }
+}
+
+const handleBindGoogle = () => {
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
+  const redirectUri = encodeURIComponent(`${window.location.origin}/auth/callback`)
+  const scope = encodeURIComponent('openid email profile')
+  const googleUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&prompt=select_account`
+  window.location.href = googleUrl
+}
 
 // ── 表單資料 (初始化時直接從 authStore 帶入資料) ─────────────
 const profileForm = reactive({
@@ -219,6 +247,34 @@ const handleAvatarUpload = async (rawFile: File) => {
             />
           </el-form-item>
 
+          <el-divider />
+          
+          <el-form-item label="第三方帳號">
+            <div v-if="authStore.memberInfo.provider" class="oauth-connected-wrap">
+              <span class="connected-email">{{ maskEmail(authStore.memberInfo.email || '') }}</span>
+              
+              <el-button type="info" plain class="connected-btn-gray" disabled>
+                已連結 Google 帳號
+              </el-button>
+              
+              <el-tooltip
+                v-if="!authStore.memberInfo.hasPassword"
+                content="請先設定密碼後才能解綁第三方帳號"
+                placement="top"
+              >
+                <el-button type="danger" link class="unbind-link" disabled>解除綁定</el-button>
+              </el-tooltip>
+              <el-button v-else type="danger" link class="unbind-link" @click="handleUnbind">解除綁定</el-button>
+            </div>
+            
+            <div v-else>
+              <el-button type="default" class="google-bind-btn" @click="handleBindGoogle">
+                <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" width="18" class="mr-2" />
+                連結 Google 帳號
+              </el-button>
+            </div>
+          </el-form-item>
+
           <el-form-item>
             <el-button type="primary" class="save-btn" :loading="isSaving" @click="handleSave(profileFormRef)">
               儲存
@@ -262,6 +318,17 @@ const handleAvatarUpload = async (rawFile: File) => {
 .full-width { width: 100% !important; }
 .save-btn { background-color: #EE4D2D; border-color: #EE4D2D; padding: 12px 30px; }
 .save-btn:hover { background-color: #BE3E24; border-color: #BE3E24; }
+
+/* 第三方帳號樣式 */
+.oauth-connected-wrap { display: flex; align-items: center; gap: 15px; }
+.connected-email { color: #333; font-weight: 500; font-size: 14px; }
+.connected-btn-gray { cursor: not-allowed !important; background-color: #f4f4f5 !important; border-color: #e9e9eb !important; color: #909399 !important; }
+.google-bind-btn { border: 1px solid #dcdfe6; color: #606266; font-weight: 500; }
+.google-bind-btn:hover { background-color: #f5f7fa; border-color: #c0c4cc; }
+.unbind-link { font-size: 13px; text-decoration: underline; }
+.mr-2 { margin-right: 8px; }
+.ml-1 { margin-left: 4px; }
+
 .avatar-col { border-left: 1px solid #efefef; display: flex; justify-content: center; align-items: flex-start; padding-top: 20px; }
 @media (max-width: 992px) { .avatar-col { border-left: none; border-top: 1px solid #efefef; padding-top: 40px; margin-top: 40px; } }
 .avatar-upload-section { text-align: center; }

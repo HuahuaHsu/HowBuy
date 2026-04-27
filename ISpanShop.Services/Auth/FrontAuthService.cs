@@ -8,6 +8,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Text.Json;
 
 namespace ISpanShop.Services.Auth
 {
@@ -16,6 +17,7 @@ namespace ISpanShop.Services.Auth
         private readonly IUserRepository _userRepository;
         private readonly ILoginHistoryRepository _loginHistoryRepository;
         private readonly IConfiguration _config;
+        private readonly HttpClient _httpClient;
 
         public FrontAuthService(
             IUserRepository userRepository, 
@@ -25,17 +27,14 @@ namespace ISpanShop.Services.Auth
             _userRepository = userRepository;
             _loginHistoryRepository = loginHistoryRepository;
             _config = config;
+            _httpClient = new HttpClient();
         }
 
         public async Task<FrontLoginResponseDto?> LoginAsync(FrontLoginRequestDto request, string ipAddress)
         {
-            // 1. 查詢使用者 (透過 Repository)
             var user = await _userRepository.GetByEmailOrAccountAsync(request.Account);
-
-            // 檢查密碼是否正確
             bool isPasswordCorrect = user != null && SecurityHelper.Verify(request.Password, user.Password);
 
-            // 2. 記錄登入歷史 (不論成功失敗)
             _loginHistoryRepository.Add(new ISpanShop.Models.DTOs.Members.LoginHistoryDto
             {
                 UserId = isPasswordCorrect ? user!.Id : null,
@@ -45,17 +44,11 @@ namespace ISpanShop.Services.Auth
                 IsSuccess = isPasswordCorrect
             });
 
-            if (!isPasswordCorrect)
-            {
-                throw new Exception("帳號或密碼錯誤");
-            }
-
-            // 3. 簽發 JWT
-            var token = GenerateJwtToken(user!);
+            if (!isPasswordCorrect) throw new Exception("帳號或密碼錯誤");
 
             return new FrontLoginResponseDto
             {
-                Token = token,
+                Token = GenerateJwtToken(user!),
                 MemberId = user.Id,
                 Email = user.Email,
                 Account = user.Account,
@@ -69,13 +62,8 @@ namespace ISpanShop.Services.Auth
 
         public async Task<bool> RegisterAsync(FrontRegisterRequestDto request)
         {
-            // 1. 驗證 Email/Account 是否重複 (透過 Repository)
-            if (await _userRepository.ExistsAsync(request.Email, request.Account))
-            {
-                throw new Exception("Email 或 帳號已存在");
-            }
+            if (await _userRepository.ExistsAsync(request.Email, request.Account)) throw new Exception("Email 或 帳號已存在");
 
-            // 2. 建立新 User (使用 Enum)
             var user = new User
             {
                 Account = request.Account,
@@ -86,7 +74,6 @@ namespace ISpanShop.Services.Auth
                 IsConfirmed = true
             };
 
-            // 3. 建立 MemberProfile (使用 Enum)
             user.MemberProfile = new MemberProfile
             {
                 FullName = request.FullName,
@@ -97,8 +84,131 @@ namespace ISpanShop.Services.Auth
             };
 
             await _userRepository.CreateAsync(user);
-
             return true;
+        }
+
+        public async Task<OAuthResultDto> OAuthLoginAsync(string code, string redirectUri)
+        {
+            var googleUser = await GetGoogleUserAsync(code, redirectUri);
+            
+            var userByProvider = await _userRepository.FindByProviderAsync("Google", googleUser.ProviderId);
+            if (userByProvider != null)
+            {
+                return new OAuthResultDto { Status = "Success", Token = GenerateJwtToken(userByProvider), Email = userByProvider.Email };
+            }
+
+            var userByEmail = await _userRepository.FindByEmailAsync(googleUser.Email);
+            if (userByEmail != null)
+            {
+                return new OAuthResultDto 
+                { 
+                    Status = "MergeRequired", 
+                    Email = googleUser.Email,
+                    ProviderId = googleUser.ProviderId 
+                };
+            }
+
+            var newUser = new User
+            {
+                // 生成匿名帳號名，格式為 G- 後接 Google ID 的後六位數 (例如 G-123456)
+                Account = "G-" + (googleUser.ProviderId.Length > 6 ? googleUser.ProviderId.Substring(googleUser.ProviderId.Length - 6) : googleUser.ProviderId),
+                Password = null,
+                Email = googleUser.Email,
+                Provider = "Google",
+                ProviderId = googleUser.ProviderId,
+                RoleId = (int)RoleEnum.Member,
+                CreatedAt = DateTime.Now,
+                IsConfirmed = true
+            };
+
+            newUser.MemberProfile = new MemberProfile
+            {
+                FullName = googleUser.DisplayName ?? googleUser.Email.Split('@')[0],
+                LevelId = (int)MemberLevelEnum.Normal,
+                UpdatedAt = DateTime.Now,
+                IsSeller = false
+            };
+
+            await _userRepository.CreateAsync(newUser);
+            return new OAuthResultDto { Status = "Success", Token = GenerateJwtToken(newUser), Email = newUser.Email };
+        }
+
+        public async Task<bool> BindOAuthAsync(int userId, string code, string redirectUri)
+        {
+            var googleUser = await GetGoogleUserAsync(code, redirectUri);
+            
+            var existingUser = await _userRepository.FindByProviderAsync("Google", googleUser.ProviderId);
+            if (existingUser != null && existingUser.Id != userId) throw new Exception("此 Google 帳號已被其他會員綁定");
+
+            var user = await _userRepository.GetByIdAsync(userId);
+            if (user == null) throw new Exception("找不到使用者");
+
+            user.Provider = "Google";
+            user.ProviderId = googleUser.ProviderId;
+            
+            await _userRepository.UpdatePasswordHashAsync(user.Id, user.Password);
+            return true;
+        }
+
+        public async Task<FrontLoginResponseDto?> MergeOAuthAccountAsync(OAuthMergeDto dto, string ipAddress)
+        {
+            var existingUser = await _userRepository.GetByEmailOrAccountAsync(dto.Account);
+            if (existingUser == null || !SecurityHelper.Verify(dto.Password, existingUser.Password)) throw new Exception("原帳號驗證失敗");
+
+            existingUser.Provider = dto.Provider;
+            existingUser.ProviderId = dto.OAuthProviderId;
+            await _userRepository.UpdatePasswordHashAsync(existingUser.Id, existingUser.Password);
+
+            return new FrontLoginResponseDto
+            {
+                Token = GenerateJwtToken(existingUser),
+                MemberId = existingUser.Id,
+                Email = existingUser.Email,
+                Account = existingUser.Account,
+                MemberName = existingUser.MemberProfile?.FullName ?? existingUser.Account
+            };
+        }
+
+        public async Task<bool> UnbindOAuthAsync(int userId)
+        {
+            var user = await _userRepository.GetByIdAsync(userId);
+            if (user == null) throw new Exception("找不到使用者");
+            if (string.IsNullOrEmpty(user.Password)) throw new Exception("請先設定登入密碼後再解除綁定");
+
+            user.Provider = null;
+            user.ProviderId = null;
+            await _userRepository.UpdatePasswordHashAsync(user.Id, user.Password);
+            return true;
+        }
+
+        private async Task<OAuthCallbackDto> GetGoogleUserAsync(string code, string redirectUri)
+        {
+            var googleConfig = _config.GetSection("Google");
+            var values = new Dictionary<string, string>
+            {
+                { "client_id", googleConfig["ClientId"] },
+                { "client_secret", googleConfig["ClientSecret"] },
+                { "code", code },
+                { "grant_type", "authorization_code" },
+                { "redirect_uri", redirectUri }
+            };
+
+            var response = await _httpClient.PostAsync("https://oauth2.googleapis.com/token", new FormUrlEncodedContent(values));
+            var responseString = await response.Content.ReadAsStringAsync();
+            if (!response.IsSuccessStatusCode) throw new Exception("Google 驗證失敗");
+
+            var json = JsonDocument.Parse(responseString);
+            var idToken = json.RootElement.GetProperty("id_token").GetString();
+            var handler = new JwtSecurityTokenHandler();
+            var token = handler.ReadJwtToken(idToken);
+            
+            return new OAuthCallbackDto
+            {
+                Provider = "Google",
+                ProviderId = token.Claims.First(c => c.Type == "sub").Value,
+                Email = token.Claims.First(c => c.Type == "email").Value,
+                DisplayName = token.Claims.FirstOrDefault(c => c.Type == "name")?.Value
+            };
         }
 
         private string GenerateJwtToken(User user)
@@ -116,12 +226,8 @@ namespace ISpanShop.Services.Auth
                 new Claim("IsBlacklisted", (user.IsBlacklisted == true).ToString())
             };
 
-            // 如果使用者有店家，將第一個店家的 ID 加入 claims
             var store = user.Stores?.FirstOrDefault();
-            if (store != null)
-            {
-                claims.Add(new Claim("StoreId", store.Id.ToString()));
-            }
+            if (store != null) claims.Add(new Claim("StoreId", store.Id.ToString()));
 
             var token = new JwtSecurityToken(
                 issuer: jwtSettings["Issuer"],
