@@ -362,7 +362,7 @@ onMounted(() => {
       gap: 6px;
 
       .buyer-tag {
-        background-color: #3b82f6;
+        background-color: #ee4d2d;
         color: #fff;
         font-size: 12px;
         padding: 1px 6px;

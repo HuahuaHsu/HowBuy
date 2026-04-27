@@ -50,4 +50,23 @@ export interface OrderDetail {
   note: string;
   items: OrderItem[];
   isReviewed: boolean;
+  returnInfo?: ReturnDetail;
+}
+
+export interface ReturnDetail {
+  reasonCategory: string;
+  reasonDescription: string;
+  refundAmount: number;
+  status: number;
+  createdAt: string;
+  imageUrls: string[];
+  items: ReturnItem[];
+}
+
+export interface ReturnItem {
+  productName: string;
+  variantName: string;
+  coverImage: string;
+  price: number;
+  returnQuantity: number;
 }
