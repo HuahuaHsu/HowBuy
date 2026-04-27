@@ -181,12 +181,12 @@ const fetchDetail = async () => {
 const statusClass = computed(() => {
   if (!order.value) return ''
   const statusMap: Record<number, string> = {
-    1: 'pending-payment', // 待付款
-    2: 'processing',      // 待出貨
-    3: 'shipping',        // 運送中
-    4: 'completed',       // 已完成
-    5: 'cancelled',       // 已取消
-    6: 'refunding',       // 退貨中
+    0: 'status-pending',    // 待付款
+    1: 'status-processing', // 待出貨
+    2: 'status-shipped',    // 運送中
+    3: 'status-completed',  // 已完成
+    4: 'status-cancelled',  // 已取消
+    5: 'status-refunding',  // 退貨/款中
   }
   return statusMap[order.value.status] || ''
 })
@@ -271,10 +271,12 @@ onMounted(() => {
   font-size: 24px;
   font-weight: 700;
 }
-.status-value.processing { color: #f59e0b; }
-.status-value.completed  { color: #10b981; }
-.status-value.cancelled  { color: #ef4444; }
-.status-value.shipping   { color: #3b82f6; }
+.status-value.status-pending { color: #ee4d2d; }
+.status-value.status-processing { color: #26aa99; }
+.status-value.status-shipped { color: #26aa99; }
+.status-value.status-completed { color: #ee4d2d; }
+.status-value.status-cancelled { color: #929292; }
+.status-value.status-refunding { color: #ee4d2d; }
 
 .timeline {
   font-size: 13px;
