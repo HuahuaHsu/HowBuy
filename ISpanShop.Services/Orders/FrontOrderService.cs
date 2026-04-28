@@ -43,7 +43,7 @@ namespace ISpanShop.Services.Orders
                     DiscountAmount = o.DiscountAmount,
                     LevelDiscount = o.LevelDiscount, // 從資料庫讀取
                     PointDiscount = o.PointDiscount,
-                    PromotionDiscount = o.OrderDetails.Sum(od => od.AllocatedDiscountAmount ?? 0),
+                    PromotionDiscount = o.PromotionDiscount, // 從資料庫讀取活動折抵
                     Status = (OrderStatus)(o.Status ?? 0),
                     StatusName = GetStatusName(o.Status),
                     StoreName = o.Store?.StoreName ?? "未知商店",
@@ -106,7 +106,7 @@ namespace ISpanShop.Services.Orders
                     Price = od.Price ?? 0,
                     Quantity = od.Quantity,
                     StoreStatus = o.Store?.StoreStatus ?? 1,
-                    PromotionTags = od.AllocatedDiscountAmount > 0 ? new List<string> { "活動優惠" } : new List<string>()
+                    PromotionTags = (o.PromotionDiscount ?? 0) > 0 ? new List<string> { "符合賣場促銷活動" } : new List<string>()
                 }).ToList(),
                 IsReviewed = o.OrderReviews.Any(),
                 
