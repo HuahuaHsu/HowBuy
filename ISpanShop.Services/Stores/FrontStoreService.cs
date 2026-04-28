@@ -427,7 +427,7 @@ namespace ISpanShop.Services.Stores
                     DiscountAmount = o.DiscountAmount,
                     LevelDiscount = o.LevelDiscount,
                     PointDiscount = o.PointDiscount,
-                    PromotionDiscount = o.OrderDetails.Sum(od => od.AllocatedDiscountAmount ?? 0),
+                    PromotionDiscount = o.PromotionDiscount,
                     Status = (OrderStatus)o.Status,
                     StatusName = GetStatusName(o.Status),
                     BuyerName = o.User?.Account ?? "未知買家",
@@ -436,7 +436,8 @@ namespace ISpanShop.Services.Stores
                     FirstProductName = firstDetail?.ProductName,
                     FirstProductImage = image,
                     TotalItemCount = o.OrderDetails.Sum(od => od.Quantity),
-                    HasReview = o.OrderReviews.Any()
+                    HasReview = o.OrderReviews.Any(),
+                    HasReplied = o.OrderReviews.Any(r => !string.IsNullOrEmpty(r.StoreReply))
                 };
             }).ToList();
 
@@ -520,6 +521,7 @@ namespace ISpanShop.Services.Stores
                 DiscountAmount = order.DiscountAmount,
                 LevelDiscount = order.LevelDiscount,
                 PointDiscount = order.PointDiscount,
+                PromotionDiscount = order.PromotionDiscount,
                 FinalAmount = order.FinalAmount,
 
                 Items = order.OrderDetails.Select(od => {
@@ -537,6 +539,11 @@ namespace ISpanShop.Services.Stores
                         image = "/" + image;
                     }
 
+                    var tags = new List<string>();
+                    decimal originalPrice = od.Product?.ProductVariants?.FirstOrDefault(v => v.Id == od.VariantId)?.Price ?? od.Product?.MinPrice ?? 0;
+                    if (originalPrice > 0 && od.Price < originalPrice) tags.Add("單品特價優惠");
+                    if ((order.PromotionDiscount ?? 0) > 0) tags.Add("符合賣場滿額活動");
+
                     return new SellerOrderItemDto
                     {
                         Id = od.Id,
@@ -547,7 +554,8 @@ namespace ISpanShop.Services.Stores
                         SkuCode = od.SkuCode,
                         CoverImage = image,
                         Price = od.Price ?? 0,
-                        Quantity = od.Quantity
+                        Quantity = od.Quantity,
+                        PromotionTags = tags.Distinct().ToList()
                     };
                 }).ToList(),
 

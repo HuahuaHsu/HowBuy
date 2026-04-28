@@ -86,6 +86,7 @@
               :point-discount="order.pointDiscount"
               :discount-amount="order.discountAmount"
               :level-discount="order.levelDiscount"
+              :promotion-discount="order.promotionDiscount"
               :final-amount="order.finalAmount"
               payment-method="線上支付"
             />

@@ -24,11 +24,7 @@
                 <el-image :src="item.coverImage" class="item-img" fit="cover" />
                 <div class="item-info">
                   <div class="name">{{ item.productName }}</div>
-                  <div v-if="item.promotionTags && item.promotionTags.length > 0" class="item-promo-tags">
-                    <el-tag v-for="(tag, index) in item.promotionTags" :key="index" size="small" type="danger" effect="plain" class="promo-mini-tag">
-                      {{ tag }}
-                    </el-tag>
-                  </div>
+                  <PromotionTags :tags="item.promotionTags" />
                   <div class="variant">{{ item.variantName }}</div>
                   <div class="price-qty">
                     <span class="price">${{ formatPrice(item.price) }}</span>
@@ -120,6 +116,7 @@ import { getOrderDetailApi, requestRefundApi, uploadImagesApi } from '@/api/orde
 import type { OrderDetail } from '@/types/order';
 import { ElMessage } from 'element-plus';
 import RefundSummary from '@/components/order/RefundSummary.vue';
+import PromotionTags from '@/components/common/PromotionTags.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -308,18 +305,6 @@ onMounted(fetchOrder);
     .item-info {
       flex: 1;
       .name { font-size: 14px; color: #333; margin-bottom: 4px; line-height: 1.4; white-space: normal; }
-      .item-promo-tags {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 4px;
-        margin-bottom: 4px;
-      }
-      .promo-mini-tag {
-        font-size: 10px;
-        padding: 0 4px;
-        height: 18px;
-        line-height: 16px;
-      }
       .variant { font-size: 12px; color: #999; margin-bottom: 8px; }
       .price-qty {
         display: flex;

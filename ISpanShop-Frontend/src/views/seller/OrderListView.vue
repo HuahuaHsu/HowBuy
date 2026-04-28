@@ -118,8 +118,8 @@
                 <el-button type="primary" plain class="action-btn" @click="handleComplete(order.id)">模擬買家收貨</el-button>
               </template>
 
-              <!-- 已完成訂單且有評價時顯示回覆按鈕 -->
-              <template v-else-if="order.status === 3 && order.hasReview">
+              <!-- 已完成訂單且有評價、未回覆時顯示回覆按鈕 -->
+              <template v-else-if="order.status === 3 && order.hasReview && !order.hasReplied">
                 <el-button class="action-btn secondary" @click="handleReplyReview(order.id)">回應評價</el-button>
               </template>
             </div>

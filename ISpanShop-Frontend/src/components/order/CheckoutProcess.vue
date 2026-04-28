@@ -9,6 +9,7 @@ import { checkoutApi, type CheckoutRequest } from '@/api/checkout'
 import { getMemberProfile, getLevelInfo } from '@/api/member'
 import AddressCard from '@/components/member/AddressCard.vue'
 import AddressFormDialog from '@/components/member/AddressFormDialog.vue'
+import PromotionTags from '@/components/common/PromotionTags.vue'
 import { Plus, ArrowRight, ArrowLeft, Location, Phone, User, Trophy as TrophyIcon, Star as StarIcon } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -429,11 +430,7 @@ function formatPrice(val: number) { return val.toLocaleString('zh-TW') }
               {{ item.name || item.productName }}
             </div>
             <!-- 新增：活動標籤 -->
-            <div v-if="item.promotions && item.promotions.length > 0" class="item-promo-tags">
-              <el-tag v-for="p in item.promotions" :key="p.promotionId" size="small" type="danger" effect="plain" class="promo-mini-tag">
-                {{ p.name }}
-              </el-tag>
-            </div>
+            <PromotionTags :tags="item.promotions?.map((p: any) => p.name)" />
             <div class="item-price">
               <template v-if="item.promoPrice">
                 <span class="original-price">NT$ {{ formatPrice(item.price) }}</span>
@@ -673,8 +670,6 @@ function formatPrice(val: number) { return val.toLocaleString('zh-TW') }
 .item-img { width: 64px; height: 64px; border-radius: 8px; margin-right: 16px; background: #f1f5f9; object-fit: cover; }
 .item-info { flex: 1; min-width: 0; }
 .item-name { font-size: 14px; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.item-promo-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 4px; }
-.promo-mini-tag { font-size: 10px; padding: 0 4px; height: 18px; line-height: 16px; }
 .item-price { font-size: 13px; color: #666; }
 .original-price { text-decoration: line-through; color: #999; margin-right: 6px; font-size: 12px; }
 .promo-price { color: #ee4d2d; font-weight: 600; margin-right: 6px; }

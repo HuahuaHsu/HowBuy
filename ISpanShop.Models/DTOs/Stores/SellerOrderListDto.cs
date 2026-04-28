@@ -24,5 +24,6 @@ namespace ISpanShop.Models.DTOs.Stores
         public string FirstProductImage { get; set; }
         public int TotalItemCount { get; set; }
         public bool HasReview { get; set; }
+        public bool HasReplied { get; set; }
     }
 }

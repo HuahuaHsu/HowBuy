@@ -35,6 +35,7 @@ namespace ISpanShop.Models.DTOs.Orders
         public decimal? DiscountAmount { get; set; }
         public decimal? LevelDiscount { get; set; }
         public int? PointDiscount { get; set; }
+        public decimal? PromotionDiscount { get; set; }
         public decimal FinalAmount { get; set; }
 
         // 商品明細
@@ -56,5 +57,6 @@ namespace ISpanShop.Models.DTOs.Orders
         public decimal Price { get; set; }
         public int Quantity { get; set; }
         public decimal Subtotal => Price * Quantity;
+        public List<string> PromotionTags { get; set; } = new List<string>();
     }
 }

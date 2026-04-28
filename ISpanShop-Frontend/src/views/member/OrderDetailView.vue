@@ -54,11 +54,7 @@
             <el-image :src="item.coverImage || '/placeholder.png'" class="item-image" fit="cover" />
             <div class="item-info">
               <h4 class="item-name">{{ item.productName }}</h4>
-              <div v-if="item.promotionTags && item.promotionTags.length > 0" class="item-promo-tags">
-                <el-tag v-for="(tag, index) in item.promotionTags" :key="index" size="small" type="danger" effect="plain" class="promo-mini-tag">
-                  {{ tag }}
-                </el-tag>
-              </div>
+              <PromotionTags :tags="item.promotionTags" />
               <div class="item-variant">{{ item.variantName }}</div>
               <div class="item-qty">x{{ item.quantity }}</div>
             </div>
@@ -107,6 +103,7 @@ import { ElMessage } from 'element-plus';
 import OrderSteps from '@/components/order/OrderSteps.vue';
 import OrderActionButtons from '@/components/order/OrderActionButtons.vue';
 import OrderSummary from '@/components/order/OrderSummary.vue';
+import PromotionTags from '@/components/common/PromotionTags.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -280,18 +277,6 @@ onMounted(() => {
           font-weight: normal;
           font-size: 16px;
           margin: 0 0 5px 0;
-        }
-        .item-promo-tags {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 4px;
-          margin-bottom: 5px;
-        }
-        .promo-mini-tag {
-          font-size: 10px;
-          padding: 0 4px;
-          height: 18px;
-          line-height: 16px;
         }
         .item-variant {
           color: rgba(0,0,0,.54);
