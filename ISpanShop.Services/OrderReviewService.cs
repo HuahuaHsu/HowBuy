@@ -98,7 +98,7 @@ namespace ISpanShop.Services
             var users = _context.Users.Where(u => u.RoleId == 1).Take(10).ToList();
             if (!users.Any()) return;
 
-            var comments = new[] { 
+            var positiveComments = new[] { 
                 "品質真的很棒，值得推薦！", 
                 "發貨速度很快，包裝也很細心。", 
                 "這款商品真的很好用，cp值很高。", 
@@ -109,6 +109,14 @@ namespace ISpanShop.Services
                 "包裝完整，商品沒有損傷。",
                 "穿起來很舒服，大小剛好。",
                 "送貨人員態度很好，商品也很滿意。"
+            };
+
+            var negativeComments = new[] {
+                "雖然價格便宜，但品質普通。",
+                "運送時間比預期的久了一點。",
+                "實品跟照片有一點落差，希望改進。",
+                "包裝有點簡陋，收到時盒子有點壓到。",
+                "質感沒想像中好，CP值一般般。"
             };
 
             var random = new Random();
@@ -147,12 +155,26 @@ namespace ISpanShop.Services
                 _context.OrderDetails.Add(detail);
                 await _context.SaveChangesAsync();
 
+                // 20% 機率出現 1~3 星，80% 機率出現 4~5 星
+                byte rating;
+                string comment;
+                if (random.Next(100) < 20)
+                {
+                    rating = (byte)random.Next(1, 4);
+                    comment = negativeComments[random.Next(negativeComments.Length)];
+                }
+                else
+                {
+                    rating = (byte)random.Next(4, 6);
+                    comment = positiveComments[random.Next(positiveComments.Length)];
+                }
+
                 var review = new ISpanShop.Models.EfModels.OrderReview
                 {
                     OrderId = order.Id,
                     UserId = user.Id,
-                    Rating = (byte)random.Next(4, 6),
-                    Comment = comments[random.Next(comments.Length)],
+                    Rating = rating,
+                    Comment = comment,
                     IsHidden = false,
                     CreatedAt = DateTime.Now.AddDays(-random.Next(0, 5))
                 };
