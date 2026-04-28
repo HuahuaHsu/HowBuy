@@ -12,11 +12,13 @@ namespace ISpanShop.Services
     {
         private readonly IOrderReviewRepository _repo;
         private readonly ISensitiveWordService _sensitiveWordService; // 注入工具
+        private readonly ISpanShop.Models.EfModels.ISpanShopDBContext _context;
 
-        public OrderReviewService(IOrderReviewRepository repo, ISensitiveWordService sensitiveWordService)
+        public OrderReviewService(IOrderReviewRepository repo, ISensitiveWordService sensitiveWordService, ISpanShop.Models.EfModels.ISpanShopDBContext context)
         {
             _repo = repo;
             _sensitiveWordService = sensitiveWordService;
+            _context = context;
         }
 
         public async Task<List<OrderReviewDto>> GetAllAsync()
@@ -88,13 +90,84 @@ namespace ISpanShop.Services
             }
         }
 
+        public async Task GenerateMockReviewsAsync(int productId, int count)
+        {
+            var product = await _context.Products.FindAsync(productId);
+            if (product == null) return;
+
+            var users = _context.Users.Where(u => u.RoleId == 1).Take(10).ToList();
+            if (!users.Any()) return;
+
+            var comments = new[] { 
+                "品質真的很棒，值得推薦！", 
+                "發貨速度很快，包裝也很細心。", 
+                "這款商品真的很好用，cp值很高。", 
+                "雖然有一點色差，但整體來說還不錯。", 
+                "物超所值，下次還會再買。",
+                "外觀精美，手感也很好。",
+                "實品跟照片一樣，沒有落差。",
+                "包裝完整，商品沒有損傷。",
+                "穿起來很舒服，大小剛好。",
+                "送貨人員態度很好，商品也很滿意。"
+            };
+
+            var random = new Random();
+            
+            for (int i = 0; i < count; i++)
+            {
+                var user = users[random.Next(users.Count)];
+                
+                var order = new ISpanShop.Models.EfModels.Order
+                {
+                    UserId = user.Id,
+                    StoreId = product.StoreId,
+                    OrderNumber = "MOCK" + DateTime.Now.ToString("yyyyMMddHHmmss") + i + random.Next(100, 999),
+                    Status = 4, // 已完成
+                    TotalAmount = product.MinPrice ?? 0,
+                    FinalAmount = product.MinPrice ?? 0,
+                    CreatedAt = DateTime.Now.AddDays(-random.Next(1, 30)),
+                    CompletedAt = DateTime.Now.AddDays(-random.Next(0, 1)),
+                    RecipientName = user.Account,
+                    RecipientPhone = "0912345678",
+                    RecipientAddress = "模擬地址"
+                };
+
+                _context.Orders.Add(order);
+                await _context.SaveChangesAsync();
+
+                var detail = new ISpanShop.Models.EfModels.OrderDetail
+                {
+                    OrderId = order.Id,
+                    ProductId = productId,
+                    ProductName = product.Name,
+                    Price = product.MinPrice,
+                    Quantity = 1,
+                    VariantName = "預設規格"
+                };
+                _context.OrderDetails.Add(detail);
+                await _context.SaveChangesAsync();
+
+                var review = new ISpanShop.Models.EfModels.OrderReview
+                {
+                    OrderId = order.Id,
+                    UserId = user.Id,
+                    Rating = (byte)random.Next(4, 6),
+                    Comment = comments[random.Next(comments.Length)],
+                    IsHidden = false,
+                    CreatedAt = DateTime.Now.AddDays(-random.Next(0, 5))
+                };
+                _context.OrderReviews.Add(review);
+            }
+
+            await _context.SaveChangesAsync();
+        }
+
         public async Task<List<ISpanShop.Models.DTOs.Products.FrontProductReviewVm>> GetReviewsByProductIdAsync(int productId)
         {
             var entities = await _repo.GetAllAsync();
 
-            // 除錯：先不檢查 IsHidden 看看資料有沒有出來
             var reviews = entities
-                .Where(r => r.Order != null && r.Order.OrderDetails.Any(od => od.ProductId == productId))
+                .Where(r => r.IsHidden != true && r.Order != null && r.Order.OrderDetails.Any(od => od.ProductId == productId))
                 .Select(r => new ISpanShop.Models.DTOs.Products.FrontProductReviewVm
                 {
                     Id = r.Id,

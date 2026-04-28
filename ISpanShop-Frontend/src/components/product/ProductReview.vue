@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { fetchProductReviews } from '@/api/review'
+import { fetchProductReviews, generateMockReviews } from '@/api/review'
+import { ElMessage } from 'element-plus'
+import { MagicStick } from '@element-plus/icons-vue'
 
 const props = defineProps<{
   productId: number
@@ -8,6 +10,7 @@ const props = defineProps<{
 
 const reviews = ref<any[]>([])
 const loading = ref(false)
+const generating = ref(false)
 const activeFilter = ref('all') // 'all', '5', '4', '3', '2', '1', 'withComment', 'withMedia'
 
 const averageRating = computed(() => {
@@ -58,12 +61,38 @@ const loadReviews = async () => {
   }
 }
 
+const handleGenerateMock = async () => {
+  generating.value = true
+  try {
+    await generateMockReviews(props.productId, 5)
+    ElMessage.success('已成功生成 5 筆測試評論')
+    await loadReviews()
+  } catch (error) {
+    ElMessage.error('生成失敗')
+    console.error(error)
+  } finally {
+    generating.value = false
+  }
+}
+
 onMounted(loadReviews)
 </script>
 
 <template>
   <div class="product-reviews mt-8 bg-white p-6 rounded shadow-sm border border-gray-100">
-    <h3 class="text-xl font-bold mb-6 pb-4">商品評價</h3>
+    <div class="flex justify-between items-center mb-6 pb-4 border-b border-gray-100">
+      <h3 class="text-xl font-bold m-0">商品評價</h3>
+      <el-button 
+        type="warning" 
+        plain 
+        size="small" 
+        :loading="generating"
+        @click="handleGenerateMock"
+      >
+        <el-icon class="mr-1"><MagicStick /></el-icon>
+        一鍵生成測試評價 (展示用)
+      </el-button>
+    </div>
     
     <!-- 總覽 (Shopee 風格) -->
     <div v-if="reviews.length > 0" class="rating-summary flex items-center p-8 bg-[#fffbf8] rounded-sm mb-8 border border-[#f9ede5]">
