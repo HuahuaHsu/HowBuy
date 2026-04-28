@@ -322,21 +322,6 @@
               </el-col>
             </el-row>
 
-            <!-- 最低購買數量 -->
-            <el-form-item prop="minPurchase">
-              <template #label>
-                <span class="required-label">* 最低購買數量</span>
-              </template>
-              <el-input-number
-                v-model="form.minPurchase"
-                :min="1"
-                :max="999"
-                controls-position="right"
-                style="width: 200px"
-              />
-              <div class="form-hint">最低購買數量是指買家一次至少購買的商品數量。請注意,若庫存少於最低購買數量,買家將無法下單購買。</div>
-            </el-form-item>
-
             <!-- 規格設定 -->
             <el-form-item>
               <template #label>
@@ -723,7 +708,6 @@ interface ProductForm {
   price: number
   stock: number
   specs: Spec[]
-  minPurchase: number
   isOnShelf: boolean
 }
 
@@ -806,7 +790,6 @@ const form = reactive<ProductForm>({
       options: [{ name: '', image: null, imagePreview: null }],
     },
   ],
-  minPurchase: 1,
   isOnShelf: true,
 })
 
@@ -817,10 +800,6 @@ const rules = computed<FormRules>(() => ({
     { max: 60, message: '商品名稱最多 60 個字', trigger: 'blur' },
   ],
   categoryId: [{ required: true, message: '請選擇分類', trigger: 'change' }],
-  minPurchase: [
-    { required: true, message: '請輸入最低購買數量', trigger: 'blur' },
-    { type: 'number', min: 1, message: '最低購買數量至少為 1', trigger: 'blur' },
-  ],
   ...(specsEnabled.value
     ? {}
     : {
@@ -1055,7 +1034,6 @@ async function loadProductData(): Promise<void> {
     form.description = product.description || ''
     form.categoryId = product.categoryId || null
     form.categoryPath = product.categoryName || ''
-    form.minPurchase = product.minPurchase || 1
     
     if (product.brandId) {
       form.attributes.brandId = product.brandId
@@ -1527,7 +1505,6 @@ async function handleSubmit(publishNow: boolean, redirectAfter = true, isDraftAc
         brandId: form.attributes.brandId || null,
         price: Number(form.price) || 0,
         stock: Number(form.stock) || 0,
-        minPurchase: Number(form.minPurchase) || 1,
         mode: mode,
         specDefinitionJson: specsEnabled.value && form.specs.length > 0
           ? JSON.stringify(form.specs.map(s => ({ name: s.name })))
@@ -1563,7 +1540,6 @@ async function handleSubmit(publishNow: boolean, redirectAfter = true, isDraftAc
       if (form.attributes.brandId) fd.append('brandId', String(form.attributes.brandId))
       fd.append('price', String(form.price || 0))
       fd.append('stock', String(form.stock || 0))
-      fd.append('minPurchase', String(form.minPurchase || 1))
       
       fd.append('variantsJson', variantsJson)
       fd.append('attributesJson', attributesJson) // 加入屬性 JSON

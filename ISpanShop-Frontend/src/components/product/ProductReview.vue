@@ -111,7 +111,7 @@ onMounted(loadReviews)
 
     <!-- 列表 -->
     <div v-loading="loading" class="review-list">
-      <el-empty v-if="filteredReviews.length === 0" :description="activeFilter === 'all' ? '尚無商品評價' : '找不到符合條件的評價'" />
+      <el-empty v-if="filteredReviews.length === 0 && activeFilter !== 'all'" description="找不到符合條件的評價" />
       
       <div v-for="review in filteredReviews" :key="review.id" class="review-item py-8 border-b border-gray-200 last:border-0">
         <div class="flex items-start gap-4">

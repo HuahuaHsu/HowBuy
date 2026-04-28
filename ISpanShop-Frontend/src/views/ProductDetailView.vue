@@ -106,7 +106,6 @@
                 <span class="pd-review-count">{{ safeProduct.reviewCount }} 評價</span>
               </template>
               <template v-else>
-                <span class="pd-no-rating">暫無評價</span>
                 <span class="pd-review-count">{{ formatSoldCount(safeProduct.soldCount) }} 已售出</span>
               </template>
             </div>
