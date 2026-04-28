@@ -2,8 +2,9 @@
   <div class="password-container">
     <div class="password-card">
       <div class="card-header">
-        <h2>修改密碼</h2>
-        <p>為了確保帳號安全，建議您定期更改密碼，並避免使用與其他網站相同的密碼。</p>
+        <h2>{{ authStore.memberInfo.hasPassword ? '修改密碼' : '設定密碼' }}</h2>
+        <p v-if="authStore.memberInfo.hasPassword">為了確保帳號安全，建議您定期更改密碼，並避免使用與其他網站相同的密碼。</p>
+        <p v-else>您目前使用第三方帳號登入，設定密碼後即可使用帳號密碼登入並解除第三方綁定。</p>
       </div>
 
       <el-form
@@ -14,7 +15,7 @@
         label-position="top"
         class="password-form"
       >
-        <el-form-item label="目前密碼" prop="oldPassword">
+        <el-form-item v-if="authStore.memberInfo.hasPassword" label="目前密碼" prop="oldPassword">
           <el-input
             v-model="passwordForm.oldPassword"
             type="password"
@@ -23,7 +24,7 @@
           />
         </el-form-item>
 
-        <el-form-item label="新密碼" prop="newPassword">
+        <el-form-item :label="authStore.memberInfo.hasPassword ? '新密碼' : '輸入密碼'" prop="newPassword">
           <el-input
             v-model="passwordForm.newPassword"
             type="password"
@@ -32,7 +33,7 @@
           />
         </el-form-item>
 
-        <el-form-item label="確認新密碼" prop="confirmPassword">
+        <el-form-item label="確認密碼" prop="confirmPassword">
           <el-input
             v-model="passwordForm.confirmPassword"
             type="password"
@@ -48,7 +49,7 @@
             @click="handleSubmit"
             class="submit-btn"
           >
-            確認修改
+            {{ authStore.memberInfo.hasPassword ? '確認修改' : '確認設定' }}
           </el-button>
           <el-button @click="$router.push('/member')" :disabled="submitting">
             取消
@@ -81,7 +82,11 @@ const passwordForm = reactive({
 // 表單驗證規則
 const rules = reactive<FormRules>({
   oldPassword: [
-    { required: true, message: '請輸入目前密碼', trigger: 'blur' }
+    { 
+      required: authStore.memberInfo.hasPassword, 
+      message: '請輸入目前密碼', 
+      trigger: 'blur' 
+    }
   ],
   newPassword: [
     { required: true, message: '請輸入新密碼', trigger: 'blur' },

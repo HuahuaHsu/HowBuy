@@ -28,7 +28,8 @@
             @click="selectUser(session)"
             @contextmenu.prevent="showSessionContextMenu($event, session)"
           >
-            <el-avatar :size="40" src="https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png" />
+            <el-avatar :size="40" v-if="session.otherUserAvatar" :src="getFullImageUrl(session.otherUserAvatar)" />
+            <el-avatar :size="40" v-else>{{ session.otherUserName?.charAt(0) }}</el-avatar>
             <div class="session-info">
               <div class="session-top">
                 <span class="session-name">{{ session.otherUserName }}</span>
@@ -47,7 +48,11 @@
         <div class="chat-main">
           <template v-if="chatStore.currentChatUser?.id">
             <div class="chat-header">
-              <span class="chat-title">{{ chatStore.currentChatUser.name }}</span>
+              <div class="header-user-info">
+                <el-avatar :size="32" v-if="chatStore.currentChatUser.avatarUrl" :src="getFullImageUrl(chatStore.currentChatUser.avatarUrl)" />
+                <el-avatar :size="32" v-else>{{ chatStore.currentChatUser.name?.charAt(0) }}</el-avatar>
+                <span class="chat-title">{{ chatStore.currentChatUser.name }}</span>
+              </div>
               <div class="header-actions">
                 <el-icon class="close-btn" @click="chatStore.closeChat()"><Close /></el-icon>
               </div>
@@ -141,6 +146,7 @@ import {
 import { useAuthStore } from '../../stores/auth';
 import { useChatStore } from '../../stores/chat';
 import { useChat } from '../../composables/useChat';
+import { getFullImageUrl } from '../../utils/format';
 import { ElMessage } from 'element-plus';
 import axios from 'axios';
 
@@ -288,7 +294,7 @@ const toggleChat = () => {
 
 const selectUser = async (session: any) => {
   // 先切換使用者，這會讓標題立刻改變
-  chatStore.openChatWithUser(session.otherUserId, session.otherUserName);
+  chatStore.openChatWithUser(session.otherUserId, session.otherUserName, session.otherUserAvatar);
   // fetchHistory 內部現在會清空訊息，所以畫面會立刻變空白
   await fetchHistory(session.otherUserId);
   scrollToBottom();
@@ -358,7 +364,8 @@ watch(() => messages.value.length, () => scrollToBottom());
 .session-last-msg { font-size: 12px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
 
 .chat-main { flex: 1; display: flex; flex-direction: column; background: #f8fafc; position: relative; }
-.chat-header { padding: 15px; background: white; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
+.chat-header { padding: 10px 15px; background: white; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
+.header-user-info { display: flex; align-items: center; gap: 10px; }
 .chat-title { font-weight: 600; font-size: 16px; }
 .close-btn { cursor: pointer; color: #94a3b8; font-size: 20px; }
 

@@ -38,3 +38,22 @@ export interface ResetPasswordRequest {
   newPassword: string;
   confirmPassword: string;
 }
+
+export interface OAuthCallbackDto {
+  provider: string;
+  providerId: string;
+  email: string;
+  displayName?: string;
+}
+
+export interface OAuthMergeRequest {
+  providerId: string;
+  provider: string;
+  password: string;
+}
+
+export interface OAuthResult {
+  status: 'Success' | 'MergeRequired';
+  token?: string;
+  email?: string;
+}

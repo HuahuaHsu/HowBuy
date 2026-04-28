@@ -1,35 +1,16 @@
 <script setup lang="ts">
+import { onMounted, ref, computed } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "../../stores/auth";
-
-// ── Icons ──────────────────────────────────────────
-const IconGear = () => (
-  `<svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-    <circle cx="12" cy="12" r="3" />
-    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-  </svg>`
-);
-const IconCart = () => (
-  `<svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-    <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" />
-    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
-  </svg>`
-);
-const IconChat = () => (
-  `<svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-  </svg>`
-);
+import { checkoutApi } from "@/api/checkout";
+import { getMyCoupons } from "@/api/coupon";
+import { getMyOrdersApi } from "@/api/order";
+import { fetchActivePromotions } from "@/api/promotion";
+import type { Promotion } from "@/types/promotion";
 
 // ── State ──────────────────────────────────────────
 const authStore = useAuthStore();
 const router = useRouter();
-
-// ── Lifecycle ──────────────────────────────────────
-import { onMounted, ref, computed } from "vue";
-import { checkoutApi } from "@/api/checkout";
-import { getMyCoupons } from "@/api/coupon";
-import { getMyOrdersApi } from "@/api/order";
 
 const liveBalance = ref<number | null>(null);
 const liveCouponCount = ref<number>(0);
@@ -40,20 +21,49 @@ const orderCounts = ref({
   completed: 0
 });
 
+// ── 活動 API 資料 ──────────────────────────────────
+const promotions = ref<Promotion[]>([]);
+
+// 用於 API 活動的玻璃感邊框與 Tag 配色 (不使用強烈底色)
+const promoGlassColors = [
+  { border: 'rgba(238, 77, 45, 0.3)', tag: '#EE4D2D' }, // 蝦皮紅
+  { border: 'rgba(45, 130, 238, 0.3)', tag: '#2D82EE' }, // 藍
+  { border: 'rgba(22, 163, 74, 0.3)', tag: '#16A34A' },  // 綠
+  { border: 'rgba(217, 119, 6, 0.3)', tag: '#D97706' },  // 橘
+];
+
+// ── 首頁靜態活動資料 (同步 HomeView.vue) ──
+const staticBanners = [
+  { tag: '🎉 會員專屬', title: '購物節送 8 折券', subtitle: '全站 $49 起免運', bg: 'linear-gradient(135deg, #1e293b 0%, #1e1b4b 100%)', emoji: '🚚' },
+  { tag: '🔥 限時搶購', title: '3C 家電季', subtitle: '滿萬折千 再送好禮', bg: 'linear-gradient(135deg, #064e3b 0%, #022c22 100%)', emoji: '📱' },
+  { tag: '💚 新品上架', title: '春夏新品', subtitle: '時尚穿搭一次擁有', bg: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)', emoji: '👗' },
+];
+
+const staticSideBanners = [
+  { tag: '商城', title: '新品喇叭上市', desc: '領券現折 $100', bg: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', emoji: '🔊' },
+  { tag: '商城', title: '幫你換新機', desc: 'AI 筆電專區', bg: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)', emoji: '💻' },
+];
+
+const allStaticBanners = computed(() => [...staticBanners, ...staticSideBanners]);
+
 onMounted(async () => {
+  // 活動資料與其他 API 並行
+  void fetchActivePromotions().then(res => {
+    if (res.success) promotions.value = res.data;
+  }).catch(() => { /* 靜默失敗，fallback 到假資料 */ });
+
   try {
     const [walletRes, couponsRes, ordersRes] = await Promise.all([
       checkoutApi.getWalletBalance(),
       getMyCoupons(),
       getMyOrdersApi()
     ]);
-    
+
     console.log('Member Center Data Sync:', { wallet: walletRes.data, orders: ordersRes.data });
-    
+
     liveBalance.value = walletRes.data.pointBalance ?? walletRes.data.balance ?? 0;
     liveCouponCount.value = couponsRes.data.length;
 
-    // 計算訂單各狀態數量
     const allOrders = ordersRes.data;
     orderCounts.value = {
       pending: allOrders.filter(o => o.status === 0).length,
@@ -62,7 +72,6 @@ onMounted(async () => {
       completed: allOrders.filter(o => o.status === 3 && !o.isReviewed && !(o as any).IsReviewed).length
     };
 
-    // 同步更新 store 中的資料並持久化
     authStore.updatePoints(liveBalance.value);
   } catch (err) {
     console.error('Failed to sync member data', err);
@@ -71,47 +80,21 @@ onMounted(async () => {
 
 const go = (name: string) => {
   switch (name) {
-    case '設定':
-      router.push('/member/settings');
-      break;
-    case '所有訂單':
-      router.push('/member/orders');
-      break;
-    case '待付款':
-      router.push({ path: '/member/orders', query: { tab: '0' } });
-      break;
-    case '待出貨':
-      router.push({ path: '/member/orders', query: { tab: '1' } });
-      break;
-    case '待收貨':
-      router.push({ path: '/member/orders', query: { tab: '2' } });
-      break;
-    case '待評價':
-      router.push({ path: '/member/orders', query: { tab: '3' } });
-      break;
-    case '紅利點數':
-      router.push('/member/wallet');
-      break;
-    case '優惠券':
-      router.push('/member/coupons');
-      break;
-    case '我的賣場':
-      router.push('/seller');
-      break;
-    case '再買一次':
-      router.push({ path: '/member/orders', query: { tab: '3' } });
-      break;
-    case '會員權益':
-      router.push('/member/level');
-      break;
-    case '客服專區':
-      router.push('/member/support');
-      break;
-    case '購物車':
-      router.push('/cart');
-      break;
-    default:
-      router.push({ name: 'wip', query: { title: name } });
+    case '設定': router.push('/member/settings'); break;
+    case '所有訂單': router.push('/member/orders'); break;
+    case '待付款': router.push({ path: '/member/orders', query: { tab: '0' } }); break;
+    case '待出貨': router.push({ path: '/member/orders', query: { tab: '1' } }); break;
+    case '待收貨': router.push({ path: '/member/orders', query: { tab: '2' } }); break;
+    case '待評價': router.push({ path: '/member/orders', query: { tab: '3' } }); break;
+    case '紅利點數': router.push('/member/wallet'); break;
+    case '優惠券': router.push('/member/coupons'); break;
+    case '我的賣場': router.push('/seller'); break;
+    case '再買一次': router.push({ path: '/member/orders', query: { tab: '3' } }); break;
+    case '會員權益': router.push('/member/level'); break;
+    case '客服專區': router.push('/member/support'); break;
+    case '領券中心': router.push('/coupons'); break;
+    case '購物車': router.push('/cart'); break;
+    default: router.push({ name: 'wip', query: { title: name } });
   }
 };
 
@@ -125,15 +108,39 @@ const orders = computed(() => [
 
 const services = [
   { label: "我的賣場", icon: "🏪", bg: "#FFF0EB" },
+  { label: "領券中心", icon: "🎫", bg: "#FEF2F2" },
   { label: "再買一次", icon: "🔁", bg: "#EDF6FF" },
   { label: "會員權益", icon: "👑", bg: "#FFF8E8" },
   { label: "客服專區", icon: "🎧", bg: "#EDFAF4" },
+];
+
+// ── 活動跳轉（同步首頁邏輯） ───────────────────────
+const goToPromo = (banner: any) => {
+  if (!banner) return;
+  const title = banner.title || '';
+  const query: Record<string, string> = {};
+  if (title) query['promoText'] = title;
+  router.push({ path: '/products', query });
+};
+
+// ── Fake Data ─────────────────────────────────────
+const fakeProducts = [
+  { name: 'iPhone 16 保護殼', price: '299', emoji: '📱', bg: '#EEF2FF' },
+  { name: '珍珠奶茶杯套', price: '89', emoji: '🧋', bg: '#FFF7ED' },
+  { name: '無線藍牙耳機', price: '1,290', emoji: '🎧', bg: '#F0FDF4' },
+  { name: '韓系帆布包', price: '680', emoji: '👜', bg: '#FDF4FF' },
+];
+
+const fakeRecommend = [
+  { name: '復古祖母綠鍋具組', price: '2,580', emoji: '🍳', bg: '#ECFDF5', sold: '1.2k' },
+  { name: 'realme C65 手機', price: '5,990', emoji: '📲', bg: '#EFF6FF', sold: '856' },
+  { name: '璀璨亮片晚宴包', price: '1,180', emoji: '✨', bg: '#FFF7ED', sold: '432' },
+  { name: '不鏽鋼隔空炸鍋', price: '3,490', emoji: '🥘', bg: '#FDF2F8', sold: '2.1k' },
 ];
 </script>
 
 <template>
   <div class="page">
-    <!-- 停權提示 Banner -->
     <div v-if="authStore.isBlacklisted" class="blacklist-banner">
       <el-alert
         title="您的帳號目前已停權"
@@ -152,7 +159,6 @@ const services = [
       </el-alert>
     </div>
 
-    <!-- 購買清單 -->
     <div class="card">
       <div class="card-header">
         <span class="card-label">購買清單</span>
@@ -174,7 +180,6 @@ const services = [
       </div>
     </div>
 
-    <!-- 我的錢包 -->
     <div class="card">
       <div class="card-header">
         <span class="card-label">我的錢包</span>
@@ -193,7 +198,6 @@ const services = [
       </div>
     </div>
 
-    <!-- 更多服務 -->
     <div class="card">
       <div class="card-header">
         <span class="card-label">更多服務</span>
@@ -207,6 +211,83 @@ const services = [
         >
           <div class="service-circle" :style="{ background: item.bg }">{{ item.icon }}</div>
           <span class="service-label">{{ item.label }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card promo-card-section" v-if="promotions.length > 0 || staticBanners.length > 0">
+      <div class="card-header">
+        <span class="card-label">🔥 限時活動</span>
+        <span class="see-all" @click="router.push('/products')">查看全部 ›</span>
+      </div>
+      <div class="promo-list">
+        <template v-if="promotions.length > 0">
+          <div
+            v-for="(promo, i) in promotions.slice(0, 4)"
+            :key="promo.id"
+            class="promo-item glass-item"
+            :style="{
+              borderColor: promoGlassColors[i % promoGlassColors.length].border
+            }"
+            @click="goToPromo(promo)"
+          >
+            <span
+              class="promo-tag"
+              :style="{ background: promoGlassColors[i % promoGlassColors.length].tag }"
+            >{{ promo.typeLabel || '活動' }}</span>
+            <div class="promo-title">{{ promo.title }}</div>
+            <div v-if="promo.subtitle" class="promo-sub">{{ promo.subtitle }}</div>
+          </div>
+        </template>
+
+        <template v-else>
+          <div
+            v-for="(banner, idx) in allStaticBanners"
+            :key="idx"
+            class="promo-item glass-item fallback-glass"
+            @click="goToPromo(banner)"
+          >
+            <div class="promo-content">
+              <span class="promo-tag gray-tag">{{ banner.tag }}</span>
+              <div class="promo-title dark-text">{{ banner.title }}</div>
+              <div v-if="banner.subtitle || (banner as any).desc" class="promo-sub dark-sub">
+                {{ banner.subtitle || (banner as any).desc }}
+              </div>
+            </div>
+            <div class="promo-emoji">{{ banner.emoji }}</div>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-label">最近瀏覽</span>
+        <span class="see-all">查看全部 ›</span>
+      </div>
+      <div class="recent-grid">
+        <div class="recent-item" v-for="p in fakeProducts" :key="p.name">
+          <div class="recent-img" :style="{ background: p.bg }">{{ p.emoji }}</div>
+          <div class="recent-name">{{ p.name }}</div>
+          <div class="recent-price">NT$ {{ p.price }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-label">為你推薦</span>
+      </div>
+      <div class="recommend-grid">
+        <div class="rec-item" v-for="r in fakeRecommend" :key="r.name">
+          <div class="rec-img" :style="{ background: r.bg }">{{ r.emoji }}</div>
+          <div class="rec-info">
+            <div class="rec-name">{{ r.name }}</div>
+            <div class="rec-row">
+              <span class="rec-price">NT$ {{ r.price }}</span>
+              <span class="rec-sold">已售 {{ r.sold }}</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -242,87 +323,6 @@ const services = [
   .page {
     max-width: 100%;
   }
-}
-
-/* ── Header ────────────────────────────────────── */
-.header {
-  background: #EE4D2D; /* BRAND */
-  padding: 14px 16px 18px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.avatar {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.25);
-  border: 2px solid rgba(255,255,255,0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  font-weight: 600;
-  color: #fff;
-  flex-shrink: 0;
-}
-.user-info {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.username {
-  font-size: 15px;
-  font-weight: 600;
-  color: #fff;
-  line-height: 1;
-}
-.level-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  background: rgba(255,255,255,0.2);
-  border: 1px solid rgba(255,255,255,0.35);
-  border-radius: 20px;
-  padding: 2px 9px;
-  font-size: 11px;
-  color: #fff;
-  cursor: pointer;
-  width: fit-content;
-}
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.icon-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.15);
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  position: relative;
-  flex-shrink: 0;
-}
-.cart-dot {
-  position: absolute;
-  top: 5px;
-  right: 5px;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #FFD700;
-  border: 1.5px solid #EE4D2D;
 }
 
 /* ── Section Card ───────────────────────────────── */
@@ -474,15 +474,145 @@ const services = [
   text-align: center;
 }
 
-/* ── Transitions ─────────────────────────────────── */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s ease, transform 0.3s ease;
+/* ── Promo (活動區塊外層) ───────────────────────── */
+.promo-card-section {
+  /* 給區塊一個淡淡的底色，讓玻璃感更明顯 */
+  background: #fdfdfd;
+}
+.promo-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px 14px 16px;
 }
 
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-  transform: translateX(100%);
+/* ── Glassmorphism Item (玻璃感卡片核心樣式) ────── */
+.glass-item {
+  background: rgba(255, 255, 255, 0.6); /* 半透明白色底 */
+  backdrop-filter: blur(10px);         /* 模糊背景 */
+  -webkit-backdrop-filter: blur(10px); /* 為了 Safari 開發者 */
+  border-radius: 12px;
+  padding: 14px 16px;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  /* 預設邊框 (極細且淡) */
+  border: 1px solid rgba(255, 255, 255, 0.2);
+
+  /* 柔和的立體陰影 */
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
 }
+.glass-item:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.75);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+}
+
+/* API 活動專用：保留配色的 Tag 樣式 */
+.promo-tag {
+  display: inline-block;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 20px;
+  margin-bottom: 8px;
+}
+.promo-title { font-size: 14px; font-weight: 600; color: #333; margin-bottom: 3px; }
+.promo-sub   { font-size: 12px; color: #666; }
+
+/* ── Fallback Glass Styles (靜態活動專用) ────────── */
+.fallback-glass {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-color: rgba(200, 200, 200, 0.2); /* 靜態活動使用灰邊框 */
+}
+.promo-content {
+  flex: 1;
+}
+.gray-tag {
+  background: #f0f0f0; /* 靜態 Tag 使用淡灰色 */
+  color: #666;
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 20px;
+  margin-bottom: 8px;
+}
+.dark-text {
+  color: #333; /* 文字改為深色 */
+}
+.dark-sub {
+  color: #777; /* 副標題改為中灰色 */
+}
+.promo-emoji {
+  font-size: 36px;
+  line-height: 1;
+  margin-left: 15px;
+  opacity: 0.8;
+  /*Emoji 淡淡的投影*/
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+}
+
+/* ── Recent ──────────────────────────────────────── */
+.recent-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  padding: 4px 12px 14px;
+}
+@media (min-width: 768px) {
+  .recent-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  }
+}
+.recent-item { cursor: pointer; }
+.recent-img {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  margin-bottom: 5px;
+}
+.recent-name  { font-size: 11px; color: #444; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.recent-price { font-size: 12px; color: #EE4D2D; font-weight: 600; margin-top: 2px; }
+
+/* ── Recommend ───────────────────────────────────── */
+.recommend-grid {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 14px 14px;
+  gap: 10px;
+}
+.rec-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  padding: 6px 0;
+  border-bottom: 0.5px solid #F0F0F0;
+}
+.rec-item:last-child { border-bottom: none; }
+.rec-img {
+  width: 52px;
+  height: 52px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+.rec-info  { flex: 1; min-width: 0; }
+.rec-name  { font-size: 13px; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rec-row   { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; }
+.rec-price { font-size: 14px; color: #EE4D2D; font-weight: 700; }
+.rec-sold  { font-size: 11px; color: #999; }
 </style>

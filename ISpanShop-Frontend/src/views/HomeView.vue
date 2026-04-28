@@ -242,7 +242,7 @@
                 :class="{ active: sortBy === s.value }"
                 @click="setSort(s.value as SortBy)"
               >{{ s.label }}</button>
-              
+
               <!-- 價格下拉選單 -->
               <el-dropdown trigger="click" @command="handleSortCommand">
                 <button
