@@ -236,9 +236,6 @@ namespace ISpanShop.Services.Orders
             await _orderRepository.CreateReturnRequestAsync(request);
             await _orderRepository.UpdateStatusAsync(orderId, 5); // 5 = 退貨/款中
 
-            // 退回點數與優惠券 (假設發起退貨就先退回，或可依需求改為管理員核准後才退)
-            await ReturnOrderAssetsAsync(o);
-
             return true;
         }
         private async Task ReturnOrderAssetsAsync(Order o)

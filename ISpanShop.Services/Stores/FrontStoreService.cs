@@ -8,16 +8,26 @@ using ISpanShop.Models.DTOs.Orders;
 using ISpanShop.Models.EfModels;
 using Microsoft.EntityFrameworkCore;
 using ISpanShop.Common.Enums;
+using ISpanShop.Services.Coupons;
+using ISpanShop.Services.Payments;
+using ISpanShop.Models.DTOs.Members;
 
 namespace ISpanShop.Services.Stores
 {
     public class FrontStoreService : IFrontStoreService
     {
         private readonly ISpanShopDBContext _context;
+        private readonly ICouponService _couponService;
+        private readonly PointService _pointService;
 
-        public FrontStoreService(ISpanShopDBContext context)
+        public FrontStoreService(
+            ISpanShopDBContext context,
+            ICouponService couponService,
+            PointService pointService)
         {
             _context = context;
+            _couponService = couponService;
+            _pointService = pointService;
         }
 
         public async Task<FrontSellerDashboardDto> GetDashboardDataAsync(int userId, int days = 7)
@@ -696,6 +706,9 @@ namespace ISpanShop.Services.Stores
             {
                 order.Status = (byte)OrderStatus.Refunded;
                 latestReturn.Status = 1; // 已同意
+
+                // 同意退貨時，才退回點數與優惠券
+                await ReturnOrderAssetsAsync(order);
             }
             else
             {
@@ -708,6 +721,27 @@ namespace ISpanShop.Services.Stores
 
             _context.Orders.Update(order);
             return await _context.SaveChangesAsync() > 0;
+        }
+
+        private async Task ReturnOrderAssetsAsync(Order o)
+        {
+            // 1. 退回點數
+            if (o.PointDiscount.HasValue && o.PointDiscount.Value > 0)
+            {
+                await _pointService.UpdatePointsAsync(new PointUpdateDTO
+                {
+                    UserId = o.UserId,
+                    ChangeAmount = o.PointDiscount.Value,
+                    Description = $"退貨審核通過退回點數 (訂單編號: {o.OrderNumber})",
+                    OrderNumber = o.OrderNumber
+                });
+            }
+
+            // 2. 退回優惠券
+            if (o.CouponId.HasValue)
+            {
+                await _couponService.ReturnCouponAsync(o.Id);
+            }
         }
 
         private string GetStatusName(byte? status)
