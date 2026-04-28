@@ -131,15 +131,24 @@ namespace ISpanShop.MVC.Controllers.Api.Promotions
 
             var toAdd = validProducts.Where(p => !alreadyBound.Contains(p.Id)).ToList();
 
+            // 載入活動的折扣規則，用來計算活動價
+            var rule = await _db.PromotionRules
+                .Where(r => r.PromotionId == promotionId)
+                .FirstOrDefaultAsync();
+
             foreach (var p in toAdd)
             {
+                var originalPrice = p.MinPrice ?? 0;
+                var (discountPrice, discountPercent) = CalcDiscount(originalPrice, rule);
+
                 _db.PromotionItems.Add(new PromotionItem
                 {
-                    PromotionId   = promotionId,
-                    ProductId     = p.Id,
-                    OriginalPrice = p.MinPrice ?? 0,
-                    DiscountPrice = null,
-                    SoldCount     = 0
+                    PromotionId     = promotionId,
+                    ProductId       = p.Id,
+                    OriginalPrice   = originalPrice,
+                    DiscountPrice   = discountPrice,
+                    DiscountPercent = discountPercent,
+                    SoldCount       = 0
                 });
             }
 
@@ -262,6 +271,70 @@ namespace ISpanShop.MVC.Controllers.Api.Promotions
                     totalPages
                 }
             });
+        }
+
+        // ──────────────────────────────────────────────────────────
+        // POST /api/seller/promotions/{promotionId}/fix-prices
+        // 修復現有 PromotionItems 的活動價（DiscountPrice == null 或 0）
+        // ──────────────────────────────────────────────────────────
+
+        [HttpPost("fix-prices")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<IActionResult> FixPromotionItemPrices(int promotionId)
+        {
+            var userId = GetUserId();
+            if (userId == null) return Unauthorized(new { success = false, message = "無法識別使用者身份" });
+
+            var (_, err) = await ResolvePromoAsync(promotionId, userId.Value);
+            if (err != null) return err;
+
+            var rule = await _db.PromotionRules
+                .Where(r => r.PromotionId == promotionId)
+                .FirstOrDefaultAsync();
+
+            var items = await _db.PromotionItems
+                .Include(pi => pi.Product)
+                .Where(pi => pi.PromotionId == promotionId
+                          && (pi.DiscountPrice == null || pi.DiscountPrice == 0))
+                .ToListAsync();
+
+            foreach (var item in items)
+            {
+                if (item.OriginalPrice <= 0)
+                    item.OriginalPrice = item.Product?.MinPrice ?? 0;
+
+                var (dp, pct) = CalcDiscount(item.OriginalPrice, rule);
+                item.DiscountPrice   = dp;
+                item.DiscountPercent = pct;
+            }
+
+            await _db.SaveChangesAsync();
+            return Ok(new { success = true, message = $"已修復 {items.Count} 筆活動商品價格" });
+        }
+
+        // ── 折扣計算：根據活動規則算出活動價和折扣% ──────────────
+        private static (decimal? discountPrice, int? discountPercent) CalcDiscount(
+            decimal originalPrice, PromotionRule? rule)
+        {
+            if (rule == null || rule.DiscountValue <= 0 || originalPrice <= 0)
+                return (null, null);
+
+            if (rule.DiscountType == 2)
+            {
+                // 百分比折扣：DiscountValue 是折扣數（例如 20 表示打八折，扣掉 20%）
+                var discountPrice = Math.Round(originalPrice * (100 - rule.DiscountValue) / 100, 0);
+                var discountPercent = (int)(100 - rule.DiscountValue);
+                return (discountPrice, discountPercent);
+            }
+            else
+            {
+                // 固定金額折扣：DiscountValue 是減去的金額
+                var discountPrice = Math.Max(0, originalPrice - rule.DiscountValue);
+                var discountPercent = originalPrice > 0
+                    ? (int)Math.Round(discountPrice / originalPrice * 100)
+                    : 0;
+                return (discountPrice, discountPercent);
+            }
         }
     }
 
