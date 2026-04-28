@@ -230,5 +230,60 @@ namespace ISpanShop.MVC.Controllers.Api.Promotions
                 }
             });
         }
+
+        // ──────────────────────────────────────────────────────────
+        // GET /api/promotions/product/{productId}
+        // 取得指定商品目前參加的進行中活動（含活動項目與主要規則）
+        // ──────────────────────────────────────────────────────────
+
+        /// <summary>取得商品目前參加的進行中活動（公開）</summary>
+        [HttpGet("product/{productId:int}")]
+        [AllowAnonymous]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetPromotionsByProduct(int productId)
+        {
+            var now = DateTime.Now;
+
+            var promotionItems = await _db.PromotionItems
+                .AsNoTracking()
+                .Where(pi => pi.ProductId == productId
+                          && !pi.Promotion.IsDeleted
+                          && pi.Promotion.Status == 1
+                          && pi.Promotion.StartTime <= now
+                          && pi.Promotion.EndTime >= now)
+                .Include(pi => pi.Promotion)
+                    .ThenInclude(p => p.PromotionRules)
+                .ToListAsync();
+
+            var data = promotionItems.Select(pi =>
+            {
+                var rule = pi.Promotion.PromotionRules.FirstOrDefault();
+                return new
+                {
+                    id              = pi.Promotion.Id,
+                    title           = pi.Promotion.Name,
+                    type            = PromotionService.GetTypeCode(pi.Promotion.PromotionType),
+                    typeLabel       = PromotionService.GetTypeLabel(pi.Promotion.PromotionType),
+                    endDate         = pi.Promotion.EndTime,
+                    originalPrice   = pi.OriginalPrice,
+                    discountPrice   = pi.DiscountPrice,
+                    discountPercent = pi.DiscountPercent,
+                    quantityLimit   = pi.QuantityLimit,
+                    stockLimit      = pi.StockLimit,
+                    soldCount       = pi.SoldCount,
+                    remainingStock  = pi.StockLimit.HasValue ? (int?)(pi.StockLimit.Value - pi.SoldCount) : null,
+                    linkUrl         = $"/promotion/{pi.Promotion.Id}",
+                    rule            = rule != null ? new
+                    {
+                        ruleType      = rule.RuleType,
+                        threshold     = rule.Threshold,
+                        discountType  = rule.DiscountType,
+                        discountValue = rule.DiscountValue
+                    } : null
+                };
+            }).ToList();
+
+            return Ok(new { success = true, data, message = "" });
+        }
     }
 }

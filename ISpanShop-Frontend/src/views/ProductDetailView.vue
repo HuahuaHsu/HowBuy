@@ -110,21 +110,93 @@
               </template>
             </div>
 
-            <div class="pd-price-block">
-              <!-- 活動標籤 (僅展示活動訊息) -->
-              <div v-if="displayPriceInfo.hasPromo" class="pd-promo-tag-row">
-                <el-tag type="danger" effect="dark" size="small">{{ displayPriceInfo.tagText }}</el-tag>
-              </div>
+            <!-- 活動促銷提示區塊 -->
+            <div v-if="activePromotion" class="pd-promo-alert">
 
+              <!-- 限時特賣 -->
+              <template v-if="activePromotion.type === 'flashSale'">
+                <div class="promo-alert-header">
+                  <el-tag type="danger" effect="dark" size="small" class="promo-type-tag">{{ activePromotion.typeLabel }}</el-tag>
+                  <span class="promo-title">{{ activePromotion.title }}</span>
+                </div>
+                <div class="promo-flash-body">
+                  <div class="promo-price-row">
+                    <span class="promo-price-label">活動價</span>
+                    <span v-if="activePromotion.discountPrice" class="promo-price-value">${{ formatPrice(activePromotion.discountPrice) }}</span>
+                    <span class="promo-original-price">${{ formatPrice(activePromotion.originalPrice) }}</span>
+                    <el-tag
+                      v-if="activePromotion.discountPercent"
+                      type="danger"
+                      size="small"
+                      effect="plain"
+                    >{{ activePromotion.discountPercent }}% OFF</el-tag>
+                  </div>
+                  <div v-if="countdownText" class="promo-countdown-row">
+                    <span class="promo-countdown-label">距結束</span>
+                    <span class="promo-countdown-value">{{ countdownText }}</span>
+                  </div>
+                </div>
+                <a :href="activePromotion.linkUrl" class="promo-link">查看活動頁面 &rsaquo;</a>
+              </template>
+
+              <!-- 滿額折扣 -->
+              <template v-else-if="activePromotion.type === 'discount'">
+                <div class="promo-alert-header">
+                  <el-tag type="warning" effect="dark" size="small" class="promo-type-tag">{{ activePromotion.typeLabel }}</el-tag>
+                  <span class="promo-title">{{ activePromotion.title }}</span>
+                </div>
+                <div v-if="discountRuleText" class="promo-rule-list">
+                  <span class="benefit-icon">🎁</span> {{ discountRuleText }}
+                </div>
+                <a :href="activePromotion.linkUrl" class="promo-link">查看活動頁面 &rsaquo;</a>
+              </template>
+
+              <!-- 限量搶購 -->
+              <template v-else-if="activePromotion.type === 'limitedBuy'">
+                <div class="promo-alert-header">
+                  <el-tag type="danger" effect="dark" size="small" class="promo-type-tag">{{ activePromotion.typeLabel }}</el-tag>
+                  <span class="promo-title">{{ activePromotion.title }}</span>
+                </div>
+                <div class="promo-flash-body">
+                  <div class="promo-price-row">
+                    <span class="promo-price-label">活動價</span>
+                    <span v-if="activePromotion.discountPrice" class="promo-price-value">${{ formatPrice(activePromotion.discountPrice) }}</span>
+                    <span class="promo-original-price">${{ formatPrice(activePromotion.originalPrice) }}</span>
+                  </div>
+                  <div v-if="activePromotion.quantityLimit" class="promo-limit-row">
+                    <el-tag type="info" size="small" effect="plain">每人限購 {{ activePromotion.quantityLimit }} 件</el-tag>
+                  </div>
+                  <template v-if="activePromotion.stockLimit">
+                    <div class="promo-stock-row">
+                      <span class="promo-stock-label">剩餘數量</span>
+                      <el-progress
+                        :percentage="activePromotion.remainingStock != null
+                          ? Math.max(0, Math.round(activePromotion.remainingStock / activePromotion.stockLimit * 100))
+                          : 100"
+                        :stroke-width="10"
+                        status="exception"
+                        :show-text="false"
+                        style="flex:1; min-width:100px;"
+                      />
+                      <span class="promo-stock-num">
+                        {{ activePromotion.remainingStock ?? 0 }} / {{ activePromotion.stockLimit }}
+                      </span>
+                    </div>
+                  </template>
+                </div>
+                <a :href="activePromotion.linkUrl" class="promo-link">查看活動頁面 &rsaquo;</a>
+              </template>
+
+            </div>
+
+            <div class="pd-price-block">
               <div class="pd-price-row">
-                <!-- 商品原價 -->
                 <span class="pd-price-main">
                   ${{ formatPrice(displayPriceInfo.current) }}
                   <template v-if="!selectedVariant && safeProduct.priceRange.max !== safeProduct.priceRange.min">
                     &nbsp;-&nbsp;${{ formatPrice(safeProduct.priceRange.max) }}
                   </template>
                 </span>
-                
                 <span
                   v-if="safeProduct.discountRate !== null"
                   class="pd-discount-tag"
@@ -298,13 +370,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Picture, ChatDotRound, Shop } from '@element-plus/icons-vue'
 import ProductCard from '@/components/product/ProductCard.vue'
 import ProductReview from '@/components/product/ProductReview.vue'
-import { fetchProductDetail, fetchRelatedProducts } from '@/api/product'
+import { fetchProductDetail, fetchRelatedProducts, fetchProductPromotions } from '@/api/product'
 import { getCategoryAttributes } from '@/api/categoryAttribute'
 import { useCartStore } from '@/stores/cart'
 import { useAuthStore } from '@/stores/auth'
@@ -319,6 +391,7 @@ import type {
   PriceRange,
   ProductSpec,
   StoreInfo,
+  ProductPromotion,
 } from '@/types/product'
 import type { CategoryAttribute } from '@/api/categoryAttribute'
 
@@ -328,34 +401,53 @@ const cartStore = useCartStore()
 const authStore = useAuthStore()
 const chatStore = useChatStore()
 
-// 取得網址上的活動參數
-const promoText = computed(() => (route.query.promoText as string) || '')
-
 const product = ref<ProductDetail | null>(null)
 const categoryAttributes = ref<CategoryAttribute[]>([])
+const productPromotions = ref<ProductPromotion[]>([])
 
-/** 計算促銷資訊：僅顯示標籤，不變動價格 */
+/** 目前選中/最低價格 */
 const displayPriceInfo = computed(() => {
   const p = product.value
-  if (!p) return { current: 0, hasPromo: false, tagText: '' }
-
-  // 抓取目前價格 (優先使用規格選中的價格，否則用範圍最低價)
-  let currentPrice = selectedVariant.value ? selectedVariant.value.price : p.priceRange.min
-  let hasPromo = false
-  let tagText = ''
-
-  // 只要商品符合條件，就亮起活動標籤
-  if (promoText.value.includes('腳架') || (p.name && p.name.includes('腳架'))) {
-    hasPromo = true
-    tagText = '活動：滿1000折100'
-  }
-
-  return { 
-    current: currentPrice, 
-    hasPromo, 
-    tagText
-  }
+  if (!p) return { current: 0 }
+  const currentPrice = selectedVariant.value ? selectedVariant.value.price : p.priceRange.min
+  return { current: currentPrice }
 })
+
+/** 第一個進行中活動（優先 flashSale > limitedBuy > discount） */
+const activePromotion = computed<ProductPromotion | null>(() => {
+  if (!productPromotions.value.length) return null
+  const order = ['flashSale', 'limitedBuy', 'discount', 'other']
+  return [...productPromotions.value].sort(
+    (a, b) => order.indexOf(a.type) - order.indexOf(b.type)
+  )[0] ?? null
+})
+
+/** 滿額折扣活動的規則文字 */
+const discountRuleText = computed<string>(() => {
+  const promo = activePromotion.value
+  if (!promo || promo.type !== 'discount' || !promo.rule) return ''
+  const r = promo.rule
+  if (r.discountType === 1) return `滿 ${r.threshold} 折 ${r.discountValue} 元`
+  if (r.discountType === 2) return `滿 ${r.threshold} 打 ${r.discountValue} 折`
+  return `滿 ${r.threshold} 享優惠`
+})
+
+/** 活動結束倒數（格式：HH:mm:ss 或 X 天 HH:mm:ss） */
+const countdownText = ref('')
+let countdownTimer: ReturnType<typeof setInterval> | null = null
+
+function updateCountdown() {
+  const promo = activePromotion.value
+  if (!promo) { countdownText.value = ''; return }
+  const diff = new Date(promo.endDate).getTime() - Date.now()
+  if (diff <= 0) { countdownText.value = '已結束'; return }
+  const totalSec = Math.floor(diff / 1000)
+  const days = Math.floor(totalSec / 86400)
+  const hrs  = Math.floor((totalSec % 86400) / 3600).toString().padStart(2, '0')
+  const mins = Math.floor((totalSec % 3600) / 60).toString().padStart(2, '0')
+  const secs = (totalSec % 60).toString().padStart(2, '0')
+  countdownText.value = days > 0 ? `${days} 天 ${hrs}:${mins}:${secs}` : `${hrs}:${mins}:${secs}`
+}
 const loading = ref(false)
 const loadError = ref<string | null>(null)
 const relatedProducts = ref<ProductListItem[]>([])
@@ -494,6 +586,8 @@ function selectSpec(specName: string, optionValue: string) {
 
 async function loadProduct(id: number) {
   loading.value = true
+  productPromotions.value = []
+  if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null }
   try {
     const res = await fetchProductDetail(id)
     if (res.success) {
@@ -501,13 +595,27 @@ async function loadProduct(id: number) {
       const mainImg = res.data.images.find(img => img.isMain) || res.data.images[0]
       activeImageUrl.value = mainImg?.url || ''
       res.data.specs.forEach(s => selectedSpecs.value[s.name] = null)
-      
+
       // 載入屬性定義
       try {
         const attrRes = await getCategoryAttributes(res.data.categoryId)
         if (attrRes.success) categoryAttributes.value = attrRes.data
       } catch (e) {
         console.error('載入屬性定義失敗:', e)
+      }
+
+      // 載入活動促銷資訊
+      try {
+        const promoRes = await fetchProductPromotions(id)
+        if (promoRes.success) {
+          productPromotions.value = promoRes.data
+          if (promoRes.data.length) {
+            updateCountdown()
+            countdownTimer = setInterval(updateCountdown, 1000)
+          }
+        }
+      } catch (e) {
+        console.error('載入活動資訊失敗:', e)
       }
 
       void loadRelated(id)
@@ -622,6 +730,10 @@ function formatJoinedTime(years: number | null | undefined): string {
 onMounted(() => {
   const id = Number(route.params.id)
   if (id) loadProduct(id)
+})
+
+onUnmounted(() => {
+  if (countdownTimer) clearInterval(countdownTimer)
 })
 
 watch(() => route.params.id, (newId) => {
@@ -763,6 +875,39 @@ watch(() => route.params.id, (newId) => {
   margin-left: 2px;
 }
 
+/* 促銷活動提示區塊 */
+.pd-promo-alert {
+  background: linear-gradient(135deg, #fff7ed 0%, #fff3e0 100%);
+  border: 1.5px solid #f97316;
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+.promo-alert-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.promo-type-tag { flex-shrink: 0; }
+.promo-title { font-size: 14px; font-weight: 600; color: #9a3412; }
+.promo-flash-body { display: flex; flex-direction: column; gap: 8px; }
+.promo-price-row { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.promo-price-label { font-size: 13px; color: #ea580c; font-weight: 500; }
+.promo-price-value { font-size: 22px; font-weight: 700; color: #dc2626; }
+.promo-original-price { font-size: 14px; color: #94a3b8; text-decoration: line-through; }
+.promo-countdown-row { display: flex; align-items: center; gap: 8px; }
+.promo-countdown-label { font-size: 13px; color: #92400e; }
+.promo-countdown-value { font-size: 16px; font-weight: 700; color: #dc2626; font-variant-numeric: tabular-nums; letter-spacing: 1px; }
+.promo-rule-list { list-style: none; padding: 0; margin: 0 0 4px; display: flex; flex-direction: column; gap: 6px; }
+.promo-rule-list li { display: flex; align-items: center; gap: 6px; font-size: 14px; color: #78350f; font-weight: 700; }
+.benefit-icon { font-size: 16px; }
+.promo-limit-row { display: flex; align-items: center; gap: 8px; }
+.promo-stock-row { display: flex; align-items: center; gap: 8px; }
+.promo-stock-label { font-size: 13px; color: #92400e; white-space: nowrap; }
+.promo-stock-num { font-size: 13px; color: #dc2626; font-weight: 600; white-space: nowrap; }
+.promo-link { display: inline-block; margin-top: 10px; font-size: 13px; color: #ea580c; text-decoration: none; font-weight: 500; }
+.promo-link:hover { text-decoration: underline; }
 .pd-description { font-size: 14px; color: #334155; line-height: 1.8; margin: 0; font-family: inherit; }
 .pd-description :deep(img) { max-width: 100%; height: auto; display: block; margin: 8px 0; }
 .pd-related-section { margin-top: 24px; }
