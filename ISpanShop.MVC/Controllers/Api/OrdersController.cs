@@ -132,5 +132,13 @@ namespace ISpanShop.MVC.Controllers.Api
             var reviews = await _reviewService.GetReviewsByProductIdAsync(productId);
             return Ok(reviews);
         }
+
+        [HttpPost("product/{productId}/mock")]
+        [AllowAnonymous] // 展示用途，暫時不限登入
+        public async Task<IActionResult> GenerateMockReviews(int productId, [FromQuery] int count = 5)
+        {
+            await _reviewService.GenerateMockReviewsAsync(productId, count);
+            return Ok(new { success = true, message = $"已成功生成 {count} 筆測試評論" });
+        }
     }
 }
