@@ -95,7 +95,9 @@ namespace ISpanShop.MVC.Controllers.Api.Promotions
                     .ThenInclude(pi => pi.Product)
                         .ThenInclude(prod => prod.ProductImages)
                 .Include(p => p.PromotionRules)
-                .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted && p.Status == 1);
+                .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted && p.Status == 1
+                    && p.Seller.IsBlacklisted != true
+                    && !_db.Stores.Any(s => s.UserId == p.SellerId && s.StoreStatus == 3));
 
             if (promo == null)
                 return NotFound(new { success = false, message = "活動不存在或已結束" });
@@ -161,7 +163,9 @@ namespace ISpanShop.MVC.Controllers.Api.Promotions
             pageSize = Math.Clamp(pageSize, 1, 50);
 
             var exists = await _db.Promotions
-                .AnyAsync(p => p.Id == id && !p.IsDeleted && p.Status == 1);
+                .AnyAsync(p => p.Id == id && !p.IsDeleted && p.Status == 1
+                    && p.Seller.IsBlacklisted != true
+                    && !_db.Stores.Any(s => s.UserId == p.SellerId && s.StoreStatus == 3));
 
             if (!exists)
                 return NotFound(new { success = false, message = "活動不存在或已結束" });
@@ -278,7 +282,9 @@ namespace ISpanShop.MVC.Controllers.Api.Promotions
                           && !pi.Promotion.IsDeleted
                           && pi.Promotion.Status == 1
                           && pi.Promotion.StartTime <= now
-                          && pi.Promotion.EndTime >= now)
+                          && pi.Promotion.EndTime >= now
+                          && pi.Promotion.Seller.IsBlacklisted != true
+                          && !_db.Stores.Any(s => s.UserId == pi.Promotion.SellerId && s.StoreStatus == 3))
                 .Include(pi => pi.Promotion)
                     .ThenInclude(p => p.PromotionRules)
                 .Include(pi => pi.Product)

@@ -27,7 +27,9 @@ namespace ISpanShop.Repositories.Promotions
                 .Where(p => !p.IsDeleted
                          && p.Status == 1
                          && p.StartTime <= now
-                         && p.EndTime   >= now);
+                         && p.EndTime   >= now
+                         && p.Seller.IsBlacklisted != true
+                         && !_db.Stores.Any(s => s.UserId == p.SellerId && s.StoreStatus == 3));
 
             if (promotionType.HasValue)
                 query = query.Where(p => p.PromotionType == promotionType.Value);
