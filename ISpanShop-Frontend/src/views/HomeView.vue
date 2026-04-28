@@ -19,7 +19,23 @@
                 <div class="slide-overlay"></div>
                 <!-- 左側文字區 -->
                 <div class="slide-content">
-                  <span class="slide-tag" :class="promo.type">{{ promo.typeLabel }}</span>
+                  <div class="slide-header">
+                    <span class="slide-tag" :class="promo.type">{{ promo.typeLabel }}</span>
+                    <template v-if="countdowns[promo.id]">
+                      <div v-if="!countdowns[promo.id]!.expired" class="slide-countdown-inline">
+                        <template v-if="countdowns[promo.id]!.days > 0">
+                          <span class="cd-num">{{ countdowns[promo.id]!.days }}</span>
+                          <span class="cd-label">天</span>
+                        </template>
+                        <span class="cd-num">{{ countdowns[promo.id]!.hours }}</span>
+                        <span class="cd-sep">:</span>
+                        <span class="cd-num">{{ countdowns[promo.id]!.minutes }}</span>
+                        <span class="cd-sep">:</span>
+                        <span class="cd-num">{{ countdowns[promo.id]!.seconds }}</span>
+                      </div>
+                      <span v-else class="slide-countdown-inline expired">已結束</span>
+                    </template>
+                  </div>
                   <h2 class="slide-title">{{ promo.title }}</h2>
                   <p v-if="promo.subtitle" class="slide-desc">{{ promo.subtitle }}</p>
                   <el-button type="danger" round size="large" @click.stop="goToActivity(promo)">立即搶購</el-button>
@@ -65,9 +81,23 @@
             <div class="sb-overlay"></div>
             <!-- 文字內容 -->
             <div class="sb-content">
-              <span class="sb-tag" :class="promo.type">{{ promo.typeLabel }}</span>
+              <div class="sb-header">
+                <span class="sb-tag" :class="promo.type">{{ promo.typeLabel }}</span>
+              </div>
               <h3 class="sb-title">{{ promo.title }}</h3>
               <p v-if="promo.subtitle" class="sb-subtitle">{{ promo.subtitle }}</p>
+              <div v-if="countdowns[promo.id] && !countdowns[promo.id]!.expired" class="sb-countdown-bar">
+                <span class="sb-cd-icon">⏱</span>
+                <template v-if="countdowns[promo.id]!.days > 0">
+                  <span class="cd-num-sm">{{ countdowns[promo.id]!.days }}</span>
+                  <span class="cd-label-sm">天</span>
+                </template>
+                <span class="cd-num-sm">{{ countdowns[promo.id]!.hours }}</span>
+                <span class="cd-sep-sm">:</span>
+                <span class="cd-num-sm">{{ countdowns[promo.id]!.minutes }}</span>
+                <span class="cd-sep-sm">:</span>
+                <span class="cd-num-sm">{{ countdowns[promo.id]!.seconds }}</span>
+              </div>
             </div>
           </div>
 
@@ -391,6 +421,45 @@ const sideBanners = computed(() => {
   return promotions.value.slice(1, 3)
 })
 
+// ── 倒數計時 ──────────────────────────────────────────────────────
+interface CountdownValue {
+  expired: boolean
+  days: number
+  hours: string
+  minutes: string
+  seconds: string
+}
+
+const countdowns = ref<Record<number, CountdownValue>>({})
+let countdownTimer: ReturnType<typeof setInterval> | null = null
+
+const updateCountdowns = (): void => {
+  const now = new Date().getTime()
+  const result: Record<number, CountdownValue> = {}
+  const pad = (n: number): string => String(n).padStart(2, '0')
+  for (const item of promotions.value) {
+    const end = new Date(item.endDate).getTime()
+    const diff = end - now
+    if (diff <= 0) {
+      result[item.id] = { expired: true, days: 0, hours: '00', minutes: '00', seconds: '00' }
+      continue
+    }
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000)
+    result[item.id] = { expired: false, days, hours: pad(hours), minutes: pad(minutes), seconds: pad(seconds) }
+  }
+  countdowns.value = result
+}
+
+const startCountdown = (): void => {
+  if (countdownTimer) clearInterval(countdownTimer)
+  console.log('[倒數] 活動數量:', promotions.value.length, '活動 IDs:', promotions.value.map(p => p.id))
+  updateCountdowns()
+  countdownTimer = setInterval(updateCountdowns, 1000)
+}
+
 // ── API 呼叫 ─────────────────────────────────────────────────────
 
 function goToActivity(banner: any): void {
@@ -514,7 +583,10 @@ async function loadPromotions(): Promise<void> {
     const res = await fetchActivePromotions()
     console.log('[首頁活動] API 回傳數量:', res.data?.length ?? 0)
     console.log('[首頁活動] 活動標題:', res.data?.map(p => `[${p.id}] ${p.title}`))
-    if (res.success) promotions.value = res.data
+    if (res.success) {
+      promotions.value = res.data
+      startCountdown()
+    }
   } catch {
     // 靜默失敗，fallback 到靜態內容
   }
@@ -648,6 +720,10 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
+  if (countdownTimer) {
+    clearInterval(countdownTimer)
+    countdownTimer = null
+  }
 })
 
 // 若已在首頁時 query 改變（例如連點麵包屑不同分類），重新套用篩選
@@ -1118,6 +1194,98 @@ const quickItems = [
 .skeleton-card { border-radius: 4px; overflow: hidden; border: 1px solid #f1f5f9; }
 .skeleton-image { width: 100%; aspect-ratio: 1 / 1; }
 .skeleton-body { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 8px; }
+
+/* ── 倒數計時 ── */
+.slide-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.slide-countdown-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+.slide-countdown-inline .cd-num {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  min-width: 24px;
+  text-align: center;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+.slide-countdown-inline .cd-sep {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+  font-weight: 700;
+  margin: 0;
+}
+.slide-countdown-inline .cd-label {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 11px;
+  margin: 0 3px 0 1px;
+}
+.slide-countdown-inline.expired {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 4px 12px;
+  border-radius: 20px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+}
+.sb-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.sb-countdown-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 10px;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 4px 10px;
+  border-radius: 14px;
+}
+.sb-cd-icon {
+  font-size: 11px;
+  margin-right: 4px;
+  opacity: 0.8;
+}
+.sb-countdown-bar .cd-num-sm {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 20px;
+  text-align: center;
+  padding: 1px 3px;
+  border-radius: 3px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+.sb-countdown-bar .cd-sep-sm {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 10px;
+  font-weight: 700;
+}
+.sb-countdown-bar .cd-label-sm {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 10px;
+  margin: 0 2px 0 1px;
+}
 
 /* 輪播圓點 */
 :deep(.el-carousel__indicator--horizontal .el-carousel__button) {
