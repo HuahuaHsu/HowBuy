@@ -6,10 +6,11 @@ export const useChatStore = defineStore('chat', () => {
   const currentChatUser = ref<{
     id: number | null;
     name: string;
-    avatar?: string;
+    avatarUrl?: string;
   }>({
     id: null,
-    name: ''
+    name: '',
+    avatarUrl: ''
   });
 
   // 控制聊天視窗是否開啟
@@ -22,13 +23,14 @@ export const useChatStore = defineStore('chat', () => {
    * 開啟與特定對象的聊天
    * @param userId 對象 ID
    * @param userName 對象名稱
+   * @param avatarUrl 對象頭像 (選填)
    */
-  function openChatWithUser(userId: number, userName: string) {
+  function openChatWithUser(userId: number, userName: string, avatarUrl?: string) {
     // 開啟對話時，自動從隱藏清單移除
     if (hiddenUserIds.value.has(userId)) {
       hiddenUserIds.value.delete(userId);
     }
-    currentChatUser.value = { id: userId, name: userName };
+    currentChatUser.value = { id: userId, name: userName, avatarUrl };
     isChatOpen.value = true;
   }
 

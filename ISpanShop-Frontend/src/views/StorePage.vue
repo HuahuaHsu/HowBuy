@@ -155,6 +155,7 @@ function handleOpenChat(): void {
     chatStore.openChatWithUser(
       (store.value as any).userId ?? 0,
       store.value.name ?? '賣家',
+      store.value.logoUrl || ''
     )
   }
 }

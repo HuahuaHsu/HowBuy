@@ -70,14 +70,8 @@
                   </div>
                 </el-upload>
                 <div class="upload-hint">建議尺寸 200x200，不超過 2MB</div>
-                <el-button 
-                  v-if="form.logoUrl" 
-                  type="danger" 
-                  link 
-                  :icon="Delete"
-                  @click="handleRemoveLogo"
-                  class="mt-2"
-                >
+                <el-button
+                  v-if="form.logoUrl" type="danger" link :icon="Delete" @click="handleRemoveLogo" class="mt-2">
                   移除 Logo
                 </el-button>
               </div>
@@ -137,8 +131,8 @@ const fetchStoreInfo = async () => {
     const res = await getStoreProfileApi()
     Object.assign(form, res.data)
     originalStatus.value = res.data.storeStatus
-  } catch (error: any) {
-    console.error('獲取賣場資訊失敗', error)
+  } catch {
+    console.error('獲取賣場資訊失敗')
     ElMessage.error('無法載入賣場資訊')
   } finally {
     loading.value = false
@@ -158,7 +152,7 @@ const handleLogoChange = async (uploadFile: UploadFile) => {
     const res = await uploadStoreLogoApi(file as File)
     form.logoUrl = res.data.url
     ElMessage.success('Logo 已上傳')
-  } catch (error) {
+  } catch {
     ElMessage.error('圖片上傳失敗')
   }
 }
@@ -216,11 +210,12 @@ const handleSave = async (formEl: FormInstance | undefined) => {
         await updateStoreProfileApi(form)
         ElMessage.success('賣場資訊已更新成功')
         originalStatus.value = form.storeStatus
-      } catch (error: any) {
+      } catch (error: unknown) {
         if (error !== 'cancel') {
-          console.error('更新失敗', error)
-          ElMessage.error(error.response?.data?.message || '更新失敗，請稍後再試')
-        }
+            const msg =
+              error instanceof Error ? error.message : '更新失敗，請稍後再試'
+            ElMessage.error(msg)
+          }
       } finally {
         submitting.value = false
       }

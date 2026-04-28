@@ -80,10 +80,10 @@
             </div>
           </template>
           <div class="image-list">
-            <el-image 
-              v-for="(url, index) in detail.imageUrls" 
+            <el-image
+              v-for="(url, index) in detail.imageUrls"
               :key="index"
-              :src="url" 
+              :src="url"
               class="evidence-img"
               :preview-src-list="detail.imageUrls"
               :initial-index="index"
@@ -110,7 +110,7 @@
         <!-- 2. 退款明細 -->
         <div class="summary-wrapper mb-4">
           <div class="summary-title">退款結算明細</div>
-          <RefundSummary 
+          <RefundSummary
             :order="detail"
             :selected-item-ids="detail.items.map(i => i.id)"
             :return-quantities="returnQuantitiesMap"
@@ -128,16 +128,16 @@
               </el-radio-group>
             </el-form-item>
             <el-form-item :label="reviewForm.isApproved ? '給買家的備註' : '拒絕原因 (必填)'">
-              <el-input 
-                v-model="reviewForm.remark" 
-                type="textarea" 
-                :rows="4" 
+              <el-input
+                v-model="reviewForm.remark"
+                type="textarea"
+                :rows="4"
                 placeholder="請輸入處理說明..."
               />
             </el-form-item>
-            <el-button 
-              type="primary" 
-              size="large" 
+            <el-button
+              type="primary"
+              size="large"
               class="w-full submit-btn"
               :loading="submitting"
               @click="submitReview"
@@ -198,7 +198,6 @@ const fetchDetail = async () => {
   try {
     const res = await getSellerReturnDetailApi(orderId.value)
     detail.value = res.data
-  } catch (error: any) {
     ElMessage.error(error.response?.data?.message || '取得詳情失敗')
     router.back()
   } finally {
@@ -214,8 +213,8 @@ const submitReview = async () => {
 
   try {
     await ElMessageBox.confirm(
-      reviewForm.value.isApproved 
-        ? '確定要同意退款嗎？此操作不可撤回，系統將自動退款給買家。' 
+      reviewForm.value.isApproved
+        ? '確定要同意退款嗎？此操作不可撤回，系統將自動退款給買家。'
         : '確定要拒絕此退款申請嗎？',
       '提交審核',
       { type: reviewForm.value.isApproved ? 'warning' : 'info' }
@@ -269,13 +268,13 @@ onMounted(fetchDetail)
   align-items: center;
   gap: 16px;
   margin-bottom: 24px;
-  
+
   .header-content {
     flex: 1;
     display: flex;
     align-items: baseline;
     gap: 12px;
-    
+
     .title { margin: 0; font-size: 22px; font-weight: 600; color: #1e293b; }
     .order-no { font-size: 14px; color: #64748b; font-family: monospace; }
   }
