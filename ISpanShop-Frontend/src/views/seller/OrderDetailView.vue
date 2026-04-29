@@ -45,38 +45,7 @@
 
         <!-- 商品明細 -->
         <el-card class="items-card" shadow="never" header="商品明細">
-          <el-table :data="order.items" style="width: 100%">
-            <el-table-column label="商品資訊" min-width="300">
-              <template #default="{ row }">
-                <div class="product-info-wrapper clickable" @click="goToProduct(row.productId)">
-                  <el-image 
-                    :src="row.coverImage" 
-                    class="product-img" 
-                    fit="cover"
-                  >
-                    <template #error><div class="image-slot"><el-icon><Picture /></el-icon></div></template>
-                  </el-image>
-                  <div class="product-text">
-                    <div class="name">{{ row.productName }}</div>
-                    <PromotionTags :tags="row.promotionTags" />
-                    <div class="variant" v-if="row.variantName">規格：{{ row.variantName }}</div>
-                    <div class="sku">SKU: {{ row.skuCode }}</div>
-                  </div>
-                </div>
-              </template>
-            </el-table-column>
-            <el-table-column label="單價" width="120" align="center">
-              <template #default="{ row }">
-                NT$ {{ row.price.toLocaleString() }}
-              </template>
-            </el-table-column>
-            <el-table-column prop="quantity" label="數量" width="100" align="center" />
-            <el-table-column label="小計" width="120" align="right">
-              <template #default="{ row }">
-                <span class="subtotal">NT$ {{ row.subtotal.toLocaleString() }}</span>
-              </template>
-            </el-table-column>
-          </el-table>
+          <OrderItemsTable :items="order.items" />
 
           <!-- 價格結算 -->
           <div class="seller-summary-wrapper">
@@ -94,7 +63,7 @@
           </div>
         </el-card>
 
-        <!-- 評價資訊 -->
+        <!-- 買家評價 -->
         <el-card v-if="order?.review" class="review-card" shadow="never" header="買家評價">
           <div class="review-content">
             <div class="review-header">
@@ -129,33 +98,6 @@
           </div>
         </el-card>
       </el-col>
-
-      <!-- 評價回覆對話框 -->
-      <el-dialog
-        v-model="replyDialogVisible"
-        title="回應買家評價"
-        width="500px"
-        destroy-on-close
-      >
-        <el-form :model="replyForm" label-position="top">
-          <el-form-item label="您的回覆：">
-            <el-input
-              v-model="replyForm.replyText"
-              type="textarea"
-              :rows="4"
-              placeholder="請輸入您對買家評價的回應..."
-            />
-          </el-form-item>
-        </el-form>
-        <template #footer>
-          <span class="dialog-footer">
-            <el-button @click="replyDialogVisible = false">取消</el-button>
-            <el-button type="primary" @click="submitReply" :loading="submittingReply">
-              提交回覆
-            </el-button>
-          </span>
-        </template>
-      </el-dialog>
 
       <!-- 右側：資訊欄 -->
       <el-col :span="8">
@@ -205,6 +147,33 @@
         </el-card>
       </el-col>
     </el-row>
+
+    <!-- 評價回覆對話框 -->
+    <el-dialog
+      v-model="replyDialogVisible"
+      title="回應買家評價"
+      width="500px"
+      destroy-on-close
+    >
+      <el-form :model="replyForm" label-position="top">
+        <el-form-item label="您的回覆：">
+          <el-input
+            v-model="replyForm.replyText"
+            type="textarea"
+            :rows="4"
+            placeholder="請輸入您對買家評價的回應..."
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="replyDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="submitReply" :loading="submittingReply">
+            提交回覆
+          </el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -212,13 +181,13 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Picture, ArrowLeft } from '@element-plus/icons-vue'
+import { ArrowLeft } from '@element-plus/icons-vue'
 import { getSellerOrderDetailApi, updateSellerOrderStatusApi, replyToReviewApi } from '@/api/store'
 import type { SellerOrderDetail } from '@/types/store'
 import { useChatStore } from '@/stores/chat'
 import OrderSteps from '@/components/order/OrderSteps.vue'
 import OrderSummary from '@/components/order/OrderSummary.vue'
-import PromotionTags from '@/components/common/PromotionTags.vue'
+import OrderItemsTable from '@/components/order/OrderItemsTable.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -227,15 +196,6 @@ const loading = ref(false)
 const order = ref<SellerOrderDetail | null>(null)
 
 const orderId = computed(() => route.params.id as string)
-
-// 跳轉商品頁面
-function goToProduct(productId: number) {
-  if (!productId) {
-    ElMessage.warning('無法取得商品編號')
-    return
-  }
-  router.push(`/product/${productId}`)
-}
 
 // 評價回覆相關
 const replyDialogVisible = ref(false)
@@ -353,12 +313,12 @@ onMounted(fetchDetail)
   align-items: center;
   gap: 20px;
   margin-bottom: 24px;
-}
-.page-header .title {
-  margin: 0;
-  flex: 1;
-  font-size: 20px;
-  color: #1e293b;
+  .title {
+    margin: 0;
+    flex: 1;
+    font-size: 20px;
+    color: #1e293b;
+  }
 }
 
 .steps-card {
@@ -391,50 +351,6 @@ onMounted(fetchDetail)
   border-radius: 8px;
 }
 
-.product-info-wrapper {
-  display: flex;
-  gap: 12px;
-  padding: 4px 0;
-  
-  &.clickable {
-    cursor: pointer;
-    transition: opacity 0.2s;
-    &:hover {
-      opacity: 0.8;
-    }
-  }
-}
-
-.product-img {
-  width: 60px;
-  height: 60px;
-  border-radius: 4px;
-  flex-shrink: 0;
-}
-.product-text .name {
-  font-weight: 600;
-  color: #1e293b;
-  margin-bottom: 4px;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.product-text .variant {
-  font-size: 12px;
-  color: #64748b;
-}
-.product-text .sku {
-  font-size: 11px;
-  color: #94a3b8;
-  font-family: monospace;
-}
-
-.subtotal {
-  font-weight: 600;
-  color: #1e293b;
-}
-
 .seller-summary-wrapper {
   margin-top: 24px;
 }
@@ -460,7 +376,6 @@ onMounted(fetchDetail)
   }
 }
 
-/* 評價卡片樣式 */
 .review-card {
   margin-top: 20px;
   border-radius: 8px;
