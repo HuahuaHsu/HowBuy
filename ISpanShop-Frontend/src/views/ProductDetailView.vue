@@ -121,7 +121,7 @@
                 <span class="pd-review-count">{{ safeProduct.reviewCount }} 評價</span>
               </template>
               <template v-else>
-                <span class="pd-review-count">{{ formatSoldCount(safeProduct.soldCount) }} 已售出</span>
+                <span class="pd-review-count">{{ formatSoldCount(safeProduct.soldCount) }}</span>
               </template>
             </div>
 
@@ -208,19 +208,26 @@
             </div>
 
             <div class="pd-action-buttons">
-              <el-button
-                class="btn-cart"
-                :disabled="isSoldOut || isPreview"
-                @click="handleAddToCart"
-              >{{ isPreview ? '預覽模式' : '加入購物車' }}</el-button>
-              <el-button
-                type="primary"
-                class="btn-buy"
-                :disabled="isSoldOut || safeProduct.store?.status === 2 || isPreview"
-                @click="handleBuyNow"
-              >
-                {{ isPreview ? '預覽模式' : safeProduct.store?.status === 2 ? '賣場休假中' : '直接購買' }}
-              </el-button>
+              <template v-if="isPreview">
+                <el-alert type="info" :closable="false" show-icon style="margin-bottom: 0">
+                  預覽模式下無法購買。商品上架後，買家將看到『加入購物車』和『立即購買』按鈕。
+                </el-alert>
+              </template>
+              <template v-else>
+                <el-button
+                  class="btn-cart"
+                  :disabled="isSoldOut"
+                  @click="handleAddToCart"
+                >加入購物車</el-button>
+                <el-button
+                  type="primary"
+                  class="btn-buy"
+                  :disabled="isSoldOut || safeProduct.store?.status === 2"
+                  @click="handleBuyNow"
+                >
+                  {{ safeProduct.store?.status === 2 ? '賣場休假中' : '直接購買' }}
+                </el-button>
+              </template>
             </div>
           </div>
         </div>
@@ -626,24 +633,7 @@ function selectSpec(specName: string, optionValue: string) {
 
 /** 把賣家 API 的 SellerProductDetail 轉換成前台 ProductDetail 格式 */
 function mapSellerToProductDetail(seller: SellerProductDetail): ProductDetail {
-  // 解析規格定義
-  let specs: ProductSpec[] = []
-  if (seller.specDefinitionJson) {
-    try {
-      const parsed = JSON.parse(seller.specDefinitionJson) as Array<{ name: string; values: string[] }>
-      specs = parsed.map(s => ({ name: s.name, options: s.values }))
-    } catch { /* ignore */ }
-  }
-
-  // string[] → ProductImage[]
-  const images: ProductImage[] = seller.images.map((url, idx) => ({
-    id: idx,
-    url,
-    isMain: idx === 0,
-    sortOrder: idx,
-  }))
-
-  // 解析規格組合
+  // 解析規格組合（先解析 variants，以便稍後推導規格選項）
   const variants: ProductVariant[] = seller.variants.map(v => {
     let specValues: Record<string, string> = {}
     if (v.specValueJson) {
@@ -658,6 +648,65 @@ function mapSellerToProductDetail(seller: SellerProductDetail): ProductDetail {
       imageUrl: null,
     }
   })
+
+  // 解析規格定義；格式為 [{name, options:[{name}|string]}]
+  // 若 options 為空，從 variants 的 specValues 反推選項
+  let specs: ProductSpec[] = []
+  if (seller.specDefinitionJson) {
+    try {
+      const parsed = JSON.parse(seller.specDefinitionJson) as Array<{
+        name: string
+        options?: Array<{ name: string } | string>
+        values?: Array<{ name: string } | string>
+      }>
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        specs = parsed.map(s => {
+          const rawOpts = s.options ?? s.values ?? []
+          const optStrings = rawOpts.map(o => (typeof o === 'string' ? o : o.name)).filter(Boolean)
+          return { name: s.name, options: optStrings }
+        })
+      }
+    } catch { /* ignore */ }
+  }
+
+  // 若規格選項仍為空，從 variants.specValues 反推
+  if (specs.length > 0 && specs.every(s => s.options.length === 0)) {
+    const optMap = new Map<string, Set<string>>()
+    variants.forEach(v => {
+      Object.entries(v.specValues).forEach(([name, val]) => {
+        if (!optMap.has(name)) optMap.set(name, new Set())
+        optMap.get(name)!.add(val)
+      })
+    })
+    specs = specs.map(s => ({
+      name: s.name,
+      options: Array.from(optMap.get(s.name) ?? []),
+    }))
+  } else if (specs.length === 0 && variants.length > 0) {
+    // 完全沒有 specDefinitionJson，純從 variants 反推
+    const specNamesOrder: string[] = []
+    const optMap = new Map<string, Set<string>>()
+    variants.forEach(v => {
+      Object.keys(v.specValues).forEach(name => {
+        if (!specNamesOrder.includes(name)) specNamesOrder.push(name)
+        if (!optMap.has(name)) optMap.set(name, new Set())
+        optMap.get(name)!.add(v.specValues[name] as string)
+      })
+    })
+    specs = specNamesOrder.map(name => ({
+      name,
+      options: Array.from(optMap.get(name) ?? []),
+    }))
+  }
+
+
+  // string[] → ProductImage[]
+  const images: ProductImage[] = seller.images.map((url, idx) => ({
+    id: idx,
+    url,
+    isMain: idx === 0,
+    sortOrder: idx,
+  }))
 
   const prices = seller.variants.map(v => v.price)
   const minPrice = seller.minPrice ?? (prices.length ? Math.min(...prices) : 0)

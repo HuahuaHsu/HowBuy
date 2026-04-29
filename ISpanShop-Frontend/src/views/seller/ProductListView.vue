@@ -820,9 +820,13 @@ function handleEdit(id: number): void {
 // ── 卡片更多選單 ──────────────────────────────────────────────────
 async function handleCardCommand(cmd: string, product: SellerProduct): Promise<void> {
   switch (cmd) {
-    case 'preview':
-      window.open(router.resolve({ name: 'SellerProductPreview', params: { id: product.id } }).href, '_blank')
+    case 'preview': {
+      const previewUrl = product.status === 'on'
+        ? router.resolve({ name: 'ProductDetail', params: { id: product.id } }).href
+        : router.resolve({ name: 'SellerProductPreview', params: { id: product.id } }).href
+      window.open(previewUrl, '_blank')
       break
+    }
     case 'submitReview':
       await handleSubmitReview(product)
       break
