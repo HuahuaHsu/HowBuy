@@ -158,6 +158,16 @@
       width="600px"
       :close-on-click-modal="false"
     >
+      <!-- 快速填入測試資料（僅新增模式顯示） -->
+      <div v-if="!isEdit" style="text-align: right; margin-bottom: 12px;">
+        <el-button
+          size="small"
+          type="warning"
+          plain
+          :loading="demoLoading"
+          @click="fillDemoCampaign"
+        >🎲 快速填入測試資料</el-button>
+      </div>
       <el-form
         ref="formRef"
         :model="formData"
@@ -415,6 +425,7 @@ import {
   fetchAvailableProductsForPromotion,
   fetchSellerProductsSimple,
 } from '@/api/promotion'
+import { fetchSellerProducts } from '@/api/product'
 
 // ─── 介面定義 ─────────────────────────────────────────────────────
 
@@ -688,7 +699,109 @@ async function loadPromotions(): Promise<void> {
   }
 }
 
-// ─── 彈窗操作 ─────────────────────────────────────────────────────
+// ─── 快速填入測試資料 ──────────────────────────────────────────────
+
+const demoLoading = ref(false)
+
+async function fillDemoCampaign(): Promise<void> {
+  demoLoading.value = true
+  try {
+    // 1. 取賣家全部商品，篩出已上架的
+    const res = await fetchSellerProducts({ pageSize: 100 })
+    const onShelfProducts = (res.items ?? []).filter(p => p.status === 1)
+
+    if (onShelfProducts.length === 0) {
+      ElMessage.warning('您目前沒有已上架商品，無法生成測試活動。請先上架商品後再試。')
+      return
+    }
+
+    // 2. 統計分類分布，找主要分類
+    const catCount = new Map<string, number>()
+    onShelfProducts.forEach(p => {
+      const cat = p.categoryName || '其他'
+      catCount.set(cat, (catCount.get(cat) ?? 0) + 1)
+    })
+    const sortedCats = [...catCount.entries()].sort((a, b) => b[1] - a[1])
+    const primaryCat: string = sortedCats[0]?.[0] ?? '商品'
+    const secondaryCat: string | undefined = sortedCats[1]?.[0]
+
+    // 3. 動態生成活動類型（隨機選一種，搭配對應折扣）
+    type DemoType = { type: number; discount: number; minAmount?: number; quantity?: number }
+    const typeConfigs: DemoType[] = [
+      { type: 1, discount: Math.floor(Math.random() * 21) + 10 },
+      { type: 2, discount: (Math.floor(Math.random() * 5) + 1) * 100,
+        minAmount: (Math.floor(Math.random() * 4) + 3) * 100 },
+      { type: 3, discount: (Math.floor(Math.random() * 3) + 1) * 50,
+        quantity: (Math.floor(Math.random() * 5) + 5) * 10 },
+      { type: 4, discount: (Math.floor(Math.random() * 3) + 1) * 50 },
+    ]
+    const cfg: DemoType = typeConfigs[Math.floor(Math.random() * typeConfigs.length)]!
+
+    // 4. 動態生成活動名稱
+    const nameTemplates: string[] = [
+      `${primaryCat}專區｜限時特賣 7 折起`,
+      `${primaryCat}嚴選｜會員專屬優惠`,
+      `${primaryCat}熱銷推薦｜下殺 8 折`,
+      `愛上${primaryCat}｜超值優惠來襲`,
+      `${primaryCat}驚喜價｜錯過不再`,
+    ]
+    if (secondaryCat) nameTemplates.push(`${primaryCat} × ${secondaryCat} 雙重優惠`)
+    const generatedName: string = nameTemplates[Math.floor(Math.random() * nameTemplates.length)]!
+
+    // 5. 動態生成活動描述（不超過 200 字）
+    const descTemplates: string[] = [
+      `本次活動精選${primaryCat}熱門商品，限時優惠回饋老客戶，數量有限售完為止。`,
+      `主打${primaryCat}系列，整檔活動享優惠折扣，是入手好物的最佳時機。`,
+      `嚴選${primaryCat}熱賣品項，下殺特惠價，把握機會搶購！`,
+      `${primaryCat}愛好者必看！精選商品全面優惠，活動期間下單最划算。`,
+    ]
+    const generatedDescription: string = descTemplates[Math.floor(Math.random() * descTemplates.length)]!
+
+    // 6. 時間：1 小時後開始，30 天後結束
+    const now = new Date()
+    const startDate = new Date(now.getTime() + 60 * 60 * 1000)
+    const endDate = new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000)
+
+    // 7. 隨機選 2-5 個同分類商品帶入
+    const sameCat = onShelfProducts.filter(p => (p.categoryName || '其他') === primaryCat)
+    const candidates = sameCat.length >= 2 ? sameCat : onShelfProducts
+    const shuffled = [...candidates].sort(() => Math.random() - 0.5)
+    const pickCount = Math.min(Math.floor(Math.random() * 4) + 2, shuffled.length)
+    const picked = shuffled.slice(0, pickCount)
+
+    // 8. 填入表單
+    formData.value.name = generatedName
+    formData.value.description = generatedDescription
+    formData.value.promotionType = cfg.type
+    formData.value.discountValue = cfg.discount
+    formData.value.minimumAmount = cfg.minAmount ?? null
+    formData.value.limitQuantity = cfg.quantity ?? null
+    formData.value.startTime = getFormattedDate(startDate)
+    formData.value.endTime = getFormattedDate(endDate)
+
+    // 9. 帶入商品（轉成 PromotionProduct 格式）
+    selectedProducts.value = picked.map(p => ({
+      productId: p.id,
+      productName: p.name,
+      imageUrl: p.mainImageUrl,
+      minPrice: p.minPrice,
+      originalPrice: p.minPrice ?? 0,
+      discountPrice: null,
+    }))
+
+    const typeLabel = promotionTypeOptions.find(o => o.value === cfg.type)?.label ?? ''
+    ElMessage.success(
+      `已填入「${generatedName}」（${typeLabel}，主要分類：${primaryCat}，帶入 ${pickCount} 個商品）`
+    )
+  } catch (err: any) {
+    console.error('生成測試活動失敗:', err)
+    ElMessage.error('生成測試資料失敗：' + (err.message || '請稍後再試'))
+  } finally {
+    demoLoading.value = false
+  }
+}
+
+
 
 function openCreateDialog(): void {
   isEdit.value = false
