@@ -9,5 +9,7 @@ namespace ISpanShop.Repositories.Members
         Task CreateAsync(User user);
         Task<User?> GetByIdAsync(int userId);
         Task<bool> UpdatePasswordHashAsync(int userId, string newHash);
+        Task<User?> FindByProviderAsync(string provider, string providerId);
+        Task<User?> FindByEmailAsync(string email);
     }
 }

@@ -1,9 +1,42 @@
 import request from './request'
-import type { ApiPromotionsResponse } from '@/types/promotion'
+import type { ApiPromotionsResponse, Promotion } from '@/types/promotion'
 
-export async function fetchActivePromotions(): Promise<ApiPromotionsResponse> {
-  const response = await request.get<ApiPromotionsResponse>('/api/promotions/active')
+export async function fetchActivePromotions(limit = 10): Promise<ApiPromotionsResponse> {
+  const response = await request.get<ApiPromotionsResponse>('/api/promotions/active', { params: { limit } })
   return response.data
+}
+
+export async function fetchPromotionById(id: number): Promise<{ success: boolean; data: Promotion }> {
+  const response = await request.get(`/api/promotions/${id}`)
+  return response.data as { success: boolean; data: Promotion }
+}
+
+export interface PromotionProductItem {
+  productId: number
+  productName: string
+  imageUrl: string | null
+  originalPrice: number
+  discountPrice: number | null
+  discountPercent: number | null
+  soldCount: number
+  quantityLimit: number | null
+  stockLimit: number | null
+}
+
+export interface PromotionProductsResult {
+  items: PromotionProductItem[]
+  totalCount: number
+  page: number
+  pageSize: number
+  totalPages: number
+}
+
+export async function fetchPublicPromotionProducts(
+  id: number,
+  params: { page?: number; pageSize?: number; sortBy?: string; priceOrder?: string } = {},
+): Promise<{ success: boolean; data: PromotionProductsResult }> {
+  const response = await request.get(`/api/promotions/${id}/products`, { params })
+  return response.data as { success: boolean; data: PromotionProductsResult }
 }
 
 // ─── 賣家促銷活動管理 ────────────────────────────────────────────

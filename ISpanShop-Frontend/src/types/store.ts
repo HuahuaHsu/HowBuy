@@ -60,6 +60,10 @@ export interface SellerOrder {
   orderNumber: string
   createdAt: string
   finalAmount: number
+  discountAmount?: number
+  levelDiscount?: number
+  pointDiscount?: number
+  promotionDiscount?: number
   status: number
   statusName: string
   buyerName: string
@@ -68,6 +72,8 @@ export interface SellerOrder {
   firstProductName: string
   firstProductImage: string
   totalItemCount: number
+  hasReview: boolean
+  hasReplied: boolean
 }
 
 export interface SellerOrderDetail {
@@ -95,9 +101,22 @@ export interface SellerOrderDetail {
   discountAmount: number
   levelDiscount?: number // 會員等級折抵
   pointDiscount: number
+  promotionDiscount?: number // 活動促銷折抵
   finalAmount: number
 
   items: SellerOrderItem[]
+  review: OrderReview | null
+}
+
+export interface OrderReview {
+  id: number
+  userId: number
+  orderId: number
+  rating: number
+  comment: string
+  storeReply: string | null
+  createdAt: string
+  imageUrls: string[]
 }
 
 export interface SellerOrderItem {
@@ -144,6 +163,7 @@ export interface SellerReturnDetail {
   levelDiscount: number | null
   discountAmount: number | null
   pointDiscount: number | null
+  promotionDiscount?: number | null // 活動促銷折抵
   finalAmount: number
 
   items: SellerOrderItem[]

@@ -311,6 +311,9 @@ function buildQuery(
     page: number
   }> = {},
 ): Record<string, string> {
+  // 🌟 核心修正：以當前 route.query 為基底，確保 promoText 等參數不遺失
+  const q: Record<string, string> = { ...route.query } as Record<string, string>
+
   const merged = {
     keyword:    overrides.keyword    !== undefined ? overrides.keyword    : keyword.value,
     categoryId: overrides.categoryId !== undefined ? overrides.categoryId : selectedCategoryId.value,
@@ -319,13 +322,26 @@ function buildQuery(
     sortBy:     overrides.sortBy     !== undefined ? overrides.sortBy     : sortBy.value,
     page:       overrides.page       !== undefined ? overrides.page       : currentPage.value,
   }
-  const q: Record<string, string> = {}
+
+  // 覆蓋/更新篩選條件
   if (merged.keyword)                     q['keyword']    = merged.keyword
+  else                                    delete q['keyword']
+
   if (merged.categoryId !== null)         q['categoryId'] = String(merged.categoryId)
+  else                                    delete q['categoryId']
+
   if (merged.minPrice !== undefined)      q['minPrice']   = String(merged.minPrice)
+  else                                    delete q['minPrice']
+
   if (merged.maxPrice !== undefined)      q['maxPrice']   = String(merged.maxPrice)
+  else                                    delete q['maxPrice']
+
   if (merged.sortBy !== 'latest')         q['sortBy']     = merged.sortBy
+  else                                    delete q['sortBy']
+
   if (merged.page > 1)                    q['page']       = String(merged.page)
+  else                                    delete q['page']
+
   return q
 }
 

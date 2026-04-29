@@ -35,6 +35,8 @@ public partial class Promotion
 
     public bool IsDeleted { get; set; }
 
+    public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
+
     public virtual ICollection<PromotionItem> PromotionItems { get; set; } = new List<PromotionItem>();
 
     public virtual ICollection<PromotionRule> PromotionRules { get; set; } = new List<PromotionRule>();

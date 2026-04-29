@@ -33,5 +33,7 @@ public partial class OrderDetail
 
     public virtual Product Product { get; set; }
 
+    public virtual ICollection<ReturnRequestItem> ReturnRequestItems { get; set; } = new List<ReturnRequestItem>();
+
     public virtual ProductVariant Variant { get; set; }
 }

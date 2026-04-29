@@ -5,6 +5,8 @@ export interface OrderListItem {
   finalAmount: number;
   discountAmount?: number;
   levelDiscount?: number;
+  pointDiscount?: number;
+  promotionDiscount?: number;
   status: number;
   statusName: string;
   storeName: string;
@@ -25,6 +27,7 @@ export interface OrderItem {
   coverImage: string;
   price: number;
   quantity: number;
+  promotionTags?: string[];
 }
 
 export interface OrderDetail {
@@ -40,9 +43,12 @@ export interface OrderDetail {
   levelDiscount: number | null;
   couponId: number | null;
   couponTitle: string | null;
+  promotionDiscount?: number | null;
   finalAmount: number;
   status: number;
   statusName: string;
+  storeId: number;
+  sellerId: number;
   storeName: string;
   recipientName: string;
   recipientPhone: string;
@@ -50,4 +56,24 @@ export interface OrderDetail {
   note: string;
   items: OrderItem[];
   isReviewed: boolean;
+  returnInfo?: ReturnDetail;
+}
+
+export interface ReturnDetail {
+  reasonCategory: string;
+  reasonDescription: string;
+  refundAmount: number;
+  status: number;
+  createdAt: string;
+  imageUrls: string[];
+  items: ReturnItem[];
+}
+
+export interface ReturnItem {
+  productName: string;
+  variantName: string;
+  coverImage: string;
+  price: number;
+  returnQuantity: number;
+  promotionTags?: string[];
 }

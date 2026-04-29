@@ -46,7 +46,7 @@
       <div class="items-card">
         <div class="store-header">
           <span class="store-name">{{ order?.storeName }}</span>
-          <el-button size="small">查看賣場</el-button>
+          <el-button size="small" @click="goToStore">查看賣場</el-button>
         </div>
         
         <div v-for="item in order?.items" :key="item.id" class="order-item">
@@ -54,6 +54,7 @@
             <el-image :src="item.coverImage || '/placeholder.png'" class="item-image" fit="cover" />
             <div class="item-info">
               <h4 class="item-name">{{ item.productName }}</h4>
+              <PromotionTags :tags="item.promotionTags" />
               <div class="item-variant">{{ item.variantName }}</div>
               <div class="item-qty">x{{ item.quantity }}</div>
             </div>
@@ -72,6 +73,7 @@
           :discount-amount="order.discountAmount"
           :coupon-title="order.couponTitle"
           :level-discount="order.levelDiscount"
+          :promotion-discount="order.promotionDiscount"
           :final-amount="order.finalAmount"
         />
       </div>
@@ -101,6 +103,7 @@ import { ElMessage } from 'element-plus';
 import OrderSteps from '@/components/order/OrderSteps.vue';
 import OrderActionButtons from '@/components/order/OrderActionButtons.vue';
 import OrderSummary from '@/components/order/OrderSummary.vue';
+import PromotionTags from '@/components/common/PromotionTags.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -125,6 +128,14 @@ const fetchOrderDetail = async () => {
 
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat('zh-TW').format(price);
+};
+
+const goToStore = () => {
+  if (order.value?.storeId) {
+    router.push(`/store/${order.value.storeId}`);
+  } else {
+    ElMessage.warning('無法取得賣場資訊');
+  }
 };
 
 onMounted(() => {

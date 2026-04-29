@@ -17,5 +17,8 @@ namespace ISpanShop.Services
 
         // 切換評論的隱藏狀態 (Soft Delete)
         Task ToggleHiddenStatusAsync(int id);
+
+        // [新增] 一鍵生成測試評論 (指定商品)
+        Task GenerateMockReviewsAsync(int productId, int count);
     }
 }

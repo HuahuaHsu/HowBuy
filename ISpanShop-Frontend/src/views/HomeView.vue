@@ -7,43 +7,106 @@
         <div class="main-carousel">
           <el-carousel height="320px" arrow="always">
             <el-carousel-item v-for="promo in promotions" :key="promo.id">
-              <div
-                class="carousel-slide promo-slide"
-                :style="promo.bannerImageUrl
-                  ? { backgroundImage: `url(${promo.bannerImageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-                  : { background: 'linear-gradient(135deg, #1e293b 0%, #1e1b4b 100%)' }"
-                @click="goToActivity(promo)"
-              >
+              <div class="carousel-slide promo-slide" :style="getSlideBackground(promo)" @click="goToActivity(promo)">
+                <!-- 模糊底圖（有商品圖時才渲染） -->
+                <img
+                  v-if="getBannerImage(promo)"
+                  :src="getBannerImage(promo)"
+                  class="slide-bg-blur"
+                  aria-hidden="true"
+                />
+                <!-- 漸層遮罩：保證文字可讀 -->
+                <div class="slide-overlay"></div>
+                <!-- 左側文字區 -->
                 <div class="slide-content">
-                  <div class="slide-tag">{{ promo.typeLabel }}</div>
-                  <h2>{{ promo.title }}</h2>
-                  <p v-if="promo.subtitle">{{ promo.subtitle }}</p>
-                  <el-button type="primary" round size="large" @click.stop="goToActivity(promo)">立即搶購</el-button>
+                  <div class="slide-header">
+                    <span class="slide-tag" :class="promo.type">{{ promo.typeLabel }}</span>
+                    <template v-if="countdowns[promo.id]">
+                      <div v-if="!countdowns[promo.id]!.expired" class="slide-countdown-inline">
+                        <template v-if="countdowns[promo.id]!.days > 0">
+                          <span class="cd-num">{{ countdowns[promo.id]!.days }}</span>
+                          <span class="cd-label">天</span>
+                        </template>
+                        <span class="cd-num">{{ countdowns[promo.id]!.hours }}</span>
+                        <span class="cd-sep">:</span>
+                        <span class="cd-num">{{ countdowns[promo.id]!.minutes }}</span>
+                        <span class="cd-sep">:</span>
+                        <span class="cd-num">{{ countdowns[promo.id]!.seconds }}</span>
+                      </div>
+                      <span v-else class="slide-countdown-inline expired">已結束</span>
+                    </template>
+                  </div>
+                  <h2 class="slide-title">{{ promo.title }}</h2>
+                  <p v-if="promo.subtitle" class="slide-desc">{{ promo.subtitle }}</p>
+                  <el-button type="danger" round size="large" @click.stop="goToActivity(promo)">立即搶購</el-button>
                 </div>
-                <div v-if="!promo.bannerImageUrl" class="slide-emoji">🎉</div>
+                <!-- 右側商品圖拼貼（最多 3 張） -->
+                <div v-if="promo.productImages && promo.productImages.length > 0" class="slide-products">
+                  <div
+                    v-for="(img, i) in promo.productImages.slice(0, 3)"
+                    :key="i"
+                    class="slide-product-card"
+                  >
+                    <img :src="formatImageUrl(img)" alt="" />
+                  </div>
+                </div>
+                <!-- 沒有多張商品圖時，顯示單張主圖靠右 -->
+                <img
+                  v-else-if="getBannerImage(promo)"
+                  :src="getBannerImage(promo)"
+                  class="slide-main-img"
+                />
               </div>
             </el-carousel-item>
           </el-carousel>
         </div>
-        <div class="side-banners">
+        <div class="side-banners-grid" style="display: grid; grid-template-rows: repeat(2, 1fr); gap: 16px; height: 320px;">
+          <!-- 真實活動副版塊 (第 2, 3 筆) -->
           <div
-            v-for="promo in promotions.slice(1, 3)"
+            v-for="promo in sideBanners"
             :key="promo.id"
-            class="side-banner"
-            :style="promo.bannerImageUrl
-              ? { backgroundImage: `url(${promo.bannerImageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-              : { background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)' }"
+            class="side-banner-dynamic"
+            :style="!getBannerImage(promo) ? { background: typeGradients[promo.type] ?? typeGradients['other'] } : {}"
             @click="goToActivity(promo)"
           >
-            <div class="sb-tag">{{ promo.typeLabel }}</div>
-            <h3>{{ promo.title }}</h3>
-            <p v-if="promo.subtitle">{{ promo.subtitle }}</p>
-            <span v-if="!promo.bannerImageUrl" class="sb-emoji">🎁</span>
+            <!-- 背景圖（有圖才渲染，破圖防呆） -->
+            <img
+              v-if="getBannerImage(promo)"
+              :src="getBannerImage(promo)"
+              alt=""
+              class="sb-bg-img"
+              @error="(e: any) => (e.target as HTMLImageElement).style.display = 'none'"
+            />
+            <!-- 漸層遮罩 -->
+            <div class="sb-overlay"></div>
+            <!-- 文字內容 -->
+            <div class="sb-content">
+              <div class="sb-header">
+                <span class="sb-tag" :class="promo.type">{{ promo.typeLabel }}</span>
+              </div>
+              <h3 class="sb-title">{{ promo.title }}</h3>
+              <p v-if="promo.subtitle" class="sb-subtitle">{{ promo.subtitle }}</p>
+              <div v-if="countdowns[promo.id] && !countdowns[promo.id]!.expired" class="sb-countdown-bar">
+                <span class="sb-cd-icon">⏱</span>
+                <template v-if="countdowns[promo.id]!.days > 0">
+                  <span class="cd-num-sm">{{ countdowns[promo.id]!.days }}</span>
+                  <span class="cd-label-sm">天</span>
+                </template>
+                <span class="cd-num-sm">{{ countdowns[promo.id]!.hours }}</span>
+                <span class="cd-sep-sm">:</span>
+                <span class="cd-num-sm">{{ countdowns[promo.id]!.minutes }}</span>
+                <span class="cd-sep-sm">:</span>
+                <span class="cd-num-sm">{{ countdowns[promo.id]!.seconds }}</span>
+              </div>
+            </div>
           </div>
+
+          <!-- 補位用 (若資料不足 3 筆時顯示) -->
           <div
-            v-for="n in Math.max(0, 2 - (promotions.length - 1))"
+            v-for="n in Math.max(0, 2 - sideBanners.length)"
             :key="`placeholder-${n}`"
             class="side-banner side-banner-empty"
+            style="border-radius: 12px; background: #1e293b; opacity: 0.3;"
           />
         </div>
       </template>
@@ -53,14 +116,17 @@
         <div class="main-carousel">
           <el-carousel height="320px" arrow="always">
             <el-carousel-item v-for="(banner, i) in staticBanners" :key="i">
-              <div class="carousel-slide" :style="{ background: banner.bg }" @click="goToActivity(banner)">
+              <div class="carousel-slide" :style="getSlideBackground(banner)" @click="goToActivity(banner)">
+                <!-- 漸層遮罩 -->
+                <div class="slide-overlay"></div>
+                <!-- 文字與按鈕 -->
                 <div class="slide-content">
-                  <div class="slide-tag">{{ banner.tag }}</div>
-                  <h2>{{ banner.title }}</h2>
-                  <p>{{ banner.subtitle }}</p>
-                  <el-button type="primary" round size="large" @click.stop="goToActivity(banner)">立即搶購</el-button>
+                  <span class="slide-tag">{{ banner.tag }}</span>
+                  <h2 class="slide-title">{{ banner.title }}</h2>
+                  <p class="slide-desc">{{ banner.subtitle }}</p>
+                  <el-button type="danger" round size="large" @click.stop="goToActivity(banner)">立即搶購</el-button>
                 </div>
-                <div class="slide-emoji">{{ banner.emoji }}</div>
+                <span class="slide-static-emoji">{{ banner.emoji }}</span>
               </div>
             </el-carousel-item>
           </el-carousel>
@@ -206,7 +272,7 @@
                 :class="{ active: sortBy === s.value }"
                 @click="setSort(s.value as SortBy)"
               >{{ s.label }}</button>
-              
+
               <!-- 價格下拉選單 -->
               <el-dropdown trigger="click" @command="handleSortCommand">
                 <button
@@ -349,35 +415,85 @@ const drawerOpen = ref<boolean>(false)
 // ── 活動/輪播 ────────────────────────────────────────────────────
 const promotions = ref<Promotion[]>([])
 
+/** 側邊小 Banner 資料：拿取第 2、3 筆活動 */
+const sideBanners = computed(() => {
+  if (promotions.value.length <= 1) return []
+  return promotions.value.slice(1, 3)
+})
+
+// ── 倒數計時 ──────────────────────────────────────────────────────
+interface CountdownValue {
+  expired: boolean
+  days: number
+  hours: string
+  minutes: string
+  seconds: string
+}
+
+const countdowns = ref<Record<number, CountdownValue>>({})
+let countdownTimer: ReturnType<typeof setInterval> | null = null
+
+const updateCountdowns = (): void => {
+  const now = new Date().getTime()
+  const result: Record<number, CountdownValue> = {}
+  const pad = (n: number): string => String(n).padStart(2, '0')
+  for (const item of promotions.value) {
+    const end = new Date(item.endDate).getTime()
+    const diff = end - now
+    if (diff <= 0) {
+      result[item.id] = { expired: true, days: 0, hours: '00', minutes: '00', seconds: '00' }
+      continue
+    }
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000)
+    result[item.id] = { expired: false, days, hours: pad(hours), minutes: pad(minutes), seconds: pad(seconds) }
+  }
+  countdowns.value = result
+}
+
+const startCountdown = (): void => {
+  if (countdownTimer) clearInterval(countdownTimer)
+  console.log('[倒數] 活動數量:', promotions.value.length, '活動 IDs:', promotions.value.map(p => p.id))
+  updateCountdowns()
+  countdownTimer = setInterval(updateCountdowns, 1000)
+}
+
 // ── API 呼叫 ─────────────────────────────────────────────────────
 
-/** 處理活動跳轉：通用傳遞版，確保所有 Banner 點擊後都有活動橫幅 */
 function goToActivity(banner: any): void {
   if (!banner) return
+  const target = (banner.linkUrl as string | undefined) || `/promotion/${banner.id as number}`
+  void router.push(target)
+}
 
-  const title = banner.title || ''
-  const queryParams: any = {}
+const API_BASE = (import.meta.env['VITE_API_BASE_URL'] as string) || 'https://localhost:7125'
 
-  // 🌟 核心規則：只要有標題，一律帶過去作為活動橫幅
-  if (title) {
-    queryParams.promoText = title
-  }
+function formatImageUrl(url: string | null | undefined): string {
+  if (!url) return ''
+  if (url.startsWith('http')) return url
+  return API_BASE + url
+}
 
-  // 🔽 自訂搜尋對照表
-  if (banner.id === 1 || title.includes('腳架')) {
-    queryParams.keyword = '腳架'
-  } else if (title.includes('3C') || title.includes('筆電')) {
-    queryParams.categoryId = '1'
-  } else if (title.includes('春夏') || title.includes('穿搭')) {
-    queryParams.categoryId = '3'
-  } else if (title.includes('氣泡水')) {
-    queryParams.keyword = '氣泡水'
-  } else if (title.includes('123123')) {
-    queryParams.keyword = '123123'
-  }
+const typeGradients: Record<string, string> = {
+  flashSale:  'linear-gradient(135deg, #ff6b35 0%, #f7c948 100%)',
+  discount:   'linear-gradient(135deg, #ee4d2d 0%, #ff7849 100%)',
+  limitedBuy: 'linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)',
+  other:      'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+}
 
-  // 統一跳轉
-  void router.push({ path: '/products', query: queryParams })
+function getBannerImage(banner: any): string {
+  if (!banner) return ''
+  if (banner.bannerImageUrl) return formatImageUrl(banner.bannerImageUrl as string)
+  if ((banner.productImages as string[] | undefined)?.length) return formatImageUrl(banner.productImages[0] as string)
+  return ''
+}
+
+function getSlideBackground(banner: any): Record<string, string> {
+  if (getBannerImage(banner)) return {}
+  if (banner.bg as string | undefined) return { background: banner.bg as string }
+  return { background: typeGradients[banner.type as string] ?? typeGradients['other'] ?? '#1a1a2e' }
 }
 
 async function loadProducts(): Promise<void> {
@@ -465,7 +581,12 @@ async function loadBrands(params: { categoryId: number } | { subCategoryId: numb
 async function loadPromotions(): Promise<void> {
   try {
     const res = await fetchActivePromotions()
-    if (res.success) promotions.value = res.data
+    console.log('[首頁活動] API 回傳數量:', res.data?.length ?? 0)
+    console.log('[首頁活動] 活動標題:', res.data?.map(p => `[${p.id}] ${p.title}`))
+    if (res.success) {
+      promotions.value = res.data
+      startCountdown()
+    }
   } catch {
     // 靜默失敗，fallback 到靜態內容
   }
@@ -599,6 +720,10 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
+  if (countdownTimer) {
+    clearInterval(countdownTimer)
+    countdownTimer = null
+  }
 })
 
 // 若已在首頁時 query 改變（例如連點麵包屑不同分類），重新套用篩選
@@ -655,60 +780,193 @@ const quickItems = [
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
+
+/* 每個 slide */
 .carousel-slide {
-  height: 100%;
+  position: relative;
+  height: 320px;
+  overflow: hidden;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 60px;
-  color: white;
-  position: relative;
+  background-color: #1a1b2e;
+  cursor: pointer;
 }
-.promo-slide { cursor: pointer; }
-.slide-content { z-index: 1; }
+
+/* 模糊底圖 */
+.slide-bg-blur {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(20px) brightness(0.4);
+  transform: scale(1.1);
+  z-index: 0;
+}
+
+/* 漸層遮罩：左深右透，保障文字可讀 */
+.slide-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.2) 50%, transparent 100%);
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* 左側文字區 */
+.slide-content {
+  position: relative;
+  z-index: 10;
+  padding: 40px 40px 40px 60px;
+  max-width: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  color: white;
+}
+
+/* 活動類型標籤 */
 .slide-tag {
   display: inline-block;
-  background: rgba(238,77,45,0.2);
-  color: #EE4D2D;
-  padding: 6px 16px;
-  border-radius: 20px;
+  padding: 4px 14px;
+  border-radius: 4px;
   font-size: 13px;
-  margin-bottom: 16px;
-  border: 1px solid rgba(238,77,45,0.3);
+  font-weight: 600;
+  margin-bottom: 12px;
+  background: rgba(238,77,45,0.85);
 }
-.carousel-slide h2 { font-size: 42px; margin: 0 0 10px; font-weight: 800; }
-.carousel-slide p { font-size: 18px; opacity: 0.85; margin-bottom: 24px; }
-.slide-emoji {
-  font-size: 180px;
-  filter: drop-shadow(0 10px 30px rgba(238,77,45,0.3));
+.slide-tag.flashSale  { background: #ff6b35; }
+.slide-tag.discount   { background: #ee4d2d; }
+.slide-tag.limitedBuy { background: #7c3aed; }
+.slide-tag.other      { background: #555; }
+
+.slide-title {
+  font-size: 30px;
+  font-weight: 700;
+  margin: 0 0 12px;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  line-height: 1.3;
 }
-.side-banners { display: flex; flex-direction: column; gap: 16px; }
-.side-banner {
-  flex: 1;
+.slide-desc {
+  font-size: 15px;
+  opacity: 0.9;
+  margin-bottom: 20px;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  line-height: 1.6;
+}
+
+/* 右側商品圖拼貼 */
+.slide-products {
+  position: absolute;
+  right: 40px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  gap: 12px;
+  z-index: 5;
+}
+.slide-product-card {
+  width: 130px;
+  height: 130px;
   border-radius: 12px;
-  padding: 20px 24px;
-  color: white;
-  position: relative;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-  cursor: pointer;
+  background: #fff;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  flex-shrink: 0;
   transition: transform 0.3s;
 }
-.side-banner:hover { transform: translateY(-3px); }
-.side-banner-empty { background: #1e293b; opacity: 0.3; cursor: default; }
-.side-banner-empty:hover { transform: none; }
+.slide-product-card:hover { transform: translateY(-4px) scale(1.02); }
+.slide-product-card img { width: 100%; height: 100%; object-fit: cover; }
+
+/* 單張主圖（無多張商品圖時） */
+.slide-main-img {
+  position: absolute;
+  right: 60px;
+  top: 50%;
+  transform: translateY(-50%);
+  max-height: 240px;
+  max-width: 280px;
+  object-fit: contain;
+  z-index: 5;
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3));
+}
+
+/* 靜態 fallback 用 emoji */
+.slide-static-emoji {
+  position: absolute;
+  right: 60px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 140px;
+  opacity: 0.25;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* 右側小 Banner */
+.side-banner-dynamic {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  transition: transform 0.3s;
+}
+.side-banner-dynamic:hover { transform: translateY(-3px); }
+
+.sb-bg-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+.sb-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to right, rgba(26,27,46,0.9) 0%, rgba(26,27,46,0.3) 100%);
+  z-index: 1;
+}
+.sb-content {
+  position: relative;
+  z-index: 2;
+  padding: 16px 20px;
+  color: white;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+}
 .sb-tag {
   display: inline-block;
-  background: #EE4D2D;
-  color: white;
   padding: 3px 10px;
   border-radius: 4px;
   font-size: 11px;
+  font-weight: 600;
   margin-bottom: 8px;
+  background: rgba(238,77,45,0.85);
 }
-.side-banner h3 { margin: 0 0 6px; font-size: 18px; }
-.side-banner p { margin: 0; font-size: 13px; opacity: 0.85; }
-.sb-emoji { position: absolute; right: 16px; bottom: 10px; font-size: 70px; opacity: 0.7; }
+.sb-tag.flashSale  { background: #ff6b35; }
+.sb-tag.discount   { background: #ee4d2d; }
+.sb-tag.limitedBuy { background: #7c3aed; }
+.sb-tag.other      { background: #555; }
+.sb-title {
+  margin: 0 0 4px;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+.sb-subtitle {
+  margin: 0;
+  font-size: 13px;
+  opacity: 0.85;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 
 /* ── 快捷服務 ── */
 .quick-icons {
@@ -936,6 +1194,98 @@ const quickItems = [
 .skeleton-card { border-radius: 4px; overflow: hidden; border: 1px solid #f1f5f9; }
 .skeleton-image { width: 100%; aspect-ratio: 1 / 1; }
 .skeleton-body { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 8px; }
+
+/* ── 倒數計時 ── */
+.slide-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.slide-countdown-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+.slide-countdown-inline .cd-num {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  min-width: 24px;
+  text-align: center;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+.slide-countdown-inline .cd-sep {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+  font-weight: 700;
+  margin: 0;
+}
+.slide-countdown-inline .cd-label {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 11px;
+  margin: 0 3px 0 1px;
+}
+.slide-countdown-inline.expired {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 4px 12px;
+  border-radius: 20px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+}
+.sb-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.sb-countdown-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 10px;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 4px 10px;
+  border-radius: 14px;
+}
+.sb-cd-icon {
+  font-size: 11px;
+  margin-right: 4px;
+  opacity: 0.8;
+}
+.sb-countdown-bar .cd-num-sm {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 20px;
+  text-align: center;
+  padding: 1px 3px;
+  border-radius: 3px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+.sb-countdown-bar .cd-sep-sm {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 10px;
+  font-weight: 700;
+}
+.sb-countdown-bar .cd-label-sm {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 10px;
+  margin: 0 2px 0 1px;
+}
 
 /* 輪播圓點 */
 :deep(.el-carousel__indicator--horizontal .el-carousel__button) {

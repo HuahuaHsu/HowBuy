@@ -23,8 +23,6 @@ public partial class Order
 
     public decimal? DiscountAmount { get; set; }
 
-    public decimal? LevelDiscount { get; set; }
-
     public decimal FinalAmount { get; set; }
 
     public byte? Status { get; set; }
@@ -45,7 +43,15 @@ public partial class Order
 
     public int? CouponId { get; set; }
 
+    public decimal? LevelDiscount { get; set; }
+
+    public decimal? PromotionDiscount { get; set; }
+
+    public int? PromotionId { get; set; }
+
     public virtual Coupon Coupon { get; set; }
+
+    public virtual Promotion Promotion { get; set; }
 
     public virtual ICollection<MemberCoupon> MemberCoupons { get; set; } = new List<MemberCoupon>();
 

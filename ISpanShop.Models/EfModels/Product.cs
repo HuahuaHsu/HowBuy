@@ -55,6 +55,8 @@ public partial class Product
 
     public DateTime? ReApplyDate { get; set; }
 
+    public string AttributesJson { get; set; }
+
     public virtual Brand Brand { get; set; }
 
     public virtual ICollection<CartItem> CartItems { get; set; } = new List<CartItem>();

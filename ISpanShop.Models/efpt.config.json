@@ -151,6 +151,10 @@
          "ObjectType": 0
       },
       {
+         "Name": "[dbo].[ReturnRequestItems]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[dbo].[ReturnRequests]",
          "ObjectType": 0
       },

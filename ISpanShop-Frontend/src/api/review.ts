@@ -14,3 +14,11 @@ export async function fetchProductReviews(productId: number): Promise<any[]> {
   const response = await axios.get<any[]>(`/api/front/orders/product/${productId}`)
   return response.data
 }
+
+/**
+ * 一鍵生成測試評論 (指定商品)
+ */
+export async function generateMockReviews(productId: number, count = 5): Promise<any> {
+  const response = await axios.post(`/api/front/orders/product/${productId}/mock?count=${count}`)
+  return response.data
+}

@@ -59,13 +59,30 @@ const goToForgotPassword = () => {
   authStore.closeLoginDialog();
   router.push('/forgot-password');
 };
+
+const handleGoogleLogin = () => {
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  const redirectUri = `${window.location.origin}/auth/callback`;
+
+  if (!clientId || clientId.includes('YOUR_')) {
+    ElMessage.error('Google Client ID 未設定或無效，請檢查 .env 檔案');
+    return;
+  }
+  
+  const scope = encodeURIComponent('openid email profile');
+  const responseType = 'code';
+  
+  const googleUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=${responseType}&scope=${scope}&access_type=offline&prompt=select_account`;
+  
+  window.location.href = googleUrl;
+};
 </script>
 
 <template>
   <el-dialog
     v-model="authStore.isLoginDialogOpen"
     title="會員登入"
-    width="400px"
+    width="500px"
     center
     append-to-body
     destroy-on-close
@@ -111,6 +128,21 @@ const goToForgotPassword = () => {
           @click="handleLogin"
         >
           登入
+        </el-button>
+      </div>
+
+      <div class="divider">
+        <span>或者使用以下方式登入</span>
+      </div>
+
+      <div class="oauth-actions">
+        <el-button class="oauth-btn google" size="large" @click="handleGoogleLogin">
+          <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" alt="Google" width="20" />
+          Google 登入
+        </el-button>
+        <el-button class="oauth-btn facebook" size="large">
+          <img src="https://upload.wikimedia.org/wikipedia/commons/b/b8/2021_Facebook_icon.svg" alt="Facebook" width="20" />
+          Facebook 登入
         </el-button>
       </div>
 
@@ -160,6 +192,68 @@ const goToForgotPassword = () => {
 
 .login-action {
   margin-top: 10px;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  margin: 25px 0;
+  color: #999;
+  font-size: 13px;
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: #eee;
+}
+
+.divider span {
+  margin: 0 15px;
+}
+
+.oauth-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.oauth-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  margin-left: 0 !important;
+  border: 1px solid #ddd;
+  transition: all 0.3s;
+}
+
+.oauth-btn:hover {
+  background-color: #f8f9fa;
+  border-color: #ccc;
+}
+
+.oauth-btn img {
+  margin-right: 5px;
+}
+
+.google {
+  color: #444;
+}
+
+.facebook {
+  background-color: #1877f2;
+  color: white;
+  border: none;
+}
+
+.facebook:hover {
+  background-color: #166fe5;
+  color: white;
 }
 
 .helper-actions {

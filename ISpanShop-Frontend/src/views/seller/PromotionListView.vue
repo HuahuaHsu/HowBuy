@@ -187,7 +187,7 @@
             />
           </el-select>
         </el-form-item>
-        
+
         <!-- 滿額折扣：顯示滿額門檻 + 折扣金額 -->
         <div v-if="formData.promotionType === 2">
           <el-form-item label="滿額門檻" prop="minimumAmount">
@@ -216,7 +216,7 @@
             <span class="form-hint">例如：100 代表滿額折 100 元</span>
           </el-form-item>
         </div>
-        
+
         <!-- 限時特賣：顯示折扣比例 -->
         <div v-else-if="formData.promotionType === 1">
           <el-form-item label="折扣(%off)" prop="discountValue">
@@ -233,7 +233,7 @@
             <span class="form-hint">例如：20 代表打 8 折（20% off）</span>
           </el-form-item>
         </div>
-        
+
         <!-- 限量搶購：顯示限量數量 + 折扣金額 -->
         <div v-else-if="formData.promotionType === 3">
           <el-form-item label="限量數量" prop="limitQuantity">
@@ -262,7 +262,7 @@
             <span class="form-hint">例如：100 代表每件折 100 元</span>
           </el-form-item>
         </div>
-        
+
         <!-- 新品優惠或其他類型：只顯示折扣金額 -->
         <div v-else-if="formData.promotionType === 4 || formData.promotionType > 0">
           <el-form-item label="折扣金額" prop="discountValue">
@@ -478,7 +478,7 @@ const activeTab = ref('all')
 // 用 computed 篩選活動
 const filteredPromotions = computed(() => {
   if (activeTab.value === 'all') return allPromotions.value
-  
+
   const statusMap: Record<string, string> = {
     pending: '待審核',
     active: '進行中',
@@ -488,7 +488,7 @@ const filteredPromotions = computed(() => {
   }
   const targetStatus = statusMap[activeTab.value]
   if (!targetStatus) return allPromotions.value
-  
+
   return allPromotions.value.filter(p => p.statusText === targetStatus)
 })
 
@@ -592,7 +592,7 @@ const formRules: FormRules = {
   promotionType: [{ required: true, message: '請選擇活動類型', trigger: 'change' }],
   discountValue: [
     { required: true, message: '請輸入折扣值', trigger: 'blur' },
-    { 
+    {
       validator: (_rule, value, callback) => {
         if (formData.value.promotionType === 1 && (value < 1 || value > 99)) {
           callback(new Error('折扣比例需在 1-99 之間'))
@@ -604,7 +604,7 @@ const formRules: FormRules = {
     }
   ],
   minimumAmount: [
-    { 
+    {
       validator: (_rule, value, callback) => {
         if (formData.value.promotionType === 2 && (!value || value <= 0)) {
           callback(new Error('請輸入滿額門檻'))
@@ -616,7 +616,7 @@ const formRules: FormRules = {
     }
   ],
   limitQuantity: [
-    { 
+    {
       validator: (_rule, value, callback) => {
         if (formData.value.promotionType === 3 && (!value || value <= 0)) {
           callback(new Error('請輸入限量數量'))
@@ -663,7 +663,7 @@ async function loadPromotions(): Promise<void> {
       pageSize: 100,  // 取較大筆數，確保能取得所有活動
     }
     const res = await fetchSellerPromotions(params)
-    
+
     // API 回傳格式：axios response.data = { success, data: { items, totalCount, ... } }
     if (res.success) {
       allPromotions.value = res.data.items || []
@@ -744,10 +744,10 @@ async function openEditDialog(row: SellerPromotion): Promise<void> {
 
 async function handleSubmit(): Promise<void> {
   if (!formRef.value) return
-  
+
   await formRef.value.validate(async (valid) => {
     if (!valid) return
-    
+
     submitting.value = true
     try {
       // 準備送出的資料
@@ -761,16 +761,16 @@ async function handleSubmit(): Promise<void> {
         startTime: formData.value.startTime,
         endTime: formData.value.endTime,
       }
-      
+
       // 記錄要送出的資料，方便 debug
       console.log('準備送出活動資料:', submitData)
-      
+
       // TODO: 如果後端 DTO 沒有 minimumAmount 和 limitQuantity 欄位
       // 暫時在 description 裡補充說明，例如：
       // if (formData.value.promotionType === 2 && formData.value.minimumAmount > 0) {
       //   submitData.description = `消費滿${formData.value.minimumAmount}折${formData.value.discountValue}\n${formData.value.description}`
       // }
-      
+
       if (isEdit.value && editingId.value !== null) {
         await updateSellerPromotion(editingId.value, submitData)
 
@@ -811,7 +811,7 @@ async function handleSubmit(): Promise<void> {
       console.error('提交活動失敗:', error)
       console.error('錯誤回應:', error.response?.data)
       console.error('Request payload:', formData.value)
-      
+
       if (error.response?.status === 400) {
         const errMsg = error.response?.data?.message || error.response?.data?.errors || '資料格式錯誤'
         ElMessage.error(`提交失敗：${JSON.stringify(errMsg)}`)
@@ -892,7 +892,7 @@ function handleSelectorClosed(): void {
   if (selectorTableRef.value) {
     selectorTableRef.value.clearSelection()
   }
-  
+
   // 2. 清空暫存與關鍵字，確保下次開啟是乾淨的
   pendingSelection.value = []
   selectorKeyword.value = ''
@@ -933,7 +933,7 @@ async function handleDelete(id: number): Promise<void> {
       cancelButtonText: '取消',
       type: 'warning',
     })
-    
+
     await deleteSellerPromotion(id)
     ElMessage.success('刪除成功')
     await loadPromotions()
@@ -1012,7 +1012,7 @@ const disabledDate = (time: Date) => {
   // 取得今天的日期，並將時分秒歸零，避免把「今天的此時此刻之前」也鎖死
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-  
+
   // 只要月曆上的時間小於今天凌晨 00:00，就禁用 (回傳 true)
   return time.getTime() < today.getTime()
 }

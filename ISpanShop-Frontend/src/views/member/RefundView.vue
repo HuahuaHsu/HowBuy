@@ -24,6 +24,7 @@
                 <el-image :src="item.coverImage" class="item-img" fit="cover" />
                 <div class="item-info">
                   <div class="name">{{ item.productName }}</div>
+                  <PromotionTags :tags="item.promotionTags" />
                   <div class="variant">{{ item.variantName }}</div>
                   <div class="price-qty">
                     <span class="price">${{ formatPrice(item.price) }}</span>
@@ -115,6 +116,7 @@ import { getOrderDetailApi, requestRefundApi, uploadImagesApi } from '@/api/orde
 import type { OrderDetail } from '@/types/order';
 import { ElMessage } from 'element-plus';
 import RefundSummary from '@/components/order/RefundSummary.vue';
+import PromotionTags from '@/components/common/PromotionTags.vue';
 
 const route = useRoute();
 const router = useRouter();

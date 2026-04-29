@@ -322,21 +322,6 @@
               </el-col>
             </el-row>
 
-            <!-- 最低購買數量 -->
-            <el-form-item prop="minPurchase">
-              <template #label>
-                <span class="required-label">* 最低購買數量</span>
-              </template>
-              <el-input-number
-                v-model="form.minPurchase"
-                :min="1"
-                :max="999"
-                controls-position="right"
-                style="width: 200px"
-              />
-              <div class="form-hint">最低購買數量是指買家一次至少購買的商品數量。請注意,若庫存少於最低購買數量,買家將無法下單購買。</div>
-            </el-form-item>
-
             <!-- 規格設定 -->
             <el-form-item>
               <template #label>
@@ -385,22 +370,6 @@
                       class="spec-option-row"
                     >
                       <span class="option-label">選項 {{ optIndex + 1 }}</span>
-                      <el-upload
-                        v-if="specIndex === 0"
-                        class="option-image-upload"
-                        :show-file-list="false"
-                        :auto-upload="false"
-                        accept="image/*"
-                        :on-change="(file: UploadFile) => handleOptionImageChange(specIndex, optIndex, file)"
-                      >
-                        <img
-                          v-if="option.imagePreview"
-                          :src="option.imagePreview"
-                          class="option-image-preview"
-                          :alt="option.name"
-                        />
-                        <el-icon v-else class="upload-icon"><Picture /></el-icon>
-                      </el-upload>
                       <el-input
                         v-model="option.name"
                         placeholder="輸入選項，例如：紅色"
@@ -564,7 +533,7 @@
             <!-- 價格 -->
             <div class="preview-price">
               <span class="price-symbol">NT$</span>
-              <span class="price-value">{{ formatPrice(form.price) }}</span>
+              <span class="price-value">{{ form.price }}</span>
             </div>
 
             <!-- 屬性 -->
@@ -681,8 +650,6 @@ const tabs = [
 
 interface SpecOption {
   name: string
-  image: File | null
-  imagePreview: string | null
 }
 
 interface Spec {
@@ -723,7 +690,6 @@ interface ProductForm {
   price: number
   stock: number
   specs: Spec[]
-  minPurchase: number
   isOnShelf: boolean
 }
 
@@ -803,10 +769,9 @@ const form = reactive<ProductForm>({
   specs: [
     {
       name: '',
-      options: [{ name: '', image: null, imagePreview: null }],
+      options: [{ name: '' }],
     },
   ],
-  minPurchase: 1,
   isOnShelf: true,
 })
 
@@ -817,10 +782,6 @@ const rules = computed<FormRules>(() => ({
     { max: 60, message: '商品名稱最多 60 個字', trigger: 'blur' },
   ],
   categoryId: [{ required: true, message: '請選擇分類', trigger: 'change' }],
-  minPurchase: [
-    { required: true, message: '請輸入最低購買數量', trigger: 'blur' },
-    { type: 'number', min: 1, message: '最低購買數量至少為 1', trigger: 'blur' },
-  ],
   ...(specsEnabled.value
     ? {}
     : {
@@ -1055,7 +1016,6 @@ async function loadProductData(): Promise<void> {
     form.description = product.description || ''
     form.categoryId = product.categoryId || null
     form.categoryPath = product.categoryName || ''
-    form.minPurchase = product.minPurchase || 1
     
     if (product.brandId) {
       form.attributes.brandId = product.brandId
@@ -1096,12 +1056,9 @@ async function loadProductData(): Promise<void> {
         if (Array.isArray(specsDef) && specsDef.length > 0) {
           reconstructedSpecs = specsDef.map((s: any) => ({
             name: s.name || '',
-            // 如果 specDefinitionJson 裡已經有 options，就直接用；否則初始化為空陣列
             options: Array.isArray(s.options) 
               ? s.options.map((opt: any) => ({
-                  name: typeof opt === 'string' ? opt : (opt.name || ''),
-                  image: null,
-                  imagePreview: null
+                  name: typeof opt === 'string' ? opt : (opt.name || '')
                 }))
               : []
           }))
@@ -1139,9 +1096,7 @@ async function loadProductData(): Promise<void> {
         reconstructedSpecs = specNamesOrder.map(name => ({
           name,
           options: Array.from(specOptionsMap.get(name) || []).map(optName => ({
-            name: optName,
-            image: null,
-            imagePreview: null
+            name: optName
           }))
         }))
         console.log('偵測到舊資料，已自動重建規格定義結構')
@@ -1387,33 +1342,11 @@ async function handleDescriptionImageFileChange(event: Event): Promise<void> {
   }
 }
 
-function handleOptionImageChange(specIndex: number, optIndex: number, file: UploadFile): void {
-  const raw = file.raw
-  if (!raw) return
-  const validTypes = ['image/jpeg', 'image/png', 'image/webp']
-  if (!validTypes.includes(raw.type)) {
-    ElMessage.error('只支援 JPG、PNG、WEBP 格式')
-    return
-  }
-  if (raw.size > 2 * 1024 * 1024) {
-    ElMessage.error('圖片大小不能超過 2MB')
-    return
-  }
-  const option = form.specs[specIndex]?.options[optIndex]
-  if (!option) return
-  option.image = raw
-  const reader = new FileReader()
-  reader.onload = (e) => {
-    option.imagePreview = e.target?.result as string ?? null
-  }
-  reader.readAsDataURL(raw)
-}
-
 function addSpec(): void {
   if (form.specs.length < 2) {
     form.specs.push({
       name: '',
-      options: [{ name: '', image: null, imagePreview: null }],
+      options: [{ name: '' }],
     })
   }
 }
@@ -1423,7 +1356,7 @@ function removeSpec(index: number): void {
 }
 
 function addSpecOption(specIndex: number): void {
-  form.specs[specIndex].options.push({ name: '', image: null, imagePreview: null })
+  form.specs[specIndex].options.push({ name: '' })
 }
 
 function removeSpecOption(specIndex: number, optionIndex: number): void {
@@ -1439,10 +1372,6 @@ function applyBatch(): void {
     if (batchSku.value) variant.sku = batchSku.value
   })
   ElMessage.success('批量套用成功')
-}
-
-function formatPrice(price: number): string {
-  return price.toLocaleString('zh-TW')
 }
 
 function getBrandName(brandId: number): string {
@@ -1527,7 +1456,6 @@ async function handleSubmit(publishNow: boolean, redirectAfter = true, isDraftAc
         brandId: form.attributes.brandId || null,
         price: Number(form.price) || 0,
         stock: Number(form.stock) || 0,
-        minPurchase: Number(form.minPurchase) || 1,
         mode: mode,
         specDefinitionJson: specsEnabled.value && form.specs.length > 0
           ? JSON.stringify(form.specs.map(s => ({ name: s.name })))
@@ -1563,7 +1491,6 @@ async function handleSubmit(publishNow: boolean, redirectAfter = true, isDraftAc
       if (form.attributes.brandId) fd.append('brandId', String(form.attributes.brandId))
       fd.append('price', String(form.price || 0))
       fd.append('stock', String(form.stock || 0))
-      fd.append('minPurchase', String(form.minPurchase || 1))
       
       fd.append('variantsJson', variantsJson)
       fd.append('attributesJson', attributesJson) // 加入屬性 JSON
