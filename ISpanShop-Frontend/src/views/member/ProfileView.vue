@@ -190,6 +190,7 @@ const handleAvatarUpload = async (rawFile: File) => {
 
 <template>
   <div class="profile-container" v-loading="isLoading">
+    <div class="profile-card">
     <div class="profile-header">
       <h2>我的檔案</h2>
       <p>管理你的檔案以保護你的帳戶</p>
@@ -303,9 +304,18 @@ const handleAvatarUpload = async (rawFile: File) => {
       </el-col>
     </el-row>
   </div>
+  </div>
 </template>
 
 <style scoped>
+.profile-card {
+  width: 100%;
+  max-width: 900%;
+  background:#fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+  padding: 30px;
+}
 .profile-container { padding: 10px; }
 .profile-header { border-bottom: 1px solid #efefef; padding-bottom: 20px; margin-bottom: 30px; }
 .profile-header h2 { font-size: 18px; color: #333; margin-bottom: 4px; }
