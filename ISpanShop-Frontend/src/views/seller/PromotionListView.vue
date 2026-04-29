@@ -496,7 +496,7 @@
             <el-tag size="small">{{ viewingRow.promotionTypeLabel }}</el-tag>
           </el-descriptions-item>
           <el-descriptions-item label="折扣條件">
-            {{ viewDiscountText(viewingRow) }}
+            <span class="view-discount-condition">{{ viewDiscountText(viewingRow) }}</span>
           </el-descriptions-item>
           <el-descriptions-item label="開始時間">{{ formatDateTime(viewingRow.startTime) }}</el-descriptions-item>
           <el-descriptions-item label="結束時間">{{ formatDateTime(viewingRow.endTime) }}</el-descriptions-item>
@@ -547,24 +547,22 @@
           <el-table-column prop="productName" label="商品名稱" min-width="200" show-overflow-tooltip />
           <el-table-column label="原價" width="110" align="right">
             <template #default="{ row: p }">
-              NT$ {{ (p.originalPrice ?? p.minPrice ?? 0).toLocaleString() }}
+              <span :class="viewingRow.promotionType !== 2 ? 'view-original-price-strike' : ''">
+                NT$ {{ (p.originalPrice ?? p.minPrice ?? 0).toLocaleString() }}
+              </span>
             </template>
           </el-table-column>
           <!-- 活動價：滿額折扣（type=2）整欄隱藏 -->
           <el-table-column
             v-if="viewingRow.promotionType !== 2"
             label="活動價"
-            width="140"
+            width="130"
             align="right"
           >
             <template #default="{ row: p }">
               <span class="view-discount-price">
                 NT$ {{ calcDiscountedPrice(p.originalPrice ?? p.minPrice ?? 0, viewingRow).toLocaleString() }}
               </span>
-              <div class="view-discount-badge">
-                <span v-if="viewingRow.promotionType === 1">{{ viewingRow.discountValue }}% off</span>
-                <span v-else-if="viewingRow.promotionType === 3">每件折 NT${{ (viewingRow.discountValue ?? 0).toLocaleString() }}</span>
-              </div>
             </template>
           </el-table-column>
         </el-table>
@@ -1649,16 +1647,16 @@ onMounted(() => {
 .view-discount-price {
   color: #f56c6c;
   font-weight: 600;
+  font-size: 14px;
 }
-.view-discount-badge {
-  margin-top: 2px;
-  font-size: 11px;
+.view-original-price-strike {
+  text-decoration: line-through;
+  color: #c0c4cc;
+  font-size: 13px;
+}
+.view-discount-condition {
   color: #f56c6c;
-  background: #fef0f0;
-  display: inline-block;
-  padding: 1px 5px;
-  border-radius: 3px;
-  line-height: 1.4;
+  font-weight: 600;
 }
 .view-discount-tip {
   margin: 8px 0 0;
