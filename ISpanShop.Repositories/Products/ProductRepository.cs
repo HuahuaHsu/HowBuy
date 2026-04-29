@@ -1255,6 +1255,21 @@ namespace ISpanShop.Repositories.Products
         }
 
         /// <inheritdoc/>
+        public async Task<decimal?> GetStoreRatingAsync(int storeId)
+        {
+            var ratings = await _context.OrderReviews
+                .AsNoTracking()
+                .Where(r => r.Order.StoreId == storeId)
+                .Select(r => (decimal)r.Rating)
+                .ToListAsync();
+
+            if (!ratings.Any())
+                return null;
+
+            return Math.Round(ratings.Average(), 1);
+        }
+
+        /// <inheritdoc/>
         public async Task<int> GetStoreActiveProductCountAsync(int storeId)
         {
             return await _context.Products

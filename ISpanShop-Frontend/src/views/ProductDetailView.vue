@@ -277,16 +277,16 @@
             <!-- 右側區塊 -->
             <div class="store-right">
               <div class="store-stat-item">
-                <span class="stat-label">商品評價</span>
-                <span class="stat-value">{{ safeProduct.reviewCount !== null ? safeProduct.reviewCount : '—' }} <span class="stat-unit">筆</span></span>
+                <span class="stat-label">評價</span>
+                <span class="stat-value">{{ safeProduct.store?.rating != null ? safeProduct.store.rating.toFixed(1) : '—' }} <span class="stat-unit">/ 5.0</span></span>
               </div>
               <div class="store-stat-item">
                 <span class="stat-label">商品</span>
-                <span class="stat-value">{{ safeProduct.store.productCount || 0 }} <span class="stat-unit">件</span></span>
+                <span class="stat-value">{{ safeProduct.store?.productCount || 0 }} <span class="stat-unit">件</span></span>
               </div>
               <div class="store-stat-item">
                 <span class="stat-label">加入時間</span>
-                <span class="stat-value">{{ formatJoinedTime(safeProduct.store.joinedYearsAgo) }}</span>
+                <span class="stat-value">{{ formatJoinedTime(safeProduct.store?.joinedYearsAgo) }}</span>
               </div>
             </div>
           </div>
@@ -299,7 +299,7 @@
         </el-card>
 
         <!-- 商品評價 -->
-        <ProductReview v-if="safeProduct.id" :product-id="safeProduct.id" />
+        <ProductReview v-if="safeProduct.id" :product-id="safeProduct.id" @refresh="loadProduct(safeProduct.id, true)" />
 
         <!-- 逛逛賣場其他好物 -->
         <div v-if="relatedLoading || relatedProducts.length > 0" class="pd-related-section">
@@ -615,8 +615,8 @@ function selectSpec(specName: string, optionValue: string) {
   if (selectedVariant.value?.imageUrl) activeImageUrl.value = selectedVariant.value.imageUrl
 }
 
-async function loadProduct(id: number) {
-  loading.value = true
+async function loadProduct(id: number, silent = false) {
+  if (!silent) loading.value = true
   productPromotions.value = []
   if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null }
   try {

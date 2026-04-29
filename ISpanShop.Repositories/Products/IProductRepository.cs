@@ -193,6 +193,9 @@ namespace ISpanShop.Repositories.Products
         /// <summary>[Async] 計算商品評分與評論數（透過 OrderReview → Order → OrderDetail）。</summary>
         Task<(decimal? Rating, int ReviewCount)> GetProductRatingAsync(int productId);
 
+        /// <summary>[Async] 計算賣場總平均評分。</summary>
+        Task<decimal?> GetStoreRatingAsync(int storeId);
+
         /// <summary>[Async] 計算指定商店上架中商品數。</summary>
         Task<int> GetStoreActiveProductCountAsync(int storeId);
 
