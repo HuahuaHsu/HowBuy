@@ -28,8 +28,9 @@ const handleUnbind = async () => {
       authStore.memberInfo.provider = null
       storage.setUser(authStore.memberInfo)
     }
-  } catch (error: any) {
-    ElMessage.error(error.response?.data?.message || '解除綁定失敗')
+  } catch (error: unknown) {
+    const err = error as { response?: { data?: { message?: string } } }
+    ElMessage.error(err.response?.data?.message || '解除綁定失敗')
   }
 }
 
@@ -98,9 +99,9 @@ const maskEmail = (email: string) => {
   if (!email) return ''
   const [user, domain] = email.split('@')
   if (!domain) return email
-  
+
   if (user.length <= 2) return `${user}***@${domain}`
-  
+
   const prefix = user.substring(0, 2)
   const suffix = user.slice(-1)
   return `${prefix}***${suffix}@${domain}`
@@ -240,15 +241,15 @@ const handleAvatarUpload = async (rawFile: File) => {
           </el-form-item>
 
           <el-divider />
-          
+
           <el-form-item label="第三方帳號">
             <div v-if="authStore.memberInfo.provider" class="oauth-connected-wrap">
               <span class="connected-email">{{ maskEmail(authStore.memberInfo.email || '') }}</span>
-              
+
               <el-button type="info" plain class="connected-btn-gray" disabled>
                 已連結 Google 帳號
               </el-button>
-              
+
               <el-tooltip
                 v-if="!authStore.memberInfo.hasPassword"
                 content="請先設定密碼後才能解綁第三方帳號"
@@ -258,12 +259,16 @@ const handleAvatarUpload = async (rawFile: File) => {
               </el-tooltip>
               <el-button v-else type="danger" link class="unbind-link" @click="handleUnbind">解除綁定</el-button>
             </div>
-            
+
             <div v-else>
-              <el-button type="default" class="google-bind-btn" @click="handleBindGoogle">
+              <el-button type="default" class="oauth-btn google" @click="handleBindGoogle">
                 <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" width="18" class="mr-2" />
                 連結 Google 帳號
               </el-button>
+             <el-button class="oauth-btn facebook" >
+            <img src="https://upload.wikimedia.org/wikipedia/commons/b/b8/2021_Facebook_icon.svg" width="18" class="mr-2" />
+            連結 Facebook 帳號
+          </el-button>
             </div>
           </el-form-item>
 
