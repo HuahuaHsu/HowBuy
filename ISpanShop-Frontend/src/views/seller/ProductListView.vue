@@ -201,6 +201,7 @@
                 </template>
                 <template v-else>
                   <button
+                    v-if="product.status !== 'review'"
                     class="card-action-btn edit-btn"
                     :class="{ 'resubmit-btn': product.status === 'rejected' }"
                     @click="handleEdit(product.id)"
@@ -345,6 +346,7 @@
               <template #default="{ row }">
                 <template v-if="!row.isDeleted">
                   <el-button
+                    v-if="row.status !== 'review'"
                     text
                     :type="row.status === 'rejected' ? 'warning' : 'primary'"
                     size="small"
@@ -798,7 +800,7 @@ function handleEdit(id: number): void {
 async function handleCardCommand(cmd: string, product: SellerProduct): Promise<void> {
   switch (cmd) {
     case 'preview':
-      window.open(`/product/${product.id}`, '_blank')
+      window.open(router.resolve({ name: 'SellerProductPreview', params: { id: product.id } }).href, '_blank')
       break
     case 'shelf':
       await handleToggleShelf(product)
