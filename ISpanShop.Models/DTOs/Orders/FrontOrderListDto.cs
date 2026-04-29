@@ -25,5 +25,6 @@ namespace ISpanShop.Models.DTOs.Orders
         public string FirstProductImage { get; set; }
         public int TotalItemCount { get; set; }
         public bool IsReviewed { get; set; }
+        public bool HasAppealed { get; set; }
     }
 }

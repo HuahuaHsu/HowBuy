@@ -56,6 +56,7 @@ export interface OrderDetail {
   note: string;
   items: OrderItem[];
   isReviewed: boolean;
+  hasAppealed: boolean;
   returnInfo?: ReturnDetail;
 }
 

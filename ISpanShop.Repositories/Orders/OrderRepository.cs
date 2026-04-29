@@ -49,6 +49,7 @@ namespace ISpanShop.Repositories.Orders
 							.ThenInclude(od => od.Product)
 								.ThenInclude(p => p.ProductImages)
 				.Include(o => o.OrderReviews)
+				.Include(o => o.SupportTickets)
 				.AsSplitQuery()
 				.FirstOrDefaultAsync(o => o.Id == id);
 		}
@@ -115,6 +116,7 @@ namespace ISpanShop.Repositories.Orders
 				.AsNoTracking()
 				.Include(o => o.Store)
 				.Include(o => o.OrderReviews)
+				.Include(o => o.SupportTickets)
 				.Include(o => o.OrderDetails)
 					.ThenInclude(od => od.Product)
 						.ThenInclude(p => p.ProductImages)

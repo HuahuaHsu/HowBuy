@@ -137,6 +137,7 @@ namespace ISpanShop.Services.Orders
                     };
                 }).ToList(),
                 IsReviewed = o.OrderReviews.Any(),
+                HasAppealed = o.SupportTickets.Any(),
                 
                 // 抓取最新的一筆退貨申請作為資訊展示
                 ReturnInfo = o.ReturnRequests.OrderByDescending(r => r.CreatedAt).Select(r => new FrontReturnDetailDto
