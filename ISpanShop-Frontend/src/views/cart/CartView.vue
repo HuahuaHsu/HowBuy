@@ -16,7 +16,8 @@ const groupedItems = computed(() => {
     name: string, 
     status: number, 
     items: any[], 
-    storePromotions: any[] 
+    storePromotions: any[],
+    allSelected: boolean
   }> = {}
   
   cartStore.items.forEach(item => {
@@ -26,14 +27,17 @@ const groupedItems = computed(() => {
         name: item.storeName,
         status: item.storeStatus,
         items: [],
-        storePromotions: []
+        storePromotions: [],
+        allSelected: false
       }
     }
     groups[item.storeId].items.push(item)
   })
 
-  // 計算每個賣場的活動進度與折扣
+  // 計算每個賣場的活動進度、折扣與全選狀態
   Object.values(groups).forEach(group => {
+    group.allSelected = group.items.length > 0 && group.items.every(i => i.selected)
+    
     const promoMap: Record<number, any> = {}
     group.items.forEach(item => {
       const currentPrice = item.promoPrice ?? item.price
@@ -62,6 +66,29 @@ const groupedItems = computed(() => {
 
   return Object.values(groups)
 })
+
+/** 賣場全選：選取某賣場時，自動取消其他賣場的勾選 */
+function toggleStore(storeId: number, checked: boolean) {
+  cartStore.items.forEach(item => {
+    if (item.storeId === storeId) {
+      item.selected = checked
+    } else if (checked) {
+      item.selected = false
+    }
+  })
+}
+
+/** 單一商品勾選：限制僅能勾選同一賣場 */
+function handleItemSelect(item: any) {
+  if (item.selected) {
+    const hasOtherStoreSelected = cartStore.items.some(i => i.selected && i.storeId !== item.storeId)
+    if (hasOtherStoreSelected) {
+      cartStore.items.forEach(i => {
+        if (i.storeId !== item.storeId) i.selected = false
+      })
+    }
+  }
+}
 
 // 計算整台購物車的最終折扣金額 (滿額折扣總和)
 const totalStoreDiscount = computed(() => {
@@ -101,7 +128,7 @@ async function confirmRemove(productId: number, variantId: number | null): Promi
     cartStore.removeItem(productId, variantId)
     ElMessage.success('已移除商品')
   } catch {
-    // 取消，不做任何事
+    // 取消
   }
 }
 
@@ -110,6 +137,15 @@ function formatPrice(price: number): string {
 }
 
 function handleCheckout(): void {
+  if (cartStore.selectedQuantity === 0) return
+  
+  // 安全檢查：是否真的只有一個賣場
+  const selectedStoreIds = new Set(cartStore.items.filter(i => i.selected).map(i => i.storeId))
+  if (selectedStoreIds.size > 1) {
+    ElMessage.error('一次只能結帳同一個賣場的商品')
+    return
+  }
+
   if (hasVacationItems.value) {
     ElMessage.error('購物車包含休假中賣場的商品，請先移除後再結帳')
     return
@@ -153,8 +189,7 @@ function handleCheckout(): void {
           <!-- 購物車表頭 -->
           <div class="cart-list-header">
             <div class="header-main">
-              <el-checkbox v-model="cartStore.isAllSelected" />
-              <span class="ml-2">商品</span>
+              <span class="ml-1">商品</span>
             </div>
             <div class="header-unit-price">單價</div>
             <div class="header-qty">數量</div>
@@ -163,6 +198,11 @@ function handleCheckout(): void {
 
           <div v-for="group in groupedItems" :key="group.id" class="store-group">
             <div class="store-header">
+              <el-checkbox 
+                v-model="group.allSelected" 
+                @change="(val: boolean) => toggleStore(group.id, val)" 
+                class="store-checkbox"
+              />
               <el-icon class="store-icon"><svg viewBox="0 0 1024 1024" width="16" height="16"><path d="M912 216H112c-17.7 0-32 14.3-32 32v560c0 17.7 14.3 32 32 32h800c17.7 0 32-14.3 32-32V248c0-17.7-14.3-32-32-32zM216 752H144V280h72v472z m664 0h-72V280h72v472z m-136 0H288V280h356v472z" fill="currentColor"></path></svg></el-icon>
               <span class="store-name">{{ group.name }}</span>
             </div>
@@ -199,10 +239,12 @@ function handleCheckout(): void {
               >
                 <!-- 商品主要資訊欄位 -->
                 <div class="item-main-info">
-                  <!-- 勾選框 -->
-                  <el-checkbox v-model="item.selected" class="item-checkbox" />
+                  <el-checkbox 
+                    v-model="item.selected" 
+                    @change="handleItemSelect(item)"
+                    class="item-checkbox" 
+                  />
 
-                  <!-- 商品圖片 -->
                   <el-image
                     :src="item.image"
                     fit="cover"
@@ -214,7 +256,6 @@ function handleCheckout(): void {
                     </template>
                   </el-image>
 
-                  <!-- 商品資訊 -->
                   <div class="item-info">
                     <div
                       class="item-name"
@@ -338,7 +379,7 @@ function handleCheckout(): void {
 .header-unit-price { width: 120px; text-align: center; }
 .header-qty { width: 120px; text-align: center; }
 .header-total { width: 120px; text-align: center; }
-.ml-2 { margin-left: 12px; }
+.ml-1 { margin-left: 8px; }
 
 .store-group {
   background: white;
@@ -352,10 +393,14 @@ function handleCheckout(): void {
   border-bottom: 1px solid #f0f0f0;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
+}
+.store-checkbox {
+  margin-right: 4px;
 }
 .store-icon {
   color: #606266;
+  margin-left: 4px;
 }
 .store-name {
   font-weight: 600;
