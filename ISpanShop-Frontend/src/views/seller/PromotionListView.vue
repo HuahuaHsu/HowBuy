@@ -511,6 +511,19 @@
 
         <!-- 活動商品列表 -->
         <div class="view-section-title">活動商品</div>
+
+        <!-- 滿額折扣專屬：結帳說明橫條 -->
+        <el-alert
+          v-if="viewingRow.promotionType === 2"
+          type="warning"
+          :closable="false"
+          show-icon
+          class="view-discount-tip"
+        >
+          購買滿&nbsp;<strong>NT${{ (viewingRow.minimumAmount ?? 0).toLocaleString() }}</strong>&nbsp;折&nbsp;<strong>NT${{ (viewingRow.discountValue ?? 0).toLocaleString() }}</strong>。
+          折扣依買家結帳時購物車<strong>總金額</strong>自動套用，不顯示在單一商品上。
+        </el-alert>
+
         <div v-if="viewProductsLoading" class="view-loading">
           <el-icon class="is-loading"><Loading /></el-icon> 載入商品中...
         </div>
@@ -537,19 +550,21 @@
               NT$ {{ (p.originalPrice ?? p.minPrice ?? 0).toLocaleString() }}
             </template>
           </el-table-column>
-          <el-table-column label="活動價" width="130" align="right">
+          <!-- 活動價：滿額折扣（type=2）整欄隱藏 -->
+          <el-table-column
+            v-if="viewingRow.promotionType !== 2"
+            label="活動價"
+            width="140"
+            align="right"
+          >
             <template #default="{ row: p }">
-              <!-- 滿額折扣是整單折，無法顯示單品活動價 -->
-              <el-tooltip
-                v-if="viewingRow.promotionType === 2"
-                content="此為整單滿額折扣，依結帳總金額計算"
-                placement="top"
-              >
-                <span class="text-muted">—</span>
-              </el-tooltip>
-              <span v-else class="view-discount-price">
+              <span class="view-discount-price">
                 NT$ {{ calcDiscountedPrice(p.originalPrice ?? p.minPrice ?? 0, viewingRow).toLocaleString() }}
               </span>
+              <div class="view-discount-badge">
+                <span v-if="viewingRow.promotionType === 1">{{ viewingRow.discountValue }}% off</span>
+                <span v-else-if="viewingRow.promotionType === 3">每件折 NT${{ (viewingRow.discountValue ?? 0).toLocaleString() }}</span>
+              </div>
             </template>
           </el-table-column>
         </el-table>
@@ -1634,6 +1649,22 @@ onMounted(() => {
 .view-discount-price {
   color: #f56c6c;
   font-weight: 600;
+}
+.view-discount-badge {
+  margin-top: 2px;
+  font-size: 11px;
+  color: #f56c6c;
+  background: #fef0f0;
+  display: inline-block;
+  padding: 1px 5px;
+  border-radius: 3px;
+  line-height: 1.4;
+}
+.view-discount-tip {
+  margin: 8px 0 0;
+}
+.view-discount-tip strong {
+  color: #e6a23c;
 }
 .view-img-error {
   width: 44px;
