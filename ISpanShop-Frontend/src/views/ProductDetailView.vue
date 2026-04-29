@@ -277,16 +277,16 @@
             <!-- 右側區塊 -->
             <div class="store-right">
               <div class="store-stat-item">
-                <span class="stat-label">商品評價</span>
-                <span class="stat-value">{{ safeProduct.reviewCount !== null ? safeProduct.reviewCount : '—' }} <span class="stat-unit">筆</span></span>
+                <span class="stat-label">評價</span>
+                <span class="stat-value">{{ safeProduct.store?.rating != null ? safeProduct.store.rating.toFixed(1) : '—' }} <span class="stat-unit">/ 5.0</span></span>
               </div>
               <div class="store-stat-item">
                 <span class="stat-label">商品</span>
-                <span class="stat-value">{{ safeProduct.store.productCount || 0 }} <span class="stat-unit">件</span></span>
+                <span class="stat-value">{{ safeProduct.store?.productCount || 0 }} <span class="stat-unit">件</span></span>
               </div>
               <div class="store-stat-item">
                 <span class="stat-label">加入時間</span>
-                <span class="stat-value">{{ formatJoinedTime(safeProduct.store.joinedYearsAgo) }}</span>
+                <span class="stat-value">{{ formatJoinedTime(safeProduct.store?.joinedYearsAgo) }}</span>
               </div>
             </div>
           </div>

@@ -105,7 +105,7 @@ namespace ISpanShop.MVC.Controllers.Api.Products
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetByIdAsync(int id)
         {
-            var (product, rating, reviewCount, storeProductCount) =
+            var (product, rating, reviewCount, storeProductCount, storeRating) =
                 await _productService.GetProductDetailAsync(id);
 
             if (product == null)
@@ -145,7 +145,7 @@ namespace ISpanShop.MVC.Controllers.Api.Products
                 Name           = product.Store?.StoreName ?? string.Empty,
                 Status         = product.Store?.StoreStatus ?? 1,
                 LogoUrl        = product.Store?.LogoUrl,
-                Rating         = null,
+                Rating         = storeRating,
                 ProductCount   = storeProductCount,
                 FollowerCount  = null,
                 Location       = null,
@@ -292,8 +292,8 @@ namespace ISpanShop.MVC.Controllers.Api.Products
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetRelatedAsync(int id, [FromQuery] int limit = 12)
         {
-            // 先確認商品存在且上架（借用詳情方法的 null 判斷）
-            var (product, _, _, _) = await _productService.GetProductDetailAsync(id);
+			// 先確認商品存在且上架（借用詳情方法的 null 判斷）
+			var (product, _, _, _, _) = await _productService.GetProductDetailAsync(id);
             if (product == null)
                 return NotFound(new { success = false, data = (object?)null, message = "商品不存在或已下架" });
 

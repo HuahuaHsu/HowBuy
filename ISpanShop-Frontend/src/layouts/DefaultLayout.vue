@@ -28,8 +28,6 @@
       <div class="top-bar-inner">
         <div class="top-left">
           <a href="#" @click.prevent="handleSellerCenterClick">賣家中心</a>
-          <span class="divider">|</span>
-          <span class="welcome">🎉 全站滿千免運中</span>
         </div>
         <div class="top-right">
           <template v-if="!authStore.isLoggedIn">
