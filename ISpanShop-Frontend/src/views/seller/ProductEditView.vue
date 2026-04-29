@@ -1436,24 +1436,6 @@ interface DemoProduct {
 
 const demoProducts: DemoProduct[] = [
   {
-    name: 'Sony WH-1000XM5 無線降噪耳機',
-    categoryId: 16,
-    categoryPath: '手機與平板周邊',
-    brandKeyword: 'Sony',
-    description: '<p>業界頂級降噪技術，搭載 V1 整合處理器與 8 顆麥克風，帶來前所未有的寂靜體驗。30 小時超長續航力，快速充電 3 分鐘即可播放 3 小時。多點連線功能可同時連接兩台裝置，碳纖維複合材質頭樑輕量舒適，適合長途飛行與日常通勤使用。支援 LDAC 高解析音訊傳輸，讓您享受 Hi-Res 級別的音樂品質。</p>',
-    price: 9900,
-    stock: 120,
-    images: [
-      'https://cdn.dummyjson.com/products/images/mobile-accessories/Apple%20AirPods%20Max%20Silver/1.png',
-      'https://cdn.dummyjson.com/products/images/mobile-accessories/Apple%20AirPods%20Max%20Silver/2.png',
-      'https://cdn.dummyjson.com/products/images/mobile-accessories/Apple%20AirPods%20Max%20Silver/3.png',
-    ],
-    specs: [
-      { name: '顏色', options: ['午夜黑', '月光銀'] },
-      { name: '版本', options: ['標準版', '耳機+攜行袋套組'] },
-    ],
-  },
-  {
     name: 'ASUS ROG Strix G16 電競筆電',
     categoryId: 11,
     categoryPath: '筆記型電腦',
@@ -1490,22 +1472,6 @@ const demoProducts: DemoProduct[] = [
     ],
   },
   {
-    name: '韓國濟州島有機綠茶禮盒組',
-    categoryId: 7,
-    categoryPath: '生鮮食材與飲品',
-    brandKeyword: '',
-    description: '<p>嚴選韓國濟州島海拔 300 公尺以上有機茶園的頂級綠茶，在清澈空氣與火山岩土壤中孕育出獨特的甘甜風味。禮盒內含三種風味：經典綠茶、玄米綠茶、柚子綠茶，各 20 包共 60 包。每包獨立鋁箔密封包裝，鎖住新鮮茶香。通過韓國有機農產品認證，無農藥無化學肥料。</p>',
-    price: 1280,
-    stock: 300,
-    images: [
-      'https://cdn.dummyjson.com/products/images/groceries/Green%20Bell%20Pepper/1.png',
-    ],
-    specs: [
-      { name: '口味', options: ['經典綠茶', '玄米綠茶', '柚子綠茶'] },
-      { name: '容量', options: ['20包裝', '60包裝禮盒'] },
-    ],
-  },
-  {
     name: 'Chanel N°5 經典淡香精 100ml',
     categoryId: 3,
     categoryPath: '香水與香氛',
@@ -1538,38 +1504,6 @@ const demoProducts: DemoProduct[] = [
     specs: [
       { name: '顏色', options: ['黑紅 Bred', '皇家藍', '芝加哥'] },
       { name: '尺寸', options: ['US8', 'US9', 'US10', 'US11'] },
-    ],
-  },
-  {
-    name: '極簡風陶瓷花瓶 莫蘭迪色系 三件組',
-    categoryId: 8,
-    categoryPath: '居家裝飾與收納',
-    brandKeyword: 'Zara',
-    description: '<p>三件一組的莫蘭迪色系陶瓷花瓶，包含霧粉、淺灰、奶白三色。啞光釉面質感高級，手工上釉每件都獨一無二。適合插放乾燥花、永生花或鮮花，擺放在客廳、臥室、書房都能提升空間美感。瓶口設計適中，可搭配單枝或小束花藝。底部防滑矽膠墊保護桌面。精美禮盒包裝，喬遷送禮、生日禮物的質感首選。</p>',
-    price: 1490,
-    stock: 180,
-    images: [
-      'https://cdn.dummyjson.com/products/images/home-decoration/Decoration%20Swing/1.png',
-      'https://cdn.dummyjson.com/products/images/home-decoration/Decoration%20Swing/2.png',
-    ],
-    specs: [
-      { name: '顏色', options: ['霧粉三件組', '淺灰三件組', '奶白三件組'] },
-    ],
-  },
-  {
-    name: '專業不鏽鋼萬用料理鍋 24cm 附蒸籠',
-    categoryId: 9,
-    categoryPath: '廚房餐具與用品',
-    brandKeyword: 'WMF',
-    description: '<p>德國百年廚具品牌 WMF 出品，採用 18/10 頂級不鏽鋼材質，耐酸鹼耐腐蝕，使用壽命長。24cm 口徑適合 3-5 人家庭，附贈同材質蒸籠，煮湯、燉肉、蒸菜一鍋搞定。三層複合鍋底導熱均勻，適用各種爐具包括電磁爐。密封鍋蓋設計鎖住水分與營養，內壁有容量刻度方便計量。</p>',
-    price: 3680,
-    stock: 95,
-    images: [
-      'https://cdn.dummyjson.com/products/images/kitchen-accessories/Frying%20Pan/1.png',
-    ],
-    specs: [
-      { name: '尺寸', options: ['20cm', '24cm', '28cm'] },
-      { name: '套組', options: ['單鍋', '附蒸籠套組'] },
     ],
   },
 ]
