@@ -272,23 +272,6 @@
             <span class="form-hint">例如：100 代表每件折 100 元</span>
           </el-form-item>
         </div>
-
-        <!-- 新品優惠或其他類型：只顯示折扣金額 -->
-        <div v-else-if="formData.promotionType === 4 || formData.promotionType > 0">
-          <el-form-item label="折扣金額" prop="discountValue">
-            <el-input-number
-              v-model="formData.discountValue"
-              :min="0"
-              :max="999999"
-              :precision="0"
-              :controls="true"
-              :step="10"
-              placeholder="請輸入折扣金額"
-              style="width: 100%;"
-            />
-            <span class="form-hint">折扣金額（元）</span>
-          </el-form-item>
-        </div>
         <el-form-item label="開始時間" prop="startTime">
           <el-date-picker
             v-model="formData.startTime"
@@ -574,13 +557,12 @@ const promotionTypeOptions = [
   { value: 1, label: '限時特賣' },
   { value: 2, label: '滿額折扣' },
   { value: 3, label: '限量搶購' },
-  { value: 4, label: '新品優惠' },
 ]
 
 const formData = ref<PromotionFormData>({
   name: '',
   description: '',
-  promotionType: promotionTypeOptions[0].value, // 預設選取「限時特賣」
+  promotionType: promotionTypeOptions[0]!.value, // 預設選取「限時特賣」
   discountValue: null,
   minimumAmount: null,
   limitQuantity: null,
@@ -725,28 +707,39 @@ async function fillDemoCampaign(): Promise<void> {
     const primaryCat: string = sortedCats[0]?.[0] ?? '商品'
     const secondaryCat: string | undefined = sortedCats[1]?.[0]
 
-    // 3. 動態生成活動類型（隨機選一種，搭配對應折扣）
-    type DemoType = { type: number; discount: number; minAmount?: number; quantity?: number }
+    // 3. 只從後端支援的類型（1/2/3）中隨機抽，各類型都有完整填值邏輯
+    type DemoType = { type: 1 | 2 | 3; discount: number; minAmount?: number; quantity?: number }
     const typeConfigs: DemoType[] = [
-      { type: 1, discount: Math.floor(Math.random() * 21) + 10 },
-      { type: 2, discount: (Math.floor(Math.random() * 5) + 1) * 100,
-        minAmount: (Math.floor(Math.random() * 4) + 3) * 100 },
-      { type: 3, discount: (Math.floor(Math.random() * 3) + 1) * 50,
-        quantity: (Math.floor(Math.random() * 5) + 5) * 10 },
-      { type: 4, discount: (Math.floor(Math.random() * 3) + 1) * 50 },
+      { type: 1, discount: Math.floor(Math.random() * 21) + 10 },                         // 限時特賣：10-30% off
+      { type: 2,
+        discount: (Math.floor(Math.random() * 5) + 1) * 100,                              // 滿額折：折 100~500 元
+        minAmount: (Math.floor(Math.random() * 4) + 3) * 100 },                           //   門檻 300~700 元
+      { type: 3,
+        discount: (Math.floor(Math.random() * 3) + 1) * 50,                               // 限量搶購：折 50~150 元
+        quantity: (Math.floor(Math.random() * 5) + 5) * 10 },                             //   限量 50~100 件
     ]
     const cfg: DemoType = typeConfigs[Math.floor(Math.random() * typeConfigs.length)]!
 
-    // 4. 動態生成活動名稱
-    const nameTemplates: string[] = [
-      `${primaryCat}專區｜限時特賣 7 折起`,
-      `${primaryCat}嚴選｜會員專屬優惠`,
-      `${primaryCat}熱銷推薦｜下殺 8 折`,
-      `愛上${primaryCat}｜超值優惠來襲`,
-      `${primaryCat}驚喜價｜錯過不再`,
-    ]
-    if (secondaryCat) nameTemplates.push(`${primaryCat} × ${secondaryCat} 雙重優惠`)
-    const generatedName: string = nameTemplates[Math.floor(Math.random() * nameTemplates.length)]!
+    // 4. 根據類型生成活動名稱
+    const nameTemplatesByType: Record<1 | 2 | 3, string[]> = {
+      1: [
+        `${primaryCat}限時特賣｜全館 7 折起`,
+        `${primaryCat}熱銷下殺｜限時 8 折`,
+        `${primaryCat}驚喜價｜錯過不再`,
+      ],
+      2: [
+        `${primaryCat}滿額折扣｜滿千折百`,
+        `${primaryCat}加碼回饋｜愈買愈划算`,
+        secondaryCat ? `${primaryCat} × ${secondaryCat} 雙重優惠` : `${primaryCat}嚴選｜滿額享折扣`,
+      ],
+      3: [
+        `${primaryCat}限量搶購｜數量有限`,
+        `${primaryCat}限時限量｜搶購趁現在`,
+        `${primaryCat}閃購活動｜先搶先贏`,
+      ],
+    }
+    const names = nameTemplatesByType[cfg.type]
+    const generatedName: string = names[Math.floor(Math.random() * names.length)]!
 
     // 5. 動態生成活動描述（不超過 200 字）
     const descTemplates: string[] = [
@@ -769,7 +762,7 @@ async function fillDemoCampaign(): Promise<void> {
     const pickCount = Math.min(Math.floor(Math.random() * 4) + 2, shuffled.length)
     const picked = shuffled.slice(0, pickCount)
 
-    // 8. 填入表單
+    // 8. 填入表單（先重設所有數值欄位，避免不同類型殘留）
     formData.value.name = generatedName
     formData.value.description = generatedDescription
     formData.value.promotionType = cfg.type
@@ -790,8 +783,13 @@ async function fillDemoCampaign(): Promise<void> {
     }))
 
     const typeLabel = promotionTypeOptions.find(o => o.value === cfg.type)?.label ?? ''
+    let extraInfo = ''
+    if (cfg.type === 1) extraInfo = `折扣 ${cfg.discount}% off`
+    else if (cfg.type === 2) extraInfo = `滿 NT$${cfg.minAmount} 折 NT$${cfg.discount}`
+    else if (cfg.type === 3) extraInfo = `每件折 NT$${cfg.discount}，限量 ${cfg.quantity} 件`
+
     ElMessage.success(
-      `已填入「${generatedName}」（${typeLabel}，主要分類：${primaryCat}，帶入 ${pickCount} 個商品）`
+      `已填入「${generatedName}」（${typeLabel}，${extraInfo}，帶入 ${pickCount} 個商品）`
     )
   } catch (err: any) {
     console.error('生成測試活動失敗:', err)
@@ -810,7 +808,7 @@ function openCreateDialog(): void {
   formData.value = {
     name: '',
     description: '',
-    promotionType: promotionTypeOptions[0].value,
+    promotionType: promotionTypeOptions[0]!.value,
     discountValue: null,
     minimumAmount: null,
     limitQuantity: null,
