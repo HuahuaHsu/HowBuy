@@ -55,6 +55,7 @@ namespace ISpanShop.Services.Orders
                     SellerId = o.Store?.UserId ?? 0,
                     FirstProductName = firstDetail?.ProductName,
                     FirstProductImage = GetFinalImage(firstDetail),
+                    ProductNames = string.Join(", ", o.OrderDetails.Select(od => od.ProductName)),
                     TotalItemCount = o.OrderDetails.Sum(od => od.Quantity),
                     IsReviewed = o.OrderReviews.Any(),
                     HasAppealed = o.SupportTickets.Any()

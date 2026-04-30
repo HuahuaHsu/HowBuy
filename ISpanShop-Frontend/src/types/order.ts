@@ -14,6 +14,7 @@ export interface OrderListItem {
   sellerId: number;
   firstProductName: string;
   firstProductImage: string;
+  productNames: string;
   totalItemCount: number;
   isReviewed: boolean;
 }
