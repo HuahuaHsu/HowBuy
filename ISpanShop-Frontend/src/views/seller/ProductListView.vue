@@ -293,10 +293,7 @@
             :data="pagedProducts"
             stripe
             style="width: 100%"
-            @selection-change="(rows: SellerProduct[]) => { selectedRows = rows }"
           >
-            <el-table-column type="selection" width="50" />
-
             <el-table-column label="商品" min-width="260">
               <template #default="{ row }">
                 <div class="table-product-cell">
@@ -323,17 +320,17 @@
               </template>
             </el-table-column>
 
-            <el-table-column prop="soldCount" label="已售出" width="90" align="center">
-              <template #default>
-                <!-- TODO: soldCount 後端尚未回傳 -->
-                --
+            <el-table-column label="已售出" width="90" align="center">
+              <template #default="{ row }">
+                {{ row.totalSales ?? 0 }}
               </template>
             </el-table-column>
 
             <el-table-column label="商品數量" width="100" align="center">
-              <template #default>
-                <!-- TODO: totalStock 後端尚未回傳 -->
-                --
+              <template #default="{ row }">
+                <span :class="getStockClass(row.totalStock ?? 0)">
+                  {{ row.totalStock === 0 ? '售完' : (row.totalStock ?? 0) }}
+                </span>
               </template>
             </el-table-column>
 
@@ -536,7 +533,6 @@ interface SellerProduct extends Omit<SellerProductListItem, 'status'> {
 const loading = ref<boolean>(false)
 const allProducts = ref<SellerProduct[]>([])
 const categories = ref<Category[]>([])
-const selectedRows = ref<SellerProduct[]>([])
 
 // Tabs
 const activeTab = ref<TabKey>((route.query.tab as TabKey) || 'all')
@@ -985,6 +981,12 @@ function getStatusTagType(status: ProductStatus): 'success' | 'warning' | 'dange
     default: return 'info'
   }
 }
+
+function getStockClass(stock: number): string {
+  if (stock === 0) return 'stock-zero'
+  if (stock < 10) return 'stock-low'
+  return ''
+}
 </script>
 
 <style scoped>
@@ -1367,4 +1369,6 @@ function getStatusTagType(status: ProductStatus): 'success' | 'warning' | 'dange
 @media (max-width: 600px) {
   .product-grid { grid-template-columns: repeat(2, 1fr); }
 }
+.stock-zero { color: #f56c6c; font-weight: 600; }
+.stock-low  { color: #e6a23c; font-weight: 600; }
 </style>
