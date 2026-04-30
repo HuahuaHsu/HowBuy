@@ -160,6 +160,7 @@ namespace ISpanShop.Repositories.Orders
 					o.UserId.ToString() == kw ||
 					o.RecipientName.Contains(kw) ||
 					o.RecipientPhone.Contains(kw) ||
+					(o.Store != null && o.Store.StoreName.Contains(kw)) ||
 					(o.User != null && o.User.MemberProfile != null && o.User.MemberProfile.FullName.Contains(kw)));
 			}
 
