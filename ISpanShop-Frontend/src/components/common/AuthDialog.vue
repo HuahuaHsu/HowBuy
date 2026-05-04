@@ -124,7 +124,7 @@ const handleRegister = async () => {
   try {
     submitting.value = true;
     await registerApi(payload);
-    ElMessage.success('註冊成功，請登入');
+    ElMessage.success('註冊成功，請至信箱收取驗證信開通帳號');
     authStore.switchDialogMode('login');
     // 註冊成功後清空表單並帶入帳號到登入表單
     loginForm.account = registerForm.account;

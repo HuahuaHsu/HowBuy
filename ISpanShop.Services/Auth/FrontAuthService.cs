@@ -16,6 +16,7 @@ namespace ISpanShop.Services.Auth
 {
     public class FrontAuthService : IFrontAuthService
     {
+        private static readonly TimeSpan EmailVerificationTtl = TimeSpan.FromMinutes(30);
         private readonly IUserRepository _userRepository;
         private readonly ILoginHistoryRepository _loginHistoryRepository;
         private readonly IEmailService _emailService;
@@ -95,6 +96,16 @@ namespace ISpanShop.Services.Auth
 
         public async Task<bool> RegisterAsync(FrontRegisterRequestDto request)
         {
+            var expiredPendingUser = await _userRepository.GetExpiredPendingUserAsync(
+                request.Email,
+                request.Account,
+                DateTime.Now.Subtract(EmailVerificationTtl));
+
+            if (expiredPendingUser != null)
+            {
+                await _userRepository.DeletePendingUserAsync(expiredPendingUser.Id);
+            }
+
             if (await _userRepository.ExistsAsync(request.Email, request.Account)) throw new Exception("Email 或 帳號已存在");
 
             var confirmCode = await GenerateUniqueConfirmCodeAsync();
@@ -134,6 +145,12 @@ namespace ISpanShop.Services.Auth
             if (user == null)
             {
                 return (false, "驗證連結無效或帳號已啟用");
+            }
+
+            if (user.CreatedAt.HasValue && user.CreatedAt.Value.Add(EmailVerificationTtl) < DateTime.Now)
+            {
+                await _userRepository.DeletePendingUserAsync(user.Id);
+                return (false, "驗證連結已超過 30 分鐘，請重新註冊");
             }
 
             var result = await _userRepository.ConfirmEmailAsync(user.Id);
@@ -287,7 +304,7 @@ namespace ISpanShop.Services.Auth
             var body = $@"
                 <div style='font-family: sans-serif; padding: 20px; color: #333;'>
                     <h2>您好，{safeAccount}</h2>
-                    <p>感謝您註冊 HowBuy好買。請點擊下方按鈕完成 Email 驗證並啟用帳號：</p>
+                    <p>感謝您註冊 HowBuy好買。請在 30 分鐘內點擊下方按鈕完成 Email 驗證並啟用帳號：</p>
                     <div style='margin: 30px 0;'>
                         <a href='{verifyLink}' style='background-color: #ee4d2d; color: white; padding: 12px 25px; text-decoration: none; border-radius: 4px; font-weight: bold;'>完成 Email 驗證</a>
                     </div>

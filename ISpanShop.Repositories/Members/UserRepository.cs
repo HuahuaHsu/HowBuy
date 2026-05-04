@@ -26,6 +26,15 @@ namespace ISpanShop.Repositories.Members
             return await _db.Users.AnyAsync(u => u.Email == email || u.Account == account);
         }
 
+        public async Task<User?> GetExpiredPendingUserAsync(string email, string account, DateTime expiresBefore)
+        {
+            return await _db.Users
+                .FirstOrDefaultAsync(u =>
+                    (u.Email == email || u.Account == account) &&
+                    u.IsConfirmed != true &&
+                    u.CreatedAt < expiresBefore);
+        }
+
         public async Task CreateAsync(User user)
         {
             _db.Users.Add(user);
@@ -87,6 +96,29 @@ namespace ISpanShop.Repositories.Members
             user.UpdatedAt = DateTime.Now;
             await _db.SaveChangesAsync();
             return true;
+        }
+
+        public async Task DeletePendingUserAsync(int userId)
+        {
+            var user = await _db.Users
+                .Include(u => u.MemberProfile)
+                .Include(u => u.LoginHistories)
+                .FirstOrDefaultAsync(u => u.Id == userId && u.IsConfirmed != true);
+
+            if (user == null) return;
+
+            foreach (var loginHistory in user.LoginHistories)
+            {
+                loginHistory.UserId = null;
+            }
+
+            if (user.MemberProfile != null)
+            {
+                _db.MemberProfiles.Remove(user.MemberProfile);
+            }
+
+            _db.Users.Remove(user);
+            await _db.SaveChangesAsync();
         }
     }
 }

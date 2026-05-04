@@ -37,7 +37,7 @@ const resultIcon = computed(() => {
 
 const resultTitle = computed(() => {
   if (loading.value) return 'Email 驗證中'
-  return isSuccess.value ? 'Email 驗證成功' : 'Email 驗證失敗'
+  return isSuccess.value ? 'Email 驗證成功 ' : 'Email 驗證失敗'
 })
 
 onMounted(async () => {
@@ -51,7 +51,7 @@ onMounted(async () => {
   try {
     const { data } = await verifyEmailApi(code)
     isSuccess.value = data.isSuccess
-    message.value = data.message || 'Email 驗證成功，請登入。'
+    message.value = data.message || '歡迎加入 HowBuy! 🎉。'
   } catch (error: any) {
     isSuccess.value = false
     message.value = error.response?.data?.message || '驗證連結無效或帳號已啟用。'

@@ -87,7 +87,7 @@ const handleRegister = async (formEl: FormInstance | undefined) => {
     const response = await registerApi(payload);
     console.log('註冊成功', response);
     await ElMessageBox.alert(
-      '註冊成功！請至信箱完成開通帳號，完成後即可登入。',
+      '註冊成功！請在 30 分鐘內至信箱完成開通帳號，完成後即可登入。逾時需重新註冊。',
       '請完成帳號開通',
       {
         confirmButtonText: '前往登入',
