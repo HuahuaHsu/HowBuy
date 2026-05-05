@@ -249,7 +249,7 @@ namespace ISpanShop.Services.Stores
                 existingStore.Description = dto.Description;
                 existingStore.LogoUrl = dto.LogoUrl;
                 existingStore.IsVerified = null;
-                existingStore.StoreStatus = 2;
+                existingStore.StoreStatus = 1;
                 existingStore.CreatedAt = DateTime.Now;
 
                 _context.Stores.Update(existingStore);
@@ -263,7 +263,7 @@ namespace ISpanShop.Services.Stores
                     Description = dto.Description,
                     LogoUrl = dto.LogoUrl,
                     IsVerified = null,
-                    StoreStatus = 2,
+                    StoreStatus = 1,
                     CreatedAt = DateTime.Now
                 };
                 _context.Stores.Add(newStore);
