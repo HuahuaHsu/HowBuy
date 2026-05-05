@@ -267,6 +267,8 @@ namespace ISpanShop.Services.Stores
                     CreatedAt = DateTime.Now
                 };
                 _context.Stores.Add(newStore);
+                // 強制讓 EF Core 在 Insert 時包含 IsVerified 欄位，避免資料庫預設值介入
+                _context.Entry(newStore).Property(e => e.IsVerified).IsModified = true;
             }
 
             return await _context.SaveChangesAsync() > 0;

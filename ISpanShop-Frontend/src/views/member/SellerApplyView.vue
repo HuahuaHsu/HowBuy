@@ -165,7 +165,10 @@ const submitApply = async (formEl: FormInstance | undefined) => {
       try {
         await applyStoreApi(form)
         ElMessage.success('申請已提交，請靜候審核')
-        router.push('/member/mystore')
+        router.push({
+          path: '/member/mystore',
+          state: { freshStatus: 'Pending' }
+        })
       } catch (error: any) {
         console.error('提交失敗', error)
         ElMessage.error(error.response?.data?.message || '提交失敗，請稍後再試')
