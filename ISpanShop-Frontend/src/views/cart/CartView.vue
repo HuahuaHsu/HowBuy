@@ -41,7 +41,7 @@ const groupedItems = computed(() => {
     const promoMap: Record<number, any> = {}
     group.items.forEach(item => {
       const currentPrice = item.promoPrice ?? item.price
-      item.promotions.forEach((p: any) => {
+      ;(item.promotions || []).forEach((p: any) => {
         if (!promoMap[p.promotionId]) {
           promoMap[p.promotionId] = { ...p, currentTotal: 0, appliedDiscount: 0 }
         }
