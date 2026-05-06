@@ -199,6 +199,21 @@ namespace ISpanShop.Services.Payments
 								CoverImage = "", // 補上空字串避免資料庫 Not Null 報錯
 								AllocatedDiscountAmount = allocatedDiscount // 修正：將計算好的分攤折扣存入
 							});
+
+							// 新增：尋找對應的進行中活動並更新售出數量
+							var activePromoItems = await _context.PromotionItems
+								.Include(pi => pi.Promotion)
+								.Where(pi => pi.ProductId == item.ProductId 
+										  && pi.Promotion.Status == 1 
+										  && pi.Promotion.StartTime <= DateTime.Now 
+										  && pi.Promotion.EndTime >= DateTime.Now
+										  && !pi.Promotion.IsDeleted)
+								.ToListAsync();
+
+							foreach (var pi in activePromoItems)
+							{
+								pi.SoldCount += item.Quantity;
+							}
 						}
 
 						// --- G. 建立金流紀錄 ---
