@@ -249,7 +249,7 @@ namespace ISpanShop.Services.Stores
                 existingStore.Description = dto.Description;
                 existingStore.LogoUrl = dto.LogoUrl;
                 existingStore.IsVerified = null;
-                existingStore.StoreStatus = 2;
+                existingStore.StoreStatus = 1;
                 existingStore.CreatedAt = DateTime.Now;
 
                 _context.Stores.Update(existingStore);
@@ -263,10 +263,13 @@ namespace ISpanShop.Services.Stores
                     Description = dto.Description,
                     LogoUrl = dto.LogoUrl,
                     IsVerified = null,
-                    StoreStatus = 2,
+                    StoreStatus = 1,
                     CreatedAt = DateTime.Now
                 };
                 _context.Stores.Add(newStore);
+                // 強制讓 EF Core 在 Insert 時包含特定欄位，避免資料庫預設值介入
+                _context.Entry(newStore).Property(e => e.IsVerified).IsModified = true;
+                _context.Entry(newStore).Property(e => e.StoreStatus).IsModified = true;
             }
 
             return await _context.SaveChangesAsync() > 0;

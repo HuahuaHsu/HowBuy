@@ -31,10 +31,10 @@
 
             <el-form-item label="營業狀態">
               <el-radio-group v-model="form.storeStatus">
-                <el-radio-button :value="1">
+                <el-radio-button :label="1">
                   <el-icon><VideoPlay /></el-icon> 營業中
                 </el-radio-button>
-                <el-radio-button :value="2">
+                <el-radio-button :label="2">
                   <el-icon><CoffeeCup /></el-icon> 休假中
                 </el-radio-button>
               </el-radio-group>

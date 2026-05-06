@@ -9,10 +9,25 @@
           </div>
           <div class="level-names">
             <span class="current-label">目前等級</span>
-            <h2 class="level-name">{{ currentLevel.levelName }}</h2>
+            <!-- 將按鈕移到這裡，並使用 flex 讓它們水平排列 -->
+            <div class="level-name-row">
+              <h2 class="level-name">{{ currentLevel.levelName }}</h2>
+              <el-button
+                type="primary"
+                size="small"
+                plain
+                round
+                @click="generateDemoOrder"
+                :loading="demoLoading"
+              >
+                🎁 生成 Demo 訂單 (NT$ 4,499)
+              </el-button>
+            </div>
+            <!-- 提示訊息移到名稱下方 -->
+            <span class="demo-tip-inline" v-if="demoMessage">{{ demoMessage }}</span>
           </div>
         </div>
-        
+
         <div class="stats-grid">
           <div class="stat-item">
             <span class="stat-label">累積消費金額</span>
@@ -33,9 +48,9 @@
           </span>
           <span v-else class="next-level-tip">您已達到最高等級！</span>
         </div>
-        <el-progress 
-          :percentage="progressPercentage" 
-          :stroke-width="16" 
+        <el-progress
+          :percentage="progressPercentage"
+          :stroke-width="16"
           :format="progressFormat"
           :color="currentLevelStyles.color"
         />
@@ -44,7 +59,7 @@
           <span v-if="nextLevel">NT$ {{ formatNumber(Number(nextLevel.minSpending)) }}</span>
         </div>
       </div>
-      
+
       <div class="update-info" v-if="statsInfo.updatedAt">
         最後更新時間：{{ statsInfo.updatedAt }} (數據每 24 小時同步一次)
       </div>
@@ -58,7 +73,7 @@
           <span>會員等級說明</span>
         </div>
       </template>
-      
+
       <el-table :data="levelRules" style="width: 100%" border stripe>
         <el-table-column prop="levelName" label="等級名稱" width="150" align="center">
           <template #default="scope">
@@ -74,7 +89,6 @@
         </el-table-column>
         <el-table-column prop="discountRate" label="專屬權益" align="center">
           <template #default="scope">
-            <!-- 恢復邏輯：只有折扣率小於 1 的才顯示折扣 -->
             <span v-if="Number(scope.row.discountRate) < 1" class="highlight-text">
               {{ (Number(scope.row.discountRate) * 10).toFixed(1) }} 折優惠
             </span>
@@ -108,7 +122,6 @@ import { ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 
 const authStore = useAuthStore()
-// 修改 Interface 以符合 API 回傳的 camelCase
 interface MembershipLevel {
   id: number;
   levelName: string;
@@ -118,6 +131,8 @@ interface MembershipLevel {
 }
 
 const loading = ref(true)
+const demoLoading = ref(false)
+const demoMessage = ref('')
 const realTotalSpending = ref(0)
 const levelRules = ref<MembershipLevel[]>([])
 const progressPercentage = ref(0)
@@ -125,11 +140,10 @@ const neededForNext = ref(0)
 const nextLevelName = ref('')
 const currentLevelName = ref('')
 
-// 模擬等級配色 (對應 ID)
 const levelColors: Record<number, string> = {
-  1: '#EE4D2D', // 一般 (品牌橘)
-  2: '#64748b', // 銀卡 (灰藍)
-  3: '#f59e0b'  // 金卡 (琥珀金)
+  1: '#EE4D2D',
+  2: '#64748b',
+  3: '#f59e0b'
 }
 
 const statsInfo = ref({
@@ -143,14 +157,13 @@ const fetchLevelData = async () => {
     loading.value = true
     const response = await getLevelDetail()
     const data = response.data
-    
+
     realTotalSpending.value = data.currentTotalSpending
     currentLevelName.value = data.currentLevelName
     nextLevelName.value = data.nextLevelName
     progressPercentage.value = data.progressPercent
     neededForNext.value = data.nextLevelThreshold - data.currentTotalSpending
-    
-    // 映射所有等級規則
+
     levelRules.value = data.allLevels.map((l: any) => ({
       id: l.levelId,
       levelName: l.name,
@@ -158,9 +171,9 @@ const fetchLevelData = async () => {
       discountRate: l.discountRate,
       color: levelColors[l.levelId] || '#94a3b8'
     }))
-    
+
     const formatDate = (dateStr: string) => dateStr.split('T')[0]
-    
+
     statsInfo.value = {
       startDate: formatDate(data.calculationStartDate),
       endDate: formatDate(data.calculationEndDate),
@@ -183,12 +196,11 @@ const currentLevel = computed(() => {
   const spending = Number(realTotalSpending.value)
   const sorted = [...levelRules.value].sort((a, b) => Number(b.minSpending) - Number(a.minSpending))
   const level = sorted.find(l => spending >= Number(l.minSpending)) || levelRules.value[0]
-  
-  // 同步更新 authStore 的等級資訊，讓側邊欄同步
+
   if (level.levelName && level.levelName !== '載入中...') {
     authStore.updateLevel(level.levelName)
   }
-  
+
   return level
 })
 
@@ -227,6 +239,45 @@ const getLevelTagStyle = (row: MembershipLevel) => {
 onMounted(() => {
   fetchLevelData()
 })
+
+const generateDemoOrder = async () => {
+  demoLoading.value = true
+  demoMessage.value = ''
+  try {
+    const response = await fetch('/api/front/demo/create-order', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({
+        productId: 500,
+        quantity: 1,
+        recipientName: '示範客戶',
+        recipientPhone: '0900000000',
+        recipientAddress: '示範地址'
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error('建立訂單失敗')
+    }
+
+    const data = await response.json()
+    demoMessage.value = `✅ 成功建立訂單！訂單號：${data.orderNumber}`
+
+    setTimeout(() => {
+      fetchLevelData()
+      demoMessage.value = ''
+    }, 2000)
+
+  } catch (error) {
+    console.error('Demo 訂單建立失敗:', error)
+    demoMessage.value = `❌ 建立失敗：${error instanceof Error ? error.message : '未知錯誤'}`
+  } finally {
+    demoLoading.value = false
+  }
+}
 </script>
 
 <style scoped>
@@ -271,12 +322,20 @@ onMounted(() => {
 .level-names {
   display: flex;
   flex-direction: column;
+  justify-content: center;
 }
 
 .current-label {
   font-size: 13px;
   color: #94a3b8;
-  margin-bottom: 2px;
+  margin-bottom: 4px;
+}
+
+/* 新增的 Flex 容器，用來並排顯示等級名稱與按鈕 */
+.level-name-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .level-name {
@@ -284,6 +343,14 @@ onMounted(() => {
   font-weight: 800;
   color: #1e293b;
   margin: 0;
+}
+
+/* 調整後的提示訊息樣式 */
+.demo-tip-inline {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #059669;
 }
 
 .stats-grid {

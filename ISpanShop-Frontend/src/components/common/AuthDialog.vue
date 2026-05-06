@@ -124,7 +124,7 @@ const handleRegister = async () => {
   try {
     submitting.value = true;
     await registerApi(payload);
-    ElMessage.success('註冊成功，請登入');
+    ElMessage.success('註冊成功，請至信箱收取驗證信開通帳號');
     authStore.switchDialogMode('login');
     // 註冊成功後清空表單並帶入帳號到登入表單
     loginForm.account = registerForm.account;
@@ -151,7 +151,24 @@ const resetRegisterForm = () => {
 
 const quickFill = () => {
   loginForm.account = 'fuen49';
-  loginForm.password = 'Fuen49.02';
+  loginForm.password = 'Test123456';
+};
+
+const quickRegister = () => {
+  registerForm.account = 'fuen49';
+  registerForm.password = 'Test123456';
+  registerForm.confirmPassword = 'Test123456';
+  registerForm.email = 'fuen49.02@gmail.com';
+  registerForm.fullName = '好買會員';
+};
+
+const quickFillRegister = () => {
+  registerForm.account = 'fuen49';
+  registerForm.password = 'Test123456';
+  registerForm.confirmPassword = 'Test123456';
+  registerForm.email = 'fuen49.02@gmail.com';
+  registerForm.fullName = '測試帳號';
+  registerForm.phoneNumber = '0912345678';
 };
 
 const goToForgotPassword = () => {
@@ -167,12 +184,12 @@ const handleGoogleLogin = () => {
     ElMessage.error('Google Client ID 未設定或無效，請檢查 .env 檔案');
     return;
   }
-  
+
   const scope = encodeURIComponent('openid email profile');
   const responseType = 'code';
-  
+
   const googleUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=${responseType}&scope=${scope}&access_type=offline&prompt=select_account`;
-  
+
   window.location.href = googleUrl;
 };
 
@@ -207,9 +224,9 @@ watch(() => authStore.authDialogMode, () => {
         @keyup.enter="handleLogin"
       >
         <el-form-item prop="account">
-          <el-input 
-            v-model="loginForm.account" 
-            placeholder="帳號或 Email" 
+          <el-input
+            v-model="loginForm.account"
+            placeholder="帳號或 Email"
             :prefix-icon="User"
             size="large"
           />
@@ -227,9 +244,9 @@ watch(() => authStore.authDialogMode, () => {
         </el-form-item>
 
         <div class="login-action">
-          <el-button 
-            type="primary" 
-            class="w-full" 
+          <el-button
+            type="primary"
+            class="w-full"
             size="large"
             :loading="submitting"
             @click="handleLogin"
@@ -254,8 +271,8 @@ watch(() => authStore.authDialogMode, () => {
         </div>
 
         <div class="helper-actions">
-          <el-button 
-            type="info" 
+          <el-button
+            type="info"
             plain
             class="flex-1"
             :icon="MagicStick"
@@ -263,9 +280,9 @@ watch(() => authStore.authDialogMode, () => {
           >
             快速填入
           </el-button>
-          
-          <el-button 
-            type="warning" 
+
+          <el-button
+            type="warning"
             plain
             class="flex-1"
             :icon="QuestionFilled"
@@ -295,11 +312,12 @@ watch(() => authStore.authDialogMode, () => {
         @keyup.enter="handleRegister"
       >
         <el-form-item prop="account">
-          <el-input 
-            v-model="registerForm.account" 
-            placeholder="帳號 (英文與數字，至少 6 碼)" 
+          <el-input
+            v-model="registerForm.account"
+            placeholder="帳號 (英文與數字，至少 6 碼)"
             :prefix-icon="User"
             size="large"
+            autocomplete="new-account"
           />
         </el-form-item>
 
@@ -311,6 +329,7 @@ watch(() => authStore.authDialogMode, () => {
             :prefix-icon="Lock"
             show-password
             size="large"
+            autocomplete="new-password"
           />
         </el-form-item>
 
@@ -322,31 +341,34 @@ watch(() => authStore.authDialogMode, () => {
             :prefix-icon="Lock"
             show-password
             size="large"
+            autocomplete="new-password"
+            readonly
+            @focus="$event.target.removeAttribute('readonly')"
           />
         </el-form-item>
 
         <el-form-item prop="email">
-          <el-input 
-            v-model="registerForm.email" 
-            placeholder="Email" 
+          <el-input
+            v-model="registerForm.email"
+            placeholder="Email"
             :prefix-icon="Message"
             size="large"
           />
         </el-form-item>
 
         <el-form-item prop="fullName">
-          <el-input 
-            v-model="registerForm.fullName" 
-            placeholder="姓名 (選填)" 
+          <el-input
+            v-model="registerForm.fullName"
+            placeholder="姓名 (選填)"
             :prefix-icon="Edit"
             size="large"
           />
         </el-form-item>
 
         <el-form-item prop="phoneNumber">
-          <el-input 
-            v-model="registerForm.phoneNumber" 
-            placeholder="電話 (選填，09xx-xxx-xxx)" 
+          <el-input
+            v-model="registerForm.phoneNumber"
+            placeholder="電話 (選填，09xx-xxx-xxx)"
             :prefix-icon="Iphone"
             size="large"
           />
@@ -368,9 +390,9 @@ watch(() => authStore.authDialogMode, () => {
         </div>
 
         <div class="login-action">
-          <el-button 
-            type="primary" 
-            class="w-full" 
+          <el-button
+            type="primary"
+            class="w-full"
             size="large"
             :loading="submitting"
             @click="handleRegister"
@@ -381,6 +403,8 @@ watch(() => authStore.authDialogMode, () => {
 
         <div class="footer-links">
           已有帳號？ <span class="link-btn" @click="authStore.switchDialogMode('login')">返回登入</span>
+          <span style="margin: 0 8px; color: #ccc;">|</span>
+          <span class="link-btn" @click="quickRegister">快速註冊</span>
         </div>
       </el-form>
     </template>
@@ -493,6 +517,15 @@ watch(() => authStore.authDialogMode, () => {
 
 .link-btn:hover {
   text-decoration: underline;
+}
+
+.link-btn.secondary {
+  color: #67c23a;
+}
+
+.mx-2 {
+  margin-left: 8px;
+  margin-right: 8px;
 }
 
 :deep(.el-dialog__header) {
