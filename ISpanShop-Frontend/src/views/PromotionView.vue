@@ -105,7 +105,7 @@
                 <span v-if="isDiscountType" class="full-discount-tag">符合滿額折</span>
               </template>
             </div>
-            <div class="sales-info">已售出 {{ item.soldCount }}</div>
+            <div class="sales-info">已售出 {{ item.totalSoldCount }}</div>
           </div>
         </div>
       </div>
