@@ -302,6 +302,15 @@
               :disabled="isPartialEdit"
             />
             <span class="form-hint">此活動限量多少件商品</span>
+            <!-- 限量搶購：庫存提示 -->
+            <div v-if="formData.promotionType === 3 && selectedProducts.length > 0" class="stock-hint">
+              <template v-if="isLimitExceedStock">
+                ⚠️ 限量數量（{{ formData.limitQuantity }}）已超過所選商品總庫存（{{ totalStock }} 件），可能無法達成。建議補貨後再送審。
+              </template>
+              <template v-else>
+                💡 已選商品總庫存：<strong>{{ totalStock }} 件</strong>
+              </template>
+            </div>
           </el-form-item>
           <el-form-item label="折扣金額" prop="discountValue">
             <el-input-number
@@ -498,6 +507,10 @@
           <el-descriptions-item label="折扣條件">
             <span class="view-discount-condition">{{ viewDiscountText(viewingRow) }}</span>
           </el-descriptions-item>
+          <el-descriptions-item v-if="viewingRow.promotionType === 3" label="限量數量">
+            <strong>{{ viewingRow.limitQuantity ?? 0 }} 件</strong>
+            <span style="color: #909399; font-size: 12px; margin-left: 8px;">（活動全館限量）</span>
+          </el-descriptions-item>
           <el-descriptions-item label="開始時間">{{ formatDateTime(viewingRow.startTime) }}</el-descriptions-item>
           <el-descriptions-item label="結束時間">{{ formatDateTime(viewingRow.endTime) }}</el-descriptions-item>
           <el-descriptions-item label="建立時間">{{ formatDateTime(viewingRow.createdAt) }}</el-descriptions-item>
@@ -640,6 +653,7 @@ interface PromotionProduct {
   minPrice: number | null
   originalPrice: number
   discountPrice: number | null
+  totalStock?: number | null
 }
 
 interface PromotionFormData {
@@ -761,6 +775,21 @@ const formData = ref<PromotionFormData>({
   limitQuantity: null,
   startTime: defaultDates.start,
   endTime: defaultDates.end,
+})
+
+// ─── 限量搶購：總庫存與警告 ─────────────────────────────────────────
+const totalStock = computed(() => {
+  if (!selectedProducts.value || selectedProducts.value.length === 0) return 0
+  return selectedProducts.value.reduce((sum, p) => {
+    const stock = p.totalStock ?? 0
+    return sum + stock
+  }, 0)
+})
+
+const isLimitExceedStock = computed(() => {
+  if (formData.value.promotionType !== 3) return false
+  if (!formData.value.limitQuantity) return false
+  return formData.value.limitQuantity > totalStock.value
 })
 
 /** 切換活動類型時，自動清空數值欄位，顯示 placeholder */
@@ -965,7 +994,6 @@ async function fillDemoCampaign(): Promise<void> {
 
     formData.value.discountValue = cfg.discount
     formData.value.minimumAmount = cfg.minAmount ?? null
-    formData.value.limitQuantity = cfg.quantity ?? null
 
     // 9. 帶入商品（轉成 PromotionProduct 格式）
     selectedProducts.value = picked.map(p => ({
@@ -975,7 +1003,19 @@ async function fillDemoCampaign(): Promise<void> {
       minPrice: p.minPrice,
       originalPrice: p.minPrice ?? 0,
       discountPrice: null,
+      totalStock: p.totalStock,
     }))
+
+    // 10. 計算總庫存，並設定合理的限量數量
+    const pickedTotalStock = picked.reduce((sum, p) => sum + (p.totalStock ?? 100), 0)
+    
+    // 限量搶購：根據總庫存設定合理的限量數量（30%~80%）
+    if (cfg.type === 3) {
+      const ratio = 0.3 + Math.random() * 0.5
+      formData.value.limitQuantity = Math.max(1, Math.floor(pickedTotalStock * ratio))
+    } else {
+      formData.value.limitQuantity = cfg.quantity ?? null
+    }
 
     const typeLabel = promotionTypeOptions.find(o => o.value === cfg.type)?.label ?? ''
     let extraInfo = ''
@@ -1223,6 +1263,7 @@ function confirmProductSelection(): void {
         minPrice: p.minPrice,
         originalPrice: p.minPrice ?? 0,
         discountPrice: null,
+        totalStock: p.totalStock,
       })
     }
   }
@@ -1546,6 +1587,19 @@ onMounted(() => {
   font-size: 12px;
   color: #94a3b8;
   margin-top: 4px;
+}
+
+.stock-hint {
+  display: block;
+  font-size: 12px;
+  color: #909399;
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+.stock-hint strong {
+  color: #303133;
+  font-weight: 600;
 }
 
 /* 已選商品卡片列表 */

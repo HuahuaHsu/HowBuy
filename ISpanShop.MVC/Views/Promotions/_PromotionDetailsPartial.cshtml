@@ -365,8 +365,25 @@
                                     </td>
                                     @if (Model.PromotionType == 3)
                                     {
-                                        <td>@(item.QuantityLimit.HasValue ? $"{item.QuantityLimit} 件" : "不限")</td>
-                                        <td>限量 @(item.StockLimit ?? 0) / 已售 @item.SoldCount</td>
+                                        @* 限購：顯示活動級別的限量（從 StockLimit 取得活動總限量，所有商品共用此數值） *@
+                                        <td>
+                                            @if (item.StockLimit.HasValue && item.StockLimit > 0)
+                                            {
+                                                <span>限量 @item.StockLimit</span>
+                                            }
+                                            else
+                                            {
+                                                <span style="color: #909399;">不限</span>
+                                            }
+                                        </td>
+                                        @* 庫存/售：顯示商品庫存 / 此活動已售 *@
+                                        <td>
+                                            @{
+                                                @* TODO: 需要在 Controller 中 Include Product 才能正確顯示商品庫存 *@
+                                                var productStock = 0; @* 暫無法取得商品實際庫存，需後端Include Product *@
+                                            }
+                                            <span style="color: #909399;">@productStock</span> / @item.SoldCount
+                                        </td>
                                     }
                                 </tr>
                             }
