@@ -10,7 +10,7 @@ namespace ISpanShop.Services.Orders
         Task<bool> AddToCartAsync(int userId, AddToCartRequestDto dto);
         Task<bool> UpdateCartItemAsync(int userId, UpdateCartItemRequestDto dto);
         Task<bool> RemoveCartItemAsync(int userId, int productId, int? variantId);
-        Task<bool> SyncCartAsync(int userId, List<CartItemDto> localItems);
+        Task<bool> SyncCartAsync(int userId, List<AddToCartRequestDto> localItems);
         Task<bool> ClearCartAsync(int userId);
     }
 }

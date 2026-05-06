@@ -164,7 +164,7 @@ namespace ISpanShop.Services.Orders
             return true;
         }
 
-        public async Task<bool> SyncCartAsync(int userId, List<CartItemDto> localItems)
+        public async Task<bool> SyncCartAsync(int userId, List<AddToCartRequestDto> localItems)
         {
             if (localItems == null || !localItems.Any()) return true;
 
