@@ -134,6 +134,7 @@ namespace ISpanShop.MVC.Models.Promotions
         public DateTime StartTime     { get; set; }
         public DateTime EndTime       { get; set; }
         public int      Status        { get; set; }
+        public int?     LimitQuantity { get; set; }
         public string   SellerName    { get; set; } = "";
         public string?  RejectReason  { get; set; }
         public DateTime? ReviewedAt   { get; set; }
@@ -217,6 +218,9 @@ namespace ISpanShop.MVC.Models.Promotions
         public int?    QuantityLimit { get; set; }
         public int?    StockLimit    { get; set; }
         public int     SoldCount     { get; set; }
+        
+        /// <summary>商品實際庫存（所有 SKU 加總，無 SKU 則用 Product.Stock）</summary>
+        public int     ProductStock  { get; set; }
     }
 
     public class PromotionRuleDetailVm

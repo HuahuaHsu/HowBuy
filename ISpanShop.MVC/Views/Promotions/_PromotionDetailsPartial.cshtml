@@ -312,6 +312,15 @@
                 </h6>
             </div>
             <div class="card-body p-0">
+                @* 限量搶購：活動級限量橫條提示 *@
+                @if (Model.PromotionType == 3 && Model.LimitQuantity.HasValue && Model.LimitQuantity > 0)
+                {
+                    <div style="background: #fdf6ec; border-left: 4px solid #e6a23c; padding: 10px 16px; margin: 12px; border-radius: 4px;">
+                        <span style="color: #e6a23c; font-weight: 600;">⚠️ 活動全館限量：@Model.LimitQuantity 件</span>
+                        <span style="color: #909399; margin-left: 8px;">（所有商品共享活動配額，賣完即下架）</span>
+                    </div>
+                }
+                
                 @if (Model.Items.Any())
                 {
                     <table class="table pd-items-table mb-0">
@@ -323,7 +332,6 @@
                                 <th>折扣</th>
                                 @if (Model.PromotionType == 3)
                                 {
-                                    <th>限購</th>
                                     <th>庫存/售</th>
                                 }
                             </tr>
@@ -365,24 +373,9 @@
                                     </td>
                                     @if (Model.PromotionType == 3)
                                     {
-                                        @* 限購：顯示活動級別的限量（從 StockLimit 取得活動總限量，所有商品共用此數值） *@
+                                        @* 庫存/售：顯示商品實際庫存 / 活動已售 *@
                                         <td>
-                                            @if (item.StockLimit.HasValue && item.StockLimit > 0)
-                                            {
-                                                <span>限量 @item.StockLimit</span>
-                                            }
-                                            else
-                                            {
-                                                <span style="color: #909399;">不限</span>
-                                            }
-                                        </td>
-                                        @* 庫存/售：顯示商品庫存 / 此活動已售 *@
-                                        <td>
-                                            @{
-                                                @* TODO: 需要在 Controller 中 Include Product 才能正確顯示商品庫存 *@
-                                                var productStock = 0; @* 暫無法取得商品實際庫存，需後端Include Product *@
-                                            }
-                                            <span style="color: #909399;">@productStock</span> / @item.SoldCount
+                                            <span>@item.ProductStock</span> / @item.SoldCount
                                         </td>
                                     }
                                 </tr>

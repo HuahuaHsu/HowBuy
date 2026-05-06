@@ -157,7 +157,7 @@ namespace ISpanShop.MVC.Controllers.Promotions
         {
             var p = await _context.Promotions
                 .Include(x => x.Seller).ThenInclude(u => u.Stores)
-                .Include(x => x.PromotionItems).ThenInclude(i => i.Product)
+                .Include(x => x.PromotionItems).ThenInclude(i => i.Product).ThenInclude(prod => prod.ProductVariants)
                 .Include(x => x.PromotionRules)
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted);
 
@@ -194,6 +194,7 @@ namespace ISpanShop.MVC.Controllers.Promotions
                 StartTime     = p.StartTime,
                 EndTime       = p.EndTime,
                 Status        = p.Status,
+                LimitQuantity = p.LimitQuantity,
                 SellerName    = sellerName,
                 RejectReason  = p.RejectReason,
                 ReviewedAt    = p.ReviewedAt,
@@ -212,7 +213,8 @@ namespace ISpanShop.MVC.Controllers.Promotions
                     DiscountPrice = i.DiscountPrice,
                     QuantityLimit = i.QuantityLimit,
                     StockLimit    = i.StockLimit,
-                    SoldCount     = i.SoldCount
+                    SoldCount     = i.SoldCount,
+                    ProductStock  = i.Product?.ProductVariants?.Sum(v => v.Stock) ?? 0
                 }).ToList(),
 
                 Rules = p.PromotionRules.Select(r => new ISpanShop.MVC.Models.Promotions.PromotionRuleDetailVm

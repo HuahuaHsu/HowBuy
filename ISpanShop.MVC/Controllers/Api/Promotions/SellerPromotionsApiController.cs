@@ -98,6 +98,7 @@ namespace ISpanShop.MVC.Controllers.Api.Promotions
                         PromotionTypeLabel = PromotionService.GetTypeLabel(p.PromotionType),
                         DiscountValue = rule?.DiscountValue,
                         MinimumAmount = rule?.Threshold,
+                        LimitQuantity = p.LimitQuantity,
                         ProductCount = p.PromotionItems?.Count ?? 0,
                         StartTime = p.StartTime,
                         EndTime = p.EndTime,
@@ -166,6 +167,7 @@ namespace ISpanShop.MVC.Controllers.Api.Promotions
                     PromotionType = dto.PromotionType,
                     StartTime = dto.StartTime,
                     EndTime = dto.EndTime,
+                    LimitQuantity = dto.PromotionType == 3 ? dto.LimitQuantity : null,
                     PromotionRules = BuildRules(dto.PromotionType, dto.DiscountValue, dto.MinimumAmount)
                 };
 
@@ -230,6 +232,7 @@ namespace ISpanShop.MVC.Controllers.Api.Promotions
                         PromotionTypeLabel = PromotionService.GetTypeLabel(promotion.PromotionType),
                         DiscountValue = detailRule?.DiscountValue,
                         MinimumAmount = detailRule?.Threshold,
+                        LimitQuantity = promotion.LimitQuantity,
                         StartTime = promotion.StartTime,
                         EndTime = promotion.EndTime,
                         Status = promotion.Status,
@@ -311,6 +314,7 @@ namespace ISpanShop.MVC.Controllers.Api.Promotions
                 promotion.StartTime = dto.StartTime;
                 promotion.EndTime = dto.EndTime;
                 promotion.Status = 0;
+                promotion.LimitQuantity = dto.PromotionType == 3 ? dto.LimitQuantity : null;
                 promotion.RejectReason = null;
 
                 await _promotionService.UpdatePromotionAsync(promotion);
