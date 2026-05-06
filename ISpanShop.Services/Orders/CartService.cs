@@ -44,14 +44,14 @@ namespace ISpanShop.Services.Orders
                 var directPromo = itemPromotions.FirstOrDefault(ap => ap.Promotion.PromotionType == 1 || ap.Promotion.PromotionType == 3);
                 if (directPromo != null)
                 {
-                    if (directPromo.DiscountPrice.HasValue)
-                    {
-                        promoPrice = directPromo.DiscountPrice.Value;
-                    }
-                    else if (directPromo.DiscountPercent.HasValue)
+                    if (directPromo.DiscountPercent.HasValue && directPromo.DiscountPercent.Value > 0)
                     {
                         decimal original = ci.UnitPrice ?? ci.Variant?.Price ?? ci.Product?.MinPrice ?? 0;
-                        promoPrice = Math.Round(original * (decimal)(100 - directPromo.DiscountPercent.Value) / 100m, 0);
+                        promoPrice = Math.Round(original * (decimal)directPromo.DiscountPercent.Value / 100m, 0);
+                    }
+                    else if (directPromo.DiscountPrice.HasValue)
+                    {
+                        promoPrice = directPromo.DiscountPrice.Value;
                     }
                 }
 

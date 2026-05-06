@@ -604,6 +604,7 @@ function handleCheckout(): void {
   display: flex;
   align-items: center;
   gap: 16px;
+  margin-left: auto;
 }
 .total-label {
   font-size: 15px;
