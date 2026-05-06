@@ -331,7 +331,10 @@
                         <tbody>
                             @foreach (var item in Model.Items)
                             {
-                                var discount = item.DiscountPrice.HasValue
+                                var discountAmount = item.DiscountPrice.HasValue
+                                    ? item.OriginalPrice - item.DiscountPrice.Value
+                                    : 0;
+                                var discountPercent = item.DiscountPrice.HasValue && item.OriginalPrice > 0
                                     ? (decimal)(item.OriginalPrice - item.DiscountPrice.Value) / item.OriginalPrice * 100
                                     : 0;
                                 <tr class="outline-none focus:outline-none">
@@ -341,18 +344,29 @@
                                         @(item.DiscountPrice.HasValue ? $"NT$ {item.DiscountPrice.Value:N0}" : "-")
                                     </td>
                                     <td>
-                                        @if (discount > 0)
+                                        @if (Model.PromotionType == 1 && discountPercent > 0)
                                         {
                                             <div style="display:inline-block; background:linear-gradient(135deg,#ea5455,#f97316); color:#fff; border-radius:8px; padding:4px 10px; font-size:.85rem; font-weight:700; line-height:1.2; text-align:center; min-width:52px; box-shadow:0 2px 6px rgba(234,84,85,.35);">
                                                 <div style="font-size:.68rem; opacity:.85; letter-spacing:.03em;">折扣</div>
-                                                <div>-@discount.ToString("N0")%</div>
+                                                <div>-@discountPercent.ToString("N0")%</div>
                                             </div>
+                                        }
+                                        else if (Model.PromotionType == 3 && discountAmount > 0)
+                                        {
+                                            <div style="display:inline-block; background:linear-gradient(135deg,#ea5455,#f97316); color:#fff; border-radius:8px; padding:4px 10px; font-size:.85rem; font-weight:700; line-height:1.2; text-align:center; min-width:70px; box-shadow:0 2px 6px rgba(234,84,85,.35);">
+                                                <div style="font-size:.68rem; opacity:.85; letter-spacing:.03em;">每件折</div>
+                                                <div>NT$@discountAmount.ToString("N0")</div>
+                                            </div>
+                                        }
+                                        else if (Model.PromotionType == 2)
+                                        {
+                                            <span style="color:#64748b; font-size:.85rem;">滿額折扣</span>
                                         }
                                     </td>
                                     @if (Model.PromotionType == 3)
                                     {
                                         <td>@(item.QuantityLimit.HasValue ? $"{item.QuantityLimit} 件" : "不限")</td>
-                                        <td>@(item.StockLimit.HasValue ? item.StockLimit.ToString() : "∞") / @item.SoldCount</td>
+                                        <td>限量 @(item.StockLimit ?? 0) / 已售 @item.SoldCount</td>
                                     }
                                 </tr>
                             }
