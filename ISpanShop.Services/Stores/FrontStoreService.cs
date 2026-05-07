@@ -808,7 +808,19 @@ namespace ISpanShop.Services.Stores
             }
             else
             {
-                order.Status = (byte)OrderStatus.Completed;
+                byte originalStatus = (byte)OrderStatus.Completed; // 預設退回已完成狀態
+
+                // 解析暫存的原始訂單狀態
+                if (!string.IsNullOrEmpty(latestReturn.AdminRemark) && latestReturn.AdminRemark.StartsWith("[OriginalStatus:"))
+                {
+                    var statusStr = latestReturn.AdminRemark.Replace("[OriginalStatus:", "").TrimEnd(']');
+                    if (byte.TryParse(statusStr, out byte parsedStatus))
+                    {
+                        originalStatus = parsedStatus;
+                    }
+                }
+
+                order.Status = originalStatus;
                 latestReturn.Status = 2; // 已拒絕
             }
 

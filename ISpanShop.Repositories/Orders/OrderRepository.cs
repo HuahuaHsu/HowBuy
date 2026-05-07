@@ -70,6 +70,20 @@ namespace ISpanShop.Repositories.Orders
 					{
 						rr.Status = 2;
 						rr.UpdatedAt = DateTime.Now;
+
+						// 嘗試還原原始訂單狀態
+						if (!string.IsNullOrEmpty(rr.AdminRemark) && rr.AdminRemark.StartsWith("[OriginalStatus:"))
+						{
+							var statusStr = rr.AdminRemark.Replace("[OriginalStatus:", "").TrimEnd(']');
+							if (byte.TryParse(statusStr, out byte parsedStatus))
+							{
+								order.Status = parsedStatus;
+								if (parsedStatus != 3)
+								{
+									order.CompletedAt = null; // 還原狀態的話清空完成時間
+								}
+							}
+						}
 					}
 				}
 				else if (status == 5) // 退貨/款中 (Refund/Return in Progress = 5)

@@ -266,6 +266,7 @@ namespace ISpanShop.Services.Orders
                 ReasonDescription = dto.ReasonDescription, // 移除舊的明細拼湊，保持乾淨
                 RefundAmount = totalRefund,
                 Status = 0, // 待處理
+                AdminRemark = $"[OriginalStatus:{o.Status}]", // 暫存申請退貨前的原始訂單狀態
                 CreatedAt = DateTime.Now,
                 ReturnRequestImages = dto.ImageUrls?.Select(url => new ReturnRequestImage
                 {
