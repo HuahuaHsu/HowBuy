@@ -7,7 +7,7 @@ namespace ISpanShop.Services.Coupons;
 public interface ICouponService
 {
     Task<IEnumerable<Coupon>> GetAvailableCouponsAsync(int userId, int storeId, decimal subtotal, List<int> productIds);
-    Task<(bool IsValid, string Message, Coupon? Coupon)> ValidateCouponAsync(int userId, int couponId, decimal subtotal, List<int> productIds);
+    Task<(bool IsValid, string Message, Coupon? Coupon)> ValidateCouponAsync(int userId, int couponId, decimal subtotal, List<int> productIds, int storeId);
     Task<bool> LockCouponAsync(int userId, int couponId, long orderId);
     Task<bool> MarkAsUsedAsync(long orderId);
     Task<bool> ReleaseLockedCouponsAsync(long orderId);
@@ -26,4 +26,5 @@ public interface ICouponService
     Task CreateCouponAsync(Coupon coupon);
     Task UpdateCouponAsync(Coupon coupon);
     Task DeleteCouponAsync(int id);
+    Task<bool> IsCouponCodeExistsAsync(string code, int? excludeId = null);
 }

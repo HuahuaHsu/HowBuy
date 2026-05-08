@@ -74,7 +74,20 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Coupons
         {
             if (ModelState.IsValid)
             {
-                var store = vm.StoreId == 0 ? _context.Stores.First() : _context.Stores.Find(vm.StoreId);
+                if (await _couponService.IsCouponCodeExistsAsync(vm.CouponCode))
+                {
+                    ModelState.AddModelError("CouponCode", "優惠碼已存在");
+                    PrepareStoreList(vm.StoreId);
+                    return View(vm);
+                }
+
+                var store = vm.StoreId == 0 ? await _context.Stores.FirstOrDefaultAsync() : await _context.Stores.FindAsync(vm.StoreId);
+                if (store == null)
+                {
+                    ModelState.AddModelError("", "找不到指定的商家");
+                    PrepareStoreList(vm.StoreId);
+                    return View(vm);
+                }
                 
                 // 獲取目前登入者 ID
                 var adminIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
@@ -96,6 +109,7 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Coupons
                     EndTime = vm.EndTime,
                     TotalQuantity = vm.TotalQuantity,
                     PerUserLimit = vm.PerUserLimit,
+                    Status = 1,
                     
                     // 僅保留 DB 確定的欄位
                     UpdatedBy = adminId,
@@ -143,10 +157,23 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Coupons
         {
             if (ModelState.IsValid)
             {
+                if (await _couponService.IsCouponCodeExistsAsync(vm.CouponCode, vm.Id))
+                {
+                    ModelState.AddModelError("CouponCode", "優惠碼已存在");
+                    PrepareStoreList(vm.StoreId);
+                    return View(vm);
+                }
+
                 var coupon = await _couponService.GetCouponByIdAsync(vm.Id);
                 if (coupon == null) return NotFound();
 
-                var store = vm.StoreId == 0 ? _context.Stores.First() : _context.Stores.Find(vm.StoreId);
+                var store = vm.StoreId == 0 ? await _context.Stores.FirstOrDefaultAsync() : await _context.Stores.FindAsync(vm.StoreId);
+                if (store == null)
+                {
+                    ModelState.AddModelError("", "找不到指定的商家");
+                    PrepareStoreList(vm.StoreId);
+                    return View(vm);
+                }
                 
                 // 獲取目前登入者 ID
                 var adminIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
@@ -197,17 +224,20 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Coupons
             int adminId = string.IsNullOrEmpty(adminIdStr) ? store.UserId : int.Parse(adminIdStr);
 
             var now = DateTime.Now;
+            // 使用隨機後置碼確保每次生成都是唯一的
+            string suffix = Guid.NewGuid().ToString("N").Substring(0, 4).ToUpper();
+
             var seedCoupons = new List<Coupon>
             {
                 new Coupon
                 {
-                    Title = "全站開幕大禮包",
-                    CouponCode = "WELCOME88",
+                    Title = $"全站開幕大禮包_{suffix}",
+                    CouponCode = $"WELCOME88_{suffix}",
                     ApplyToAll = true,
                     StoreId = store.Id,
                     SellerId = store.UserId,
-                    DistributionType = 1, // 公開領取
-                    CouponType = 1, // 固定金額
+                    DistributionType = 1,
+                    CouponType = 1,
                     DiscountValue = 100,
                     MinimumSpend = 500,
                     StartTime = now.AddDays(-1),
@@ -220,8 +250,8 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Coupons
                 },
                 new Coupon
                 {
-                    Title = "滿千折百限時送",
-                    CouponCode = "SAVE100",
+                    Title = $"滿千折百限時送_{suffix}",
+                    CouponCode = $"SAVE100_{suffix}",
                     ApplyToAll = true,
                     StoreId = store.Id,
                     SellerId = store.UserId,
@@ -239,14 +269,14 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Coupons
                 },
                 new Coupon
                 {
-                    Title = "九折優惠券",
-                    CouponCode = "OFF90",
+                    Title = $"九折優惠券_{suffix}",
+                    CouponCode = $"OFF90_{suffix}",
                     ApplyToAll = true,
                     StoreId = store.Id,
                     SellerId = store.UserId,
                     DistributionType = 1,
-                    CouponType = 2, // 百分比
-                    DiscountValue = 10, // 打 9 折 (10% off)
+                    CouponType = 2,
+                    DiscountValue = 10,
                     MinimumSpend = 0,
                     MaximumDiscount = 200,
                     StartTime = now.AddDays(-2),
@@ -259,12 +289,12 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Coupons
                 },
                 new Coupon
                 {
-                    Title = "新會員專屬禮",
-                    CouponCode = "NEWUSER",
+                    Title = $"新會員專屬禮_{suffix}",
+                    CouponCode = $"NEWUSER_{suffix}",
                     ApplyToAll = true,
                     StoreId = store.Id,
                     SellerId = store.UserId,
-                    DistributionType = 2, // 指定發送
+                    DistributionType = 2,
                     CouponType = 1,
                     DiscountValue = 50,
                     MinimumSpend = 1,
@@ -278,17 +308,10 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Coupons
                 }
             };
 
-            foreach (var coupon in seedCoupons)
-            {
-                // 檢查是否已存在同名的標題或代碼以避免重複
-                if (!await _context.Coupons.AnyAsync(c => c.CouponCode == coupon.CouponCode))
-                {
-                    _context.Coupons.Add(coupon);
-                }
-            }
-
+            _context.Coupons.AddRange(seedCoupons);
             await _context.SaveChangesAsync();
-            return Json(new { success = true, message = "成功生成 4 筆測試優惠券" });
+            
+            return Json(new { success = true, message = $"成功生成 4 筆新的測試優惠券 (後置碼: {suffix})" });
         }
     }
 }
