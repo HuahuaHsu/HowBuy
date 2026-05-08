@@ -95,18 +95,23 @@
             <span v-else>—</span>
           </template>
         </el-table-column>
+
+        <!-- 更新：有效期動態判斷 -->
         <el-table-column label="有效期" align="center">
-          <template #default>
-            永久有效
+          <template #default="scope">
+            <span v-if="Number(scope.row.minSpending) === 0">永久有效</span>
+            <span v-else class="highlight-text">12 個月</span>
           </template>
         </el-table-column>
       </el-table>
 
+      <!-- 更新：等級計算規則說明微調 -->
       <div class="rules-footer">
         <h3>等級計算規則：</h3>
         <ul>
           <li>系統將根據您在過去 12 個月內的「已完成」訂單總額進行計算。</li>
-          <li>達成升級門檻後，系統將自動更新您的會員等級。</li>
+          <li>達成升級門檻後，系統將自動為您升級，<strong>新等級有效期為 12 個月</strong>。</li>
+          <li>有效期屆滿時，系統將重新結算過去 12 個月的消費總額，以決定您的新等級。</li>
           <li>若發生退貨導致累積金額低於門檻，系統將保留調整等級之權利。</li>
         </ul>
       </div>
@@ -331,7 +336,6 @@ const generateDemoOrder = async () => {
   margin-bottom: 4px;
 }
 
-/* 新增的 Flex 容器，用來並排顯示等級名稱與按鈕 */
 .level-name-row {
   display: flex;
   align-items: center;
@@ -345,7 +349,6 @@ const generateDemoOrder = async () => {
   margin: 0;
 }
 
-/* 調整後的提示訊息樣式 */
 .demo-tip-inline {
   margin-top: 6px;
   font-size: 12px;
