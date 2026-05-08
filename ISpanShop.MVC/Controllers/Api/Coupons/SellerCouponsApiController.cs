@@ -38,6 +38,7 @@ namespace ISpanShop.MVC.Controllers.Api.Coupons
             public int TotalQuantity { get; set; }
             public int PerUserLimit { get; set; }
             public int Status { get; set; }
+            public bool ApplyToAll { get; set; } // 新增：是否全站通用
         }
 
         private int GetCurrentUserId()
@@ -62,11 +63,12 @@ namespace ISpanShop.MVC.Controllers.Api.Coupons
             try
             {
                 var userId = GetCurrentUserId();
-                var storeId = await GetStoreIdAsync(userId);
                 
-                if (storeId == 0) return Ok(new { success = true, data = new List<object>() });
-
-                var coupons = await _couponService.GetAllCouponsAsync(storeId);
+                // 直接使用 SellerId 查詢，不依賴 StoreId 獲取邏輯，確保賣家能看到自己建立的所有券
+                var coupons = await _db.Coupons
+                    .Where(c => c.SellerId == userId && !c.IsDeleted)
+                    .OrderByDescending(c => c.UpdatedAt)
+                    .ToListAsync();
                 
                 return Ok(new {
                     success = true,
@@ -83,7 +85,9 @@ namespace ISpanShop.MVC.Controllers.Api.Coupons
                         c.TotalQuantity,
                         c.UsedQuantity,
                         c.Status,
-                        c.PerUserLimit
+                        c.PerUserLimit,
+                        c.DistributionType,
+                        c.ApplyToAll
                     })
                 });
             }
@@ -123,7 +127,7 @@ namespace ISpanShop.MVC.Controllers.Api.Coupons
                     UpdatedBy = userId,
                     UsedQuantity = 0,
                     DistributionType = 1, // 1: 領取型
-                    ApplyToAll = false,   // 設定為 false，僅限於該賣場使用
+                    ApplyToAll = true,    // 根據需求：賣家新增的優惠券一律改為全站通用
                     IsExclusive = false
                 };
 
@@ -158,6 +162,8 @@ namespace ISpanShop.MVC.Controllers.Api.Coupons
                 existing.TotalQuantity = dto.TotalQuantity;
                 existing.PerUserLimit = dto.PerUserLimit;
                 existing.Status = (byte)dto.Status;
+                existing.ApplyToAll = dto.ApplyToAll; // 新增：支援更新全站通用屬性
+                if (existing.Status == 1) existing.IsDeleted = false; // 如果重新啟用，則取消軟刪除標記
                 existing.UpdatedAt = DateTime.Now;
                 existing.UpdatedBy = userId;
 

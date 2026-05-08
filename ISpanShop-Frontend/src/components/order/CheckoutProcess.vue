@@ -618,7 +618,11 @@ function formatPrice(val: number) { return val.toLocaleString('zh-TW') }
       <div v-else class="coupon-list">
         <div v-for="c in availableCoupons" :key="c.id" class="coupon-item" :class="{ selected: selectedCouponId === c.id }" @click="selectCoupon(c.id)">
           <div class="coupon-title">{{ c.title }}</div>
-          <div class="coupon-desc">{{ c.couponType === 1 ? `現折 $${c.discountValue}` : `打 ${c.discountValue} 折` }}<span v-if="c.minimumSpend > 0">，滿 ${{ c.minimumSpend }} 可用</span></div>
+          <div class="coupon-desc">
+            <template v-if="c.couponType === 1">現折 ${{ c.discountValue }}</template>
+            <template v-else>享 {{ (100 - c.discountValue) / 10 }} 折優惠</template>
+            <span v-if="c.minimumSpend > 0">，滿 ${{ c.minimumSpend }} 可用</span>
+          </div>
         </div>
         <div class="coupon-item none" @click="selectCoupon(null)">不使用優惠券</div>
       </div>

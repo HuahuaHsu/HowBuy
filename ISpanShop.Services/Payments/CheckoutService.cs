@@ -65,6 +65,15 @@ namespace ISpanShop.Services.Payments
 							}
 						}
 
+						// --- D. 建立訂單主表 ---
+						// 確保 StoreId 有效，如果 DTO 為 0 則從商品中抓取
+						int effectiveStoreId = dto.StoreId;
+						if (effectiveStoreId <= 0 && dto.Items.Any())
+						{
+							var firstProduct = await _context.Products.FindAsync(dto.Items[0].ProductId);
+							if (firstProduct != null) effectiveStoreId = firstProduct.StoreId;
+						}
+
 						// --- C. 處理優惠券驗證與試算 ---
 						if (dto.CouponId.HasValue)
 						{
@@ -72,7 +81,7 @@ namespace ISpanShop.Services.Payments
 							// 注意：優惠券計算邏輯應與前端一致。
 							// 這裡假設活動折扣(promotionDiscountAmount)會先扣除，再套用優惠券。
 							// 如果不扣除直接套用，則使用 subtotal。
-							var valRes = await _couponService.ValidateCouponAsync(dto.UserId, dto.CouponId.Value, subtotal - promotionDiscountAmount, productIds);
+							var valRes = await _couponService.ValidateCouponAsync(dto.UserId, dto.CouponId.Value, subtotal - promotionDiscountAmount, productIds, effectiveStoreId);
 
 							if (!valRes.IsValid) return (false, valRes.Message, null);
 
@@ -118,15 +127,6 @@ namespace ISpanShop.Services.Payments
 
 								if (!pointRes.IsSuccess) return (false, pointRes.Message, null);
 							}
-						}
-
-						// --- D. 建立訂單主表 ---
-						// 確保 StoreId 有效，如果 DTO 為 0 則從商品中抓取
-						int effectiveStoreId = dto.StoreId;
-						if (effectiveStoreId <= 0 && dto.Items.Any())
-						{
-							var firstProduct = await _context.Products.FindAsync(dto.Items[0].ProductId);
-							if (firstProduct != null) effectiveStoreId = firstProduct.StoreId;
 						}
 
 						// 檢查賣場狀態

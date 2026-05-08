@@ -15,6 +15,7 @@ export interface Coupon {
   perUserLimit: number;
   isClaimed?: boolean;
   status?: number;
+  applyToAll?: boolean;
 }
 
 // ─── 會員端 ───

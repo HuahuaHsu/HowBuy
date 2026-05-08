@@ -58,7 +58,7 @@ namespace ISpanShop.WebAPI.Controllers
 
             var coupons = await _context.MemberCoupons
                 .Include(mc => mc.Coupon)
-                .Where(mc => mc.UserId == userId)
+                .Where(mc => mc.UserId == userId && !mc.Coupon.IsDeleted && mc.Coupon.Status == 1)
                 .Select(mc => new {
                     mc.CouponId,
                     mc.Coupon.Title,

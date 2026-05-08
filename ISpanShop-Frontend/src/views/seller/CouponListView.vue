@@ -51,7 +51,13 @@
         <el-table-column label="操作" width="150" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="openEditDialog(row)">編輯</el-button>
-            <el-button link type="danger" @click="handleDelete(row.id)">刪除</el-button>
+            <el-button 
+              link 
+              :type="row.status === 1 ? 'danger' : 'success'" 
+              @click="handleToggleStatus(row)"
+            >
+              {{ row.status === 1 ? '停用' : '啟用' }}
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -166,7 +172,8 @@ const formData = ref<Partial<Coupon>>({
   perUserLimit: 1,
   startTime: defaultDates.start,
   endTime: defaultDates.end,
-  status: 1
+  status: 1,
+  applyToAll: true
 });
 
 const rules = {
@@ -228,7 +235,8 @@ const openCreateDialog = () => {
     perUserLimit: 1,
     startTime: dates.start,
     endTime: dates.end,
-    status: 1
+    status: 1,
+    applyToAll: true
   };
   dialogVisible.value = true;
 };
@@ -262,14 +270,29 @@ const handleSubmit = async () => {
   });
 };
 
-const handleDelete = async (id: number) => {
+const handleToggleStatus = async (row: Coupon) => {
+  const isEnabling = row.status !== 1;
+  const actionText = isEnabling ? '啟用' : '停用';
+  
   try {
-    await ElMessageBox.confirm('確定要刪除這張優惠券嗎？', '提示', { type: 'warning' });
-    await deleteSellerCoupon(id);
-    ElMessage.success('已刪除');
+    await ElMessageBox.confirm(`確定要${actionText}這張優惠券嗎？`, '提示', {
+      confirmButtonText: '確定',
+      cancelButtonText: '取消',
+      type: isEnabling ? 'success' : 'warning',
+    });
+    
+    await updateSellerCoupon(row.id, {
+      ...row,
+      status: isEnabling ? 1 : 0
+    });
+    
+    ElMessage.success(`${actionText}成功`);
     await loadCoupons();
   } catch (error) {
-    // cancel
+    if (error !== 'cancel') {
+      console.error(`Failed to ${actionText} coupon:`, error);
+      ElMessage.error(`${actionText}失敗`);
+    }
   }
 };
 

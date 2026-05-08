@@ -28,6 +28,8 @@ public class CouponService : ICouponService
             .ThenInclude(c => c.Categories)
             .Where(mc => mc.UserId == userId && 
                          mc.UsageStatus == 0 && 
+                         !mc.Coupon.IsDeleted &&
+                         mc.Coupon.Status == 1 &&
                          mc.Coupon.StartTime <= now && 
                          mc.Coupon.EndTime >= now)
             .ToListAsync();
@@ -53,7 +55,7 @@ public class CouponService : ICouponService
         return available;
     }
 
-    public async Task<(bool IsValid, string Message, Coupon? Coupon)> ValidateCouponAsync(int userId, int couponId, decimal subtotal, List<int> productIds)
+    public async Task<(bool IsValid, string Message, Coupon? Coupon)> ValidateCouponAsync(int userId, int couponId, decimal subtotal, List<int> productIds, int storeId)
     {
         var now = DateTime.Now;
         var memberCoupon = await _context.MemberCoupons
@@ -72,10 +74,18 @@ public class CouponService : ICouponService
         // 檢查範圍 (Scope Check)
         if (!coupon.ApplyToAll)
         {
+            // 如果是賣場限定，首先檢查賣場 ID 是否匹配
+            if (coupon.StoreId != storeId) return (false, "此優惠券不適用於此賣場商品", null);
+
             var eligibleProducts = coupon.Products.Select(p => p.Id).ToList();
-            bool hasEligibleProduct = productIds.Any(pid => eligibleProducts.Contains(pid));
             
-            if (!hasEligibleProduct) return (false, "此優惠券不適用於您的訂單商品", null);
+            // 如果有指定特定商品限制，則檢查是否包含其中之一
+            if (eligibleProducts.Any())
+            {
+                bool hasEligibleProduct = productIds.Any(pid => eligibleProducts.Contains(pid));
+                if (!hasEligibleProduct) return (false, "此優惠券不適用於您的訂單商品", null);
+            }
+            // 如果沒有指定特定商品，則視為該賣場「全店通用」，已通過 StoreId 檢查
         }
 
         return (true, "驗證成功", coupon);
@@ -169,7 +179,9 @@ public class CouponService : ICouponService
         // 取得所有公開領取、且在期限內、且還有餘額的優惠券
         // 移除 Include(c => c.MemberCoupons) 以提升效能
         var query = _context.Coupons
-            .Where(c => c.DistributionType == 1 && 
+            .Where(c => !c.IsDeleted && 
+                        c.Status == 1 &&
+                        c.DistributionType == 1 && 
                         c.StartTime <= now && 
                         c.EndTime >= now &&
                         c.UsedQuantity < c.TotalQuantity);
@@ -260,8 +272,20 @@ public class CouponService : ICouponService
         var coupon = await _context.Coupons.FindAsync(id);
         if (coupon != null)
         {
-            _context.Coupons.Remove(coupon);
+            coupon.IsDeleted = true;
+            coupon.Status = 0; // 停用
+            _context.Entry(coupon).State = EntityState.Modified;
             await _context.SaveChangesAsync();
         }
+    }
+
+    public async Task<bool> IsCouponCodeExistsAsync(string code, int? excludeId = null)
+    {
+        var query = _context.Coupons.Where(c => c.CouponCode == code && !c.IsDeleted);
+        if (excludeId.HasValue)
+        {
+            query = query.Where(c => c.Id != excludeId.Value);
+        }
+        return await query.AnyAsync();
     }
 }
