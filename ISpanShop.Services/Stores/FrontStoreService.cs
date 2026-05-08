@@ -249,7 +249,7 @@ namespace ISpanShop.Services.Stores
                 existingStore.Description = dto.Description;
                 existingStore.LogoUrl = dto.LogoUrl;
                 existingStore.IsVerified = null;
-                existingStore.StoreStatus = 2;
+                existingStore.StoreStatus = 1;
                 existingStore.CreatedAt = DateTime.Now;
 
                 _context.Stores.Update(existingStore);
@@ -263,10 +263,13 @@ namespace ISpanShop.Services.Stores
                     Description = dto.Description,
                     LogoUrl = dto.LogoUrl,
                     IsVerified = null,
-                    StoreStatus = 2,
+                    StoreStatus = 1,
                     CreatedAt = DateTime.Now
                 };
                 _context.Stores.Add(newStore);
+                // 強制讓 EF Core 在 Insert 時包含特定欄位，避免資料庫預設值介入
+                _context.Entry(newStore).Property(e => e.IsVerified).IsModified = true;
+                _context.Entry(newStore).Property(e => e.StoreStatus).IsModified = true;
             }
 
             return await _context.SaveChangesAsync() > 0;
@@ -292,12 +295,14 @@ namespace ISpanShop.Services.Stores
                 .AsNoTracking()
                 .FirstOrDefaultAsync(s => s.UserId == userId);
 
+            bool isBanned = (store?.User?.IsBlacklisted == true) || (store?.StoreStatus == 3);
+
             string status;
             if (store == null) status = "NotApplied";
+            else if (isBanned) status = "Suspended";
             else if (store.IsVerified == null) status = "Pending";
             else status = store.IsVerified.Value ? "Approved" : "Rejected";
 
-            bool isBanned = (store?.User?.IsBlacklisted == true) || (store?.StoreStatus == 3);
             return (status, isBanned);
         }
 
@@ -390,7 +395,7 @@ namespace ISpanShop.Services.Stores
             };
         }
 
-        public async Task<PagedResultDto<SellerOrderListDto>> GetSellerOrdersAsync(int userId, OrderStatus? status = null, int page = 1, int pageSize = 10)
+        public async Task<PagedResultDto<SellerOrderListDto>> GetSellerOrdersAsync(int userId, OrderStatus? status = null, int page = 1, int pageSize = 10, string keyword = null)
         {
             var store = await _context.Stores
                 .AsNoTracking()
@@ -407,6 +412,13 @@ namespace ISpanShop.Services.Stores
             if (status.HasValue)
             {
                 query = query.Where(o => o.Status == (byte)status.Value);
+            }
+
+            if (!string.IsNullOrEmpty(keyword))
+            {
+                query = query.Where(o => o.OrderNumber.Contains(keyword) 
+                                      || o.User.Account.Contains(keyword)
+                                      || o.OrderDetails.Any(od => od.ProductName.Contains(keyword)));
             }
 
             var totalCount = await query.CountAsync();
@@ -796,7 +808,19 @@ namespace ISpanShop.Services.Stores
             }
             else
             {
-                order.Status = (byte)OrderStatus.Completed;
+                byte originalStatus = (byte)OrderStatus.Completed; // 預設退回已完成狀態
+
+                // 解析暫存的原始訂單狀態
+                if (!string.IsNullOrEmpty(latestReturn.AdminRemark) && latestReturn.AdminRemark.StartsWith("[OriginalStatus:"))
+                {
+                    var statusStr = latestReturn.AdminRemark.Replace("[OriginalStatus:", "").TrimEnd(']');
+                    if (byte.TryParse(statusStr, out byte parsedStatus))
+                    {
+                        originalStatus = parsedStatus;
+                    }
+                }
+
+                order.Status = originalStatus;
                 latestReturn.Status = 2; // 已拒絕
             }
 

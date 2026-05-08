@@ -852,7 +852,7 @@ public partial class ISpanShopDBContext : DbContext
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
-            entity.Property(e => e.IsVerified).HasDefaultValue(false);
+            entity.Property(e => e.IsVerified);
             entity.Property(e => e.LogoUrl).HasMaxLength(500);
             entity.Property(e => e.StoreName)
                 .IsRequired()

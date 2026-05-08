@@ -21,6 +21,9 @@ public partial class Promotion
 
     public int Status { get; set; }
 
+    /// <summary>限量搶購的全館限量數量（其他類型為 null）</summary>
+    public int? LimitQuantity { get; set; }
+
     public int SellerId { get; set; }
 
     public int? ReviewedBy { get; set; }

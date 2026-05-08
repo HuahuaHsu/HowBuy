@@ -19,6 +19,7 @@ export interface PromotionProductItem {
   discountPrice: number | null
   discountPercent: number | null
   soldCount: number
+  totalSoldCount: number
   quantityLimit: number | null
   stockLimit: number | null
 }

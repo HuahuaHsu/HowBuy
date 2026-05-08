@@ -36,7 +36,7 @@ export const routes: RouteRecordRaw[] = [
         path: 'cart',
         name: 'cart',
         component: () => import('../views/cart/CartView.vue'),
-        meta: { requiresAuth: true }
+        meta: { requiresAuth: false }
       },
       {
         path: 'coupons',
@@ -164,6 +164,12 @@ export const routes: RouteRecordRaw[] = [
     path: '/reset-password',
     name: 'reset-password',
     component: () => import('../views/auth/ResetPasswordView.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/verify-email',
+    name: 'verify-email',
+    component: () => import('../views/auth/VerifyEmailView.vue'),
     meta: { requiresAuth: false }
   },
   {

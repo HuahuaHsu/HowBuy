@@ -6,10 +6,15 @@ namespace ISpanShop.Repositories.Members
     {
         Task<User?> GetByEmailOrAccountAsync(string emailOrAccount);
         Task<bool> ExistsAsync(string email, string account);
+        Task<User?> GetExpiredPendingUserAsync(string email, string account, DateTime expiresBefore);
         Task CreateAsync(User user);
         Task<User?> GetByIdAsync(int userId);
         Task<bool> UpdatePasswordHashAsync(int userId, string newHash);
         Task<User?> FindByProviderAsync(string provider, string providerId);
         Task<User?> FindByEmailAsync(string email);
+        Task<bool> ConfirmCodeExistsAsync(string confirmCode);
+        Task<User?> GetPendingUserByConfirmCodeAsync(string confirmCode);
+        Task<bool> ConfirmEmailAsync(int userId);
+        Task DeletePendingUserAsync(int userId);
     }
 }

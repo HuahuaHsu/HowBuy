@@ -49,6 +49,7 @@ namespace ISpanShop.Repositories.Orders
 							.ThenInclude(od => od.Product)
 								.ThenInclude(p => p.ProductImages)
 				.Include(o => o.OrderReviews)
+				.Include(o => o.SupportTickets)
 				.AsSplitQuery()
 				.FirstOrDefaultAsync(o => o.Id == id);
 		}
@@ -69,6 +70,20 @@ namespace ISpanShop.Repositories.Orders
 					{
 						rr.Status = 2;
 						rr.UpdatedAt = DateTime.Now;
+
+						// 嘗試還原原始訂單狀態
+						if (!string.IsNullOrEmpty(rr.AdminRemark) && rr.AdminRemark.StartsWith("[OriginalStatus:"))
+						{
+							var statusStr = rr.AdminRemark.Replace("[OriginalStatus:", "").TrimEnd(']');
+							if (byte.TryParse(statusStr, out byte parsedStatus))
+							{
+								order.Status = parsedStatus;
+								if (parsedStatus != 3)
+								{
+									order.CompletedAt = null; // 還原狀態的話清空完成時間
+								}
+							}
+						}
 					}
 				}
 				else if (status == 5) // 退貨/款中 (Refund/Return in Progress = 5)
@@ -115,6 +130,7 @@ namespace ISpanShop.Repositories.Orders
 				.AsNoTracking()
 				.Include(o => o.Store)
 				.Include(o => o.OrderReviews)
+				.Include(o => o.SupportTickets)
 				.Include(o => o.OrderDetails)
 					.ThenInclude(od => od.Product)
 						.ThenInclude(p => p.ProductImages)
@@ -158,6 +174,7 @@ namespace ISpanShop.Repositories.Orders
 					o.UserId.ToString() == kw ||
 					o.RecipientName.Contains(kw) ||
 					o.RecipientPhone.Contains(kw) ||
+					(o.Store != null && o.Store.StoreName.Contains(kw)) ||
 					(o.User != null && o.User.MemberProfile != null && o.User.MemberProfile.FullName.Contains(kw)));
 			}
 

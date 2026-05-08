@@ -44,7 +44,7 @@
     #promoLayout.panel-open .col-seller,
     #promoLayout.panel-open .col-act { display: none; }
     #promoLayout.panel-open .table > :not(caption) > * > * { padding: .55rem .75rem; }
-    #promoLayout.panel-open .promo-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
+    #promoLayout.panel-open .promo-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 280px; }
     #promoLayout.panel-open .promo-desc { display: none; }
     .table tbody tr { cursor: pointer; }
     /* 面板展開時 5:5 比例（強制各佔一半）*/
@@ -248,7 +248,7 @@
                             {
                                 <tr class="outline-none focus:outline-none @(item.Status == 4 ? "resubmitted-row" : item.Status == 0 ? "pending-row" : "")" data-id="@item.Id">
                                     <td>
-                                        <div class="promo-name d-flex align-items-center gap-1">
+                                        <div class="promo-name d-flex align-items-center gap-1" title="@item.Name">
                                             @item.Name
                                         </div>
                                         <div class="promo-desc">@item.ItemCount 個項目</div>

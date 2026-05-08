@@ -80,7 +80,7 @@ namespace ISpanShop.MVC.Controllers.Api
         }
 
         [HttpPost("sync")]
-        public async Task<IActionResult> SyncCart([FromBody] List<CartItemDto> localItems)
+        public async Task<IActionResult> SyncCart([FromBody] List<AddToCartRequestDto> localItems)
         {
             var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdStr) || !int.TryParse(userIdStr, out int userId))

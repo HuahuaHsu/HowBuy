@@ -250,14 +250,6 @@
                           下架
                         </el-dropdown-item>
 
-                        <!-- 低庫存提醒：已上架和未上架可設定 -->
-                        <el-dropdown-item
-                          v-if="product.status === 'on' || product.status === 'off'"
-                          command="stock"
-                        >
-                          低庫存提醒
-                        </el-dropdown-item>
-
                         <!-- 刪除：草稿、未上架、已退回可刪除 -->
                         <el-dropdown-item
                           v-if="product.status === 'draft' || product.status === 'off' || product.status === 'rejected'"
@@ -293,10 +285,7 @@
             :data="pagedProducts"
             stripe
             style="width: 100%"
-            @selection-change="(rows: SellerProduct[]) => { selectedRows = rows }"
           >
-            <el-table-column type="selection" width="50" />
-
             <el-table-column label="商品" min-width="260">
               <template #default="{ row }">
                 <div class="table-product-cell">
@@ -313,7 +302,7 @@
                   </el-image>
                   <div class="table-info">
                     <div class="table-name">{{ row.name }}</div>
-                    <div class="table-id">ID: {{ row.id }}</div>
+                    <div class="table-meta">建立於 {{ formatDate(row.createdAt) }}</div>
                     <div v-if="row.status === 'rejected' && row.rejectReason" class="table-reject-reason">
                       <el-icon :size="12"><WarningFilled /></el-icon>
                       {{ row.rejectReason }}
@@ -323,28 +312,17 @@
               </template>
             </el-table-column>
 
-            <el-table-column prop="soldCount" label="已售出" width="90" align="center">
-              <template #default>
-                <!-- TODO: soldCount 後端尚未回傳 -->
-                --
+            <el-table-column label="已售出" width="90" align="center">
+              <template #default="{ row }">
+                {{ row.totalSales ?? 0 }}
               </template>
             </el-table-column>
 
             <el-table-column label="商品數量" width="100" align="center">
-              <template #default>
-                <!-- TODO: totalStock 後端尚未回傳 -->
-                --
-              </template>
-            </el-table-column>
-
-            <el-table-column label="低庫存提醒" width="120" align="center">
               <template #default="{ row }">
-                <el-switch
-                  :model-value="row.lowStockAlert"
-                  size="small"
-                  active-color="#ee4d2d"
-                  @change="openStockDialog(row)"
-                />
+                <span>
+                  {{ row.totalStock === 0 ? '售完' : (row.totalStock ?? 0) }}
+                </span>
               </template>
             </el-table-column>
 
@@ -415,49 +393,6 @@
       </div>
     </el-card>
 
-    <!-- ── 低庫存提醒 Dialog ── -->
-    <el-dialog
-      v-model="stockDialogVisible"
-      title="低庫存提醒"
-      width="460px"
-      :close-on-click-modal="false"
-    >
-      <p class="dialog-hint">
-        當您的庫存數量少於您在此處設定的安全庫存，系統將會通知您
-      </p>
-      <div v-if="stockDialogProduct" class="dialog-product-row">
-        <el-image
-          :src="stockDialogProduct.mainImageUrl || defaultProductImage"
-          fit="cover"
-          class="dialog-img"
-        />
-        <span class="dialog-product-name">{{ stockDialogProduct.name }}</span>
-      </div>
-      <el-form label-position="top">
-        <el-form-item label="安全庫存數量">
-          <el-input-number
-            v-model="stockForm.threshold"
-            :min="0"
-            :max="99999"
-            controls-position="right"
-            placeholder="商品數量"
-            style="width: 100%"
-          />
-        </el-form-item>
-        <el-form-item label="提醒狀態">
-          <el-switch
-            v-model="stockForm.enabled"
-            active-text="開啟提醒"
-            inactive-text="關閉提醒"
-            active-color="#ee4d2d"
-          />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="stockDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="saveStockAlert">儲存</el-button>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
@@ -501,7 +436,7 @@ function getProductPrice(product: SellerProduct): string {
 // ── 型別定義 ──────────────────────────────────────────────────────
 type ProductStatus = 'on' | 'off' | 'deleted' | 'review' | 'rejected' | 'draft'
 type TabKey = 'all' | 'on' | 'off' | 'deleted' | 'review' | 'rejected' | 'draft'
-type SortField = 'minPrice' | 'createdAt'
+type SortField = 'minPrice' | 'createdAt' | 'totalStock' | 'totalSales'
 type SortDir = 'asc' | 'desc' | null
 
 /** 將後端 status 數字 + reviewStatus 對應至 tab key 字串
@@ -521,13 +456,10 @@ function mapStatusToKey(status: number, reviewStatus: number): ProductStatus {
 /**
  * 擴充 SellerProductListItem：
  * - 覆寫 status 為 tab key 字串（原始數字已透過 mapStatusToKey 轉換）
- * - 加入前端本地欄位（lowStockAlert 等，尚未串接後端）
  */
 interface SellerProduct extends Omit<SellerProductListItem, 'status'> {
   status: ProductStatus
   isDeleted: boolean
-  lowStockAlert: boolean
-  lowStockThreshold: number
   rejectReason: string | null
   reviewStatus: number
 }
@@ -536,7 +468,6 @@ interface SellerProduct extends Omit<SellerProductListItem, 'status'> {
 const loading = ref<boolean>(false)
 const allProducts = ref<SellerProduct[]>([])
 const categories = ref<Category[]>([])
-const selectedRows = ref<SellerProduct[]>([])
 
 // Tabs
 const activeTab = ref<TabKey>((route.query.tab as TabKey) || 'all')
@@ -558,11 +489,6 @@ const viewMode = ref<'grid' | 'list'>('grid')
 // 分頁
 const pagination = reactive({ page: 1, pageSize: 20 })
 
-// Dialog — 低庫存
-const stockDialogVisible = ref<boolean>(false)
-const stockDialogProduct = ref<SellerProduct | null>(null)
-const stockForm = reactive({ threshold: 0, enabled: false })
-
 // ── 常數 ─────────────────────────────────────────────────────────
 const level1Tabs: Array<{ key: TabKey; label: string }> = [
   { key: 'all',      label: '全部' },
@@ -575,9 +501,10 @@ const level1Tabs: Array<{ key: TabKey; label: string }> = [
 ]
 
 const sortOptions: Array<{ field: string; label: string }> = [
-  { field: 'minPrice',   label: '價格' },
-  { field: 'createdAt',  label: '建立時間' },
-  // TODO: totalStock / soldCount 後端尚未回傳，排序暫時停用
+  { field: 'minPrice',    label: '價格' },
+  { field: 'createdAt',   label: '建立時間' },
+  { field: 'totalSales',  label: '已售出' },
+  { field: 'totalStock',  label: '商品數量' },
 ]
 
 // ── Computed ──────────────────────────────────────────────────────
@@ -707,11 +634,14 @@ async function loadCategories(): Promise<void> {
 async function loadProducts(): Promise<void> {
   loading.value = true
   try {
-    // 後端 SortOrder 接受組合字串（date_desc / date_asc / price_asc / price_desc）
-    // 而非分開的 field + direction，需在前端組好後一起送
+    // 後端 SortOrder 接受組合字串（date_desc / date_asc / price_asc / price_desc / stock_asc / stock_desc / sales_desc）
     let sortByParam: string
     if (sortField.value === 'minPrice') {
       sortByParam = sortDir.value === 'asc' ? 'price_asc' : 'price_desc'
+    } else if (sortField.value === 'totalStock') {
+      sortByParam = sortDir.value === 'asc' ? 'stock_asc' : 'stock_desc'
+    } else if (sortField.value === 'totalSales') {
+      sortByParam = sortDir.value === 'asc' ? 'sales_asc' : 'sales_desc'
     } else {
       sortByParam = sortDir.value === 'asc' ? 'date_asc' : 'date_desc'
     }
@@ -737,8 +667,6 @@ async function loadProducts(): Promise<void> {
         status: isDeleted ? 'deleted' : mapStatusToKey(status, p.reviewStatus ?? 0),
         statusText: isDeleted ? '已刪除' : p.statusText,
         isDeleted,
-        lowStockAlert: false,
-        lowStockThreshold: 5,
         rejectReason: p.rejectReason ?? null,
         reviewStatus: p.reviewStatus ?? 0,
       }
@@ -792,14 +720,16 @@ function handleReset(): void {
 
 // ── 排序 ──────────────────────────────────────────────────────────
 function toggleSort(field: SortField): void {
-  pagination.page = 1 // 關鍵：切換排序時重置頁碼
+  pagination.page = 1
 
   if (sortField.value !== field) {
     sortField.value = field
-    // 預設行為：價格用 asc，建立時間用 desc
-    sortDir.value = field === 'createdAt' ? 'desc' : 'asc'
+    // 庫存預設 asc（找低庫存）；已售出預設 desc（找熱賣）；時間預設 desc；價格預設 asc
+    if (field === 'totalStock') sortDir.value = 'asc'
+    else if (field === 'totalSales') sortDir.value = 'desc'
+    else if (field === 'createdAt') sortDir.value = 'desc'
+    else sortDir.value = 'asc'
   } else {
-    // 同欄位切換方向
     sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
   }
 }
@@ -832,9 +762,6 @@ async function handleCardCommand(cmd: string, product: SellerProduct): Promise<v
       break
     case 'shelf':
       await handleToggleShelf(product)
-      break
-    case 'stock':
-      openStockDialog(product)
       break
     case 'delete':
       await handleDeleteProduct(product)
@@ -941,27 +868,6 @@ async function handleSubmitReview(product: SellerProduct): Promise<void> {
   }
 }
 
-// ── 低庫存 Dialog ─────────────────────────────────────────────────
-function openStockDialog(product: SellerProduct): void {
-  stockDialogProduct.value = product
-  stockForm.threshold = product.lowStockThreshold
-  stockForm.enabled = product.lowStockAlert
-  stockDialogVisible.value = true
-}
-
-function saveStockAlert(): void {
-  if (!stockDialogProduct.value) return
-  // TODO: 呼叫 PUT /api/seller/products/{id}/stock-alert { threshold, enabled }
-  console.log(
-    '[TODO] PUT /api/seller/products/' + stockDialogProduct.value.id + '/stock-alert',
-    { ...stockForm },
-  )
-  stockDialogProduct.value.lowStockAlert = stockForm.enabled
-  stockDialogProduct.value.lowStockThreshold = stockForm.threshold
-  ElMessage.success('低庫存提醒設定已儲存（TODO: 串接後端）')
-  stockDialogVisible.value = false
-}
-
 // ── Helpers ───────────────────────────────────────────────────────
 function formatDate(dateString: string | undefined): string {
   if (!dateString) return '—'
@@ -985,6 +891,7 @@ function getStatusTagType(status: ProductStatus): 'success' | 'warning' | 'dange
     default: return 'info'
   }
 }
+
 </script>
 
 <style scoped>
@@ -1292,7 +1199,7 @@ function getStatusTagType(status: ProductStatus): 'success' | 'warning' | 'dange
   text-overflow: ellipsis;
   max-width: 180px;
 }
-.table-id { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+.table-meta { font-size: 11px; color: #94a3b8; margin-top: 2px; }
 .table-reject-reason {
   display: flex;
   align-items: center;

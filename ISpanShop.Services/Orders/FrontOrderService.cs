@@ -55,8 +55,10 @@ namespace ISpanShop.Services.Orders
                     SellerId = o.Store?.UserId ?? 0,
                     FirstProductName = firstDetail?.ProductName,
                     FirstProductImage = GetFinalImage(firstDetail),
+                    ProductNames = string.Join(", ", o.OrderDetails.Select(od => od.ProductName)),
                     TotalItemCount = o.OrderDetails.Sum(od => od.Quantity),
-                    IsReviewed = o.OrderReviews.Any()
+                    IsReviewed = o.OrderReviews.Any(),
+                    HasAppealed = o.SupportTickets.Any()
                 };
             }).ToList();
         }
@@ -137,6 +139,7 @@ namespace ISpanShop.Services.Orders
                     };
                 }).ToList(),
                 IsReviewed = o.OrderReviews.Any(),
+                HasAppealed = o.SupportTickets.Any(),
                 
                 // 抓取最新的一筆退貨申請作為資訊展示
                 ReturnInfo = o.ReturnRequests.OrderByDescending(r => r.CreatedAt).Select(r => new FrontReturnDetailDto
@@ -263,6 +266,7 @@ namespace ISpanShop.Services.Orders
                 ReasonDescription = dto.ReasonDescription, // 移除舊的明細拼湊，保持乾淨
                 RefundAmount = totalRefund,
                 Status = 0, // 待處理
+                AdminRemark = $"[OriginalStatus:{o.Status}]", // 暫存申請退貨前的原始訂單狀態
                 CreatedAt = DateTime.Now,
                 ReturnRequestImages = dto.ImageUrls?.Select(url => new ReturnRequestImage
                 {

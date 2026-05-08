@@ -78,6 +78,13 @@ namespace ISpanShop.Services.Stores
             // 同步更新會員的身分
             _memberRepository.UpdateIsSeller(store.UserId, isVerified);
 
+            // 當賣場被「開通」(isVerified = true) 時，預設將營業狀態設為「營業中」(1)
+            // 除非它目前已經是停權狀態(3)，則不自動變更
+            if (isVerified && store.StoreStatus != 3)
+            {
+                _storeRepository.UpdateStoreStatus(storeId, 1);
+            }
+
             string msg = isVerified ? "已通過審核，賣家身分已開通" : "已取消審核，賣家身分已關閉";
             return (true, msg);
         }

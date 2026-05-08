@@ -30,7 +30,7 @@
         <div class="seller-logo" @click="router.push('/seller')">
           <img src="@/assets/images/howbuyLogo.png" class="logo-icon" alt="HowBuy Logo">
           <span class="logo-text">HowBuy <span class="logo-sub">賣家中心</span></span>
-          
+
         </div>
       </div>
       <div class="header-right">
@@ -143,11 +143,6 @@
             </el-menu-item>
           </el-sub-menu>
 
-          <!-- 聊聊管理 -->
-          <el-menu-item index="/seller/chat">
-            <el-icon><ChatDotRound /></el-icon>
-            <template #title>聊聊管理</template>
-          </el-menu-item>
         </el-menu>
 
         <div class="collapse-btn" @click="toggleCollapse">
@@ -189,7 +184,7 @@ import {
   ArrowDown, House, SwitchButton,
   DataAnalysis, Box, List, Plus, Document, RefreshLeft,
   PriceTag, StarFilled, Ticket, TrendCharts, Histogram, DataLine,
-  ChatDotRound, DArrowLeft, DArrowRight, Setting, WarningFilled
+  DArrowLeft, DArrowRight, Setting, WarningFilled
 } from '@element-plus/icons-vue'
 import { useAuthStore } from '../stores/auth'
 import { getStoreStatusApi } from '../api/store'
@@ -215,8 +210,9 @@ async function checkStoreStatus() {
   try {
     const res = await getStoreStatusApi()
     const currentStatus = res.data.status
+    const isBanned = res.data.isBanned
 
-    if (currentStatus === 'Suspended') {
+    if (currentStatus === 'Suspended' || isBanned === true) {
       isSuspended.value = true
     } else if (currentStatus === 'Approved') {
       isSuspended.value = false

@@ -219,6 +219,7 @@ namespace ISpanShop.MVC.Controllers.Api.Promotions
                     storedDiscountPrice = pi.DiscountPrice,
                     discountPercent     = pi.DiscountPercent,
                     soldCount           = pi.SoldCount,
+                    totalSoldCount      = pi.Product.TotalSales ?? 0,
                     quantityLimit       = pi.QuantityLimit,
                     stockLimit          = pi.StockLimit,
                     // 有庫存（Stock > 0 且未刪除）的規格最低價；無庫存時為 null
@@ -244,6 +245,7 @@ namespace ISpanShop.MVC.Controllers.Api.Promotions
                     discountPrice,
                     discountPercent = r.discountPercent,
                     soldCount       = r.soldCount,
+                    totalSoldCount  = r.totalSoldCount,
                     quantityLimit   = r.quantityLimit,
                     stockLimit      = r.stockLimit,
                 };

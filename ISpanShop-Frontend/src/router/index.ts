@@ -13,6 +13,7 @@ const BLACKLISTED_ALLOWED_ROUTES = new Set([
   'products',
   'ProductDetail',
   'StorePage',
+  'cart',               // 必開：查看購物車
   'member-center',      // 必開：顯示停權通知
   'member-orders',      // 必開：查看歷史訂單
   'member-order-detail',// 必開：查看訂單詳情
