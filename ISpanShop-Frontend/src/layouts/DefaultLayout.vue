@@ -41,7 +41,7 @@
             <el-dropdown trigger="hover" @command="handleDropdownCommand">
               <span class="user-dropdown-trigger">
                 <el-icon><User /></el-icon>
-                {{ authStore.memberInfo.account }}
+                {{ authStore.memberInfo.memberName || authStore.memberInfo.account }}
                 <el-icon class="dropdown-arrow"><ArrowDown /></el-icon>
               </span>
               <template #dropdown>
