@@ -7,19 +7,19 @@
         <aside class="sidebar">
           <!-- 會員資訊區塊 -->
           <div class="sidebar-user-card" @click="router.push('/member/profile')">
-            <div class="avatar" :style="{ 
+            <div class="avatar" :style="{
               background: `linear-gradient(135deg, ${levelStyle.color} 0%, ${levelStyle.darker} 100%)`,
               boxShadow: `0 4px 12px ${levelStyle.shadow}`
             }">
-            <img v-if="authStore.memberInfo?.avatarUrl"
-            :src="getFullImageUrl(authStore.memberInfo.avatarUrl)"
-            style="width:100%; height:100%; border-radius:50%; object-fit:cover;"/>
-            <span v-else>
-              {{ authStore.memberInfo?.account?.charAt(0).toUpperCase() || 'U' }}
-            </span>
-          </div>
+              <img v-if="authStore.memberInfo?.avatarUrl"
+                :src="getFullImageUrl(authStore.memberInfo.avatarUrl)"
+                style="width:100%; height:100%; border-radius:50%; object-fit:cover;"/>
+              <span v-else>
+                {{ (authStore.memberInfo?.memberName || authStore.memberInfo?.account || 'U').charAt(0).toUpperCase() }}
+              </span>
+            </div>
             <div class="user-details">
-              <span class="username">{{ authStore.memberInfo?.account || '正在讀取...' }}</span>
+              <span class="username">{{ authStore.memberInfo?.memberName || authStore.memberInfo?.account || '正在讀取...' }}</span>
               <span class="level-badge" :style="{ color: levelStyle.color }">
                 ★ {{ authStore.memberInfo?.levelName || '一般會員' }}
               </span>
@@ -79,28 +79,28 @@ const activeMenu = computed(() => route.path)
 // 根據等級名稱決定顏色 (對應 LevelView.vue 的設定)
 const levelStyle = computed(() => {
   const level = authStore.memberInfo?.levelName || '一般會員'
-  
+
   // 金牌 / 黃金
   if (level.includes('金')) {
-    return { 
-      color: '#f59e0b', 
-      darker: '#d97706', 
-      shadow: 'rgba(245, 158, 11, 0.4)' 
+    return {
+      color: '#f59e0b',
+      darker: '#d97706',
+      shadow: 'rgba(245, 158, 11, 0.4)'
     }
-  } 
+  }
   // 銀牌
   else if (level.includes('銀')) {
-    return { 
-      color: '#64748b', 
-      darker: '#475569', 
-      shadow: 'rgba(100, 116, 139, 0.4)' 
+    return {
+      color: '#64748b',
+      darker: '#475569',
+      shadow: 'rgba(100, 116, 139, 0.4)'
     }
   }
   // 銅牌 / 一般會員 / 預設品牌橘
-  return { 
-    color: '#EE4D2D', 
-    darker: '#BE3E24', 
-    shadow: 'rgba(238, 77, 45, 0.3)' 
+  return {
+    color: '#EE4D2D',
+    darker: '#BE3E24',
+    shadow: 'rgba(238, 77, 45, 0.3)'
   }
 })
 
@@ -115,66 +115,6 @@ onMounted(() => {
 .layout {
   min-height: 100vh;
   background: linear-gradient(180deg, #f1f5f9 0%, #e2e8f0 100%);
-}
-
-/* 深色 Header (同步首頁 DefaultLayout) */
-.global-header {
-  background: linear-gradient(135deg, #1e293b 0%, #0f172a 50%, #1e1b4b 100%);
-  padding: 18px 0;
-  color: white;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-}
-.header-inner {
-  max-width: 1200px;
-  margin: 0 auto;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 20px;
-  padding: 0 20px;
-}
-
-/* Logo 樣式同步首頁 */
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  transition: transform 0.3s;
-}
-.logo:hover {
-  transform: scale(1.05);
-}
-.logo-icon {
-  font-size: 24px;
-}
-.logo-text {
-  font-size: 24px;
-  font-weight: 800;
-  background: linear-gradient(135deg, #EE4D2D 0%, #F3826C 50%, #F7A696 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  text-shadow: 0 0 20px rgba(238, 77, 45, 0.2);
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 0;
-}
-.nav-link {
-  color: #cbd5e1 !important;
-  font-size: 14px;
-  padding: 0 12px;
-  transition: color 0.2s;
-}
-.nav-link:hover {
-  color: #EE4D2D !important;
-}
-.divider-text {
-  color: rgba(255, 255, 255, 0.2);
-  font-size: 12px;
 }
 
 /* 側邊欄與佈局 */

@@ -182,7 +182,10 @@ namespace ISpanShop.Repositories.Products
                 .Include(p => p.ProductVariants)
                 .AsQueryable();
 
-            if (!criteria.IncludeDeleted)
+            if (!string.IsNullOrWhiteSpace(criteria.SellerTab) &&
+                criteria.SellerTab.Equals("deleted", StringComparison.OrdinalIgnoreCase))
+                query = query.Where(p => p.IsDeleted == true);
+            else if (!criteria.IncludeDeleted)
                 query = query.Where(p => p.IsDeleted != true);
 
             if (criteria.CategoryId.HasValue)
@@ -207,7 +210,20 @@ namespace ISpanShop.Repositories.Products
             if (criteria.BrandId.HasValue)
                 query = query.Where(p => p.BrandId == criteria.BrandId.Value);
 
-            if (criteria.Status.HasValue)
+            if (!string.IsNullOrWhiteSpace(criteria.SellerTab))
+            {
+                query = criteria.SellerTab.ToLowerInvariant() switch
+                {
+                    "on" => query.Where(p => p.Status == 1 && p.IsDeleted != true),
+                    "off" => query.Where(p => p.Status == 0 && p.ReviewStatus == 1 && p.IsDeleted != true),
+                    "review" => query.Where(p => p.Status == 2 && p.IsDeleted != true),
+                    "rejected" => query.Where(p => p.Status == 3 && p.IsDeleted != true),
+                    "draft" => query.Where(p => p.Status == 0 && p.ReviewStatus != 1 && p.IsDeleted != true),
+                    "deleted" => query,
+                    _ => query
+                };
+            }
+            else if (criteria.Status.HasValue)
                 query = query.Where(p => p.Status == criteria.Status.Value);
             else if (!criteria.StoreId.HasValue)
                 // 只在「平台商品總覽」時過濾：已退回商品只在審核中心的近期退回紀錄顯示

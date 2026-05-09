@@ -11,7 +11,7 @@
       align-center
       class="suspension-dialog"
     >
-    <div class="suspension-content">
+      <div class="suspension-content">
         <el-icon color="#f56c6c" size="120"><WarningFilled /></el-icon>
         <h2>您的商店已被停權</h2>
         <p>目前賣場已「停權」，暫時無法使用賣家中心相關功能。您可以查看諮詢紀錄或提交新的諮詢與平台管理員聯繫。</p>
@@ -30,29 +30,29 @@
         <div class="seller-logo" @click="router.push('/seller')">
           <img src="@/assets/images/howbuyLogo.png" class="logo-icon" alt="HowBuy Logo">
           <span class="logo-text">HowBuy <span class="logo-sub">賣家中心</span></span>
-
         </div>
       </div>
       <div class="header-right">
+
+        <!-- 帳號下拉 -->
         <el-dropdown trigger="click" @command="handleCommand">
           <span class="account-trigger">
-            <el-avatar :size="32" class="account-avatar">
-              {{ authStore.memberInfo.account?.charAt(0).toUpperCase() ?? 'S' }}
-            </el-avatar>
             <span class="account-name">{{ authStore.memberInfo.account ?? '賣家' }}</span>
             <el-icon class="account-arrow"><ArrowDown /></el-icon>
           </span>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item command="storefront">
-                <el-icon><House /></el-icon> 回到首頁
-              </el-dropdown-item>
-              <el-dropdown-item command="logout" divided>
+              <el-dropdown-item command="logout">
                 <el-icon><SwitchButton /></el-icon> 登出
               </el-dropdown-item>
             </el-dropdown-menu>
           </template>
         </el-dropdown>
+        <!-- 回到首頁按鈕 -->
+        <el-button text class="home-btn" @click="router.push('/')">
+          <el-icon><House /></el-icon>
+          <span>回到首頁</span>
+        </el-button>
       </div>
     </header>
 
@@ -60,7 +60,7 @@
       <!-- 2. 停權網底屏蔽層 (毛玻璃效果) -->
       <div v-if="isSuspended" class="suspension-mask-layer"></div>
 
-      <!-- 左側選單 (完整恢復) -->
+      <!-- 左側選單 -->
       <aside class="seller-sidebar" :class="{ collapsed: isCollapsed, 'is-suspended': isSuspended }">
         <el-menu
           :default-active="activeMenu"
@@ -205,8 +205,6 @@ const checkingStatus = ref<boolean>(true)
 const activeMenu = computed<string>(() => route.path)
 
 async function checkStoreStatus() {
-  // 如果已經知道是正常狀態且 token 沒變，可以考慮從 store 快取讀取以減少請求
-  // 但為了安全，我們在 Layout 層級至少做一次即時檢查
   try {
     const res = await getStoreStatusApi()
     const currentStatus = res.data.status
@@ -218,7 +216,6 @@ async function checkStoreStatus() {
       isSuspended.value = false
       authStore.updateSellerStatus(true)
     } else {
-      // Pending, Rejected 等狀態導回檢查頁
       await router.replace('/member/mystore')
     }
   } catch (error) {
@@ -237,8 +234,7 @@ function toggleCollapse(): void {
 }
 
 function handleCommand(command: string): void {
-  if (command === 'storefront') router.push('/')
-  else if (command === 'logout') {
+  if (command === 'logout') {
     authStore.logout()
     ElMessage.success('已登出')
     router.push('/login')
@@ -300,7 +296,48 @@ function handleCommand(command: string): void {
 .logo-text { font-size: 18px; font-weight: 700; color: white; }
 .logo-sub { font-size: 14px; color: #ee4d2d; margin-left: 6px; }
 
-.account-trigger { display: flex; align-items: center; gap: 8px; cursor: pointer; color: #cbd5e1; outline: none; }
+/* ── 右側區塊 ── */
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* ── 回到首頁按鈕 ── */
+.home-btn {
+  color: #cbd5e1 !important;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  transition: color 0.2s, background 0.2s;
+}
+
+.home-btn:hover {
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* ── 帳號下拉觸發器 ── */
+.account-trigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  color: #cbd5e1;
+  outline: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  transition: color 0.2s, background 0.2s;
+}
+
+.account-trigger:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
 .account-name { font-size: 14px; }
 
 /* ── 主體 ── */

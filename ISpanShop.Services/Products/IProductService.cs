@@ -111,7 +111,7 @@ namespace ISpanShop.Services.Products
         Task SubmitProductForReviewAsync(int productId);
 
         /// <summary>[Async] 清理過期退回商品（IsDeleted=true），回傳清理筆數</summary>
-        Task<int> CleanupExpiredRejectedProductsAsync(int expirationSeconds = 60);
+        Task<int> CleanupExpiredRejectedProductsAsync(int expirationSeconds = 10 * 24 * 60 * 60);
 
         /// <summary>[Async] 取得最近退回的商品清單（ReviewStatus == 2），依 UpdatedAt 降冪排序</summary>
         Task<IEnumerable<ProductReviewDto>> GetRecentRejectedProductsAsync(int top = 10);

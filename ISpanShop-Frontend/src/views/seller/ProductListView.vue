@@ -28,6 +28,7 @@
               v-model="searchKeyword"
               placeholder="搜尋 商品名稱, 商品ID"
               clearable
+              @input="handleSearch"
               @keyup.enter="handleSearch"
               @clear="handleSearch"
             >
@@ -91,7 +92,7 @@
         </el-collapse-transition>
 
         <div class="result-count">
-          共 <strong class="count-num">{{ filteredProducts.length }}</strong> 件商品
+          共 <strong class="count-num">{{ total }}</strong> 件商品
         </div>
       </div>
 
@@ -138,9 +139,9 @@
 
         <!-- 網格模式 -->
         <template v-if="viewMode === 'grid'">
-          <div v-if="pagedProducts.length > 0" class="product-grid">
+          <div v-if="products.length > 0" class="product-grid">
             <div
-              v-for="product in pagedProducts"
+              v-for="product in products"
               :key="product.id"
               class="product-card"
               :class="{ 'product-card-deleted': product.isDeleted }"
@@ -281,8 +282,8 @@
         <!-- 列表模式 -->
         <template v-else>
           <el-table
-            v-if="pagedProducts.length > 0"
-            :data="pagedProducts"
+            v-if="products.length > 0"
+            :data="products"
             stripe
             style="width: 100%"
           >
@@ -381,14 +382,14 @@
       </div>
 
       <!-- ── 分頁 ── -->
-      <div class="pagination-wrapper" v-if="filteredProducts.length > 0">
+      <div class="pagination-wrapper" v-if="total > 0">
         <el-pagination
-          v-model:current-page="pagination.page"
-          :page-size="pagination.pageSize"
-          :total="filteredProducts.length"
+          v-model:current-page="currentPage"
+          :page-size="pageSize"
+          :total="total"
           layout="total, prev, pager, next, jumper"
           background
-          @current-change="(p: number) => { pagination.page = p }"
+          @current-change="(p: number) => { currentPage = p; loadProducts() }"
         />
       </div>
     </el-card>
@@ -397,7 +398,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
@@ -405,7 +406,7 @@ import {
   ArrowDown, ArrowUp, DCaret, CaretTop, CaretBottom,
   MoreFilled, WarningFilled, View, ChatDotRound,
 } from '@element-plus/icons-vue'
-import { fetchSellerProducts, updateProductStatus, deleteSellerProduct, submitProductForReview } from '@/api/product'
+import { fetchSellerProducts, fetchSellerProductTabCounts, updateProductStatus, deleteSellerProduct, submitProductForReview } from '@/api/product'
 import { fetchMainCategories } from '@/api/category'
 import { useSellerStore } from '@/stores/seller'
 import type { SellerProductListItem } from '@/types/product'
@@ -466,8 +467,7 @@ interface SellerProduct extends Omit<SellerProductListItem, 'status'> {
 
 // ── State ─────────────────────────────────────────────────────────
 const loading = ref<boolean>(false)
-const allProducts = ref<SellerProduct[]>([])
-const categories = ref<Category[]>([])
+const products = ref<SellerProduct[]>([]), categories = ref<Category[]>([])
 
 // Tabs
 const activeTab = ref<TabKey>((route.query.tab as TabKey) || 'all')
@@ -487,7 +487,8 @@ const sortDir = ref<SortDir>('desc')
 const viewMode = ref<'grid' | 'list'>('grid')
 
 // 分頁
-const pagination = reactive({ page: 1, pageSize: 20 })
+const currentPage = ref(1), total = ref(0), pageSize = 20
+const tabCounts = ref<Record<TabKey, number>>({ all: 0, on: 0, off: 0, deleted: 0, review: 0, rejected: 0, draft: 0 }); let searchTimer: ReturnType<typeof setTimeout> | null = null
 
 // ── 常數 ─────────────────────────────────────────────────────────
 const level1Tabs: Array<{ key: TabKey; label: string }> = [
@@ -507,64 +508,6 @@ const sortOptions: Array<{ field: string; label: string }> = [
   { field: 'totalStock',  label: '商品數量' },
 ]
 
-// ── Computed ──────────────────────────────────────────────────────
-
-/** Step 1：依一級 Tab 篩選 */
-const tabFiltered = computed<SellerProduct[]>(() => {
-  let list = allProducts.value
-
-  if (activeTab.value !== 'all') {
-    list = list.filter((p) => p.status === activeTab.value)
-  }
-
-  return list
-})
-
-/** Step 2：依搜尋條件 + 進階篩選過濾 */
-const filteredProducts = computed<SellerProduct[]>(() => {
-  let list = tabFiltered.value
-
-  const kw = searchKeyword.value.trim().toLowerCase()
-  if (kw) {
-    list = list.filter(
-      (p) => p.name.toLowerCase().includes(kw) || String(p.id).includes(kw),
-    )
-  }
-
-  if (searchCategoryId.value) {
-    const cat = categories.value.find((c) => c.id === searchCategoryId.value)
-    if (cat) {
-      list = list.filter((p) => p.categoryName === cat.name)
-    }
-  }
-
-  if (advMinPrice.value !== null) {
-    list = list.filter((p) => (p.minPrice ?? 0) >= (advMinPrice.value ?? 0))
-  }
-  if (advMaxPrice.value !== null) {
-    list = list.filter((p) => (p.minPrice ?? 0) <= (advMaxPrice.value ?? Infinity))
-  }
-
-  return list
-})
-
-/** Step 3：分頁切片 */
-const pagedProducts = computed<SellerProduct[]>(() => {
-  const start = (pagination.page - 1) * pagination.pageSize
-  return filteredProducts.value.slice(start, start + pagination.pageSize)
-})
-
-/** 各 Tab 計數 */
-const tabCounts = computed<Record<TabKey, number>>(() => {
-  const c: Record<string, number> = { all: 0, on: 0, off: 0, deleted: 0, review: 0, rejected: 0, draft: 0 }
-  allProducts.value.forEach((p) => {
-    c['all'] = (c['all'] ?? 0) + 1
-    const prev = c[p.status]
-    c[p.status] = (prev === undefined ? 0 : prev) + 1
-  })
-  return c as Record<TabKey, number>
-})
-
 // ── Init ──────────────────────────────────────────────────────────
 const SESSION_STATE_KEY = 'sellerProductListState'
 
@@ -572,7 +515,7 @@ onMounted(async () => {
   // 1. 嘗試還原狀態
   restoreListState()
   
-  await Promise.all([loadCategories(), loadProducts()])
+  await Promise.all([loadCategories(), loadProducts(), loadTabCounts()])
 })
 
 /** 從 sessionStorage 還原搜尋/分頁狀態 */
@@ -589,7 +532,7 @@ function restoreListState(): void {
     if (state.advMaxPrice !== undefined) advMaxPrice.value = state.advMaxPrice
     if (state.sortField) sortField.value = state.sortField
     if (state.sortDir) sortDir.value = state.sortDir
-    if (state.page) pagination.page = state.page
+    if (state.page) currentPage.value = state.page
     if (state.viewMode) viewMode.value = state.viewMode
     console.log('[State] 已還原列表狀態:', state)
   } catch (e) {
@@ -607,7 +550,7 @@ function saveListState(): void {
     advMaxPrice: advMaxPrice.value,
     sortField: sortField.value,
     sortDir: sortDir.value,
-    page: pagination.page,
+    page: currentPage.value,
     viewMode: viewMode.value,
   }
   sessionStorage.setItem(SESSION_STATE_KEY, JSON.stringify(state))
@@ -615,7 +558,7 @@ function saveListState(): void {
 
 // 監聽所有狀態變動，自動儲存
 watch(
-  [activeTab, searchKeyword, searchCategoryId, advMinPrice, advMaxPrice, sortField, sortDir, () => pagination.page, viewMode],
+  [activeTab, searchKeyword, searchCategoryId, advMinPrice, advMaxPrice, sortField, sortDir, currentPage, viewMode],
   () => {
     saveListState()
   },
@@ -646,11 +589,7 @@ async function loadProducts(): Promise<void> {
       sortByParam = sortDir.value === 'asc' ? 'date_asc' : 'date_desc'
     }
 
-    const params: any = {
-      page: 1,
-      pageSize: 100,
-      sortBy: sortByParam,
-    }
+    const params: any = { page: currentPage.value, pageSize, sortBy: sortByParam, keyword: searchKeyword.value.trim() || undefined, categoryId: searchCategoryId.value || undefined, minPrice: advMinPrice.value ?? undefined, maxPrice: advMaxPrice.value ?? undefined, tab: activeTab.value === 'all' ? undefined : activeTab.value }
     
     const res = await fetchSellerProducts(params)
 
@@ -659,7 +598,7 @@ async function loadProducts(): Promise<void> {
       console.log('isDeleted 欄位:', res.items[0]?.isDeleted)
     }
 
-    allProducts.value = res.items.map((p): SellerProduct => {
+    products.value = res.items.map((p): SellerProduct => {
       const { status, ...rest } = p
       const isDeleted = p.isDeleted ?? false
       return {
@@ -671,6 +610,7 @@ async function loadProducts(): Promise<void> {
         reviewStatus: p.reviewStatus ?? 0,
       }
     })
+    total.value = res.totalCount ?? 0
   } catch (err) {
     console.error('[API Error] loadProducts:', err)
     ElMessage.error('載入商品失敗，請稍後再試')
@@ -679,10 +619,12 @@ async function loadProducts(): Promise<void> {
   }
 }
 
-// 監聽排序變更，自動重新載入
-watch([sortField, sortDir], () => {
-  loadProducts()
-})
+async function loadTabCounts(): Promise<void> {
+  const tabs = level1Tabs.map((tab) => tab.key)
+  tabCounts.value = await fetchSellerProductTabCounts(tabs, { keyword: searchKeyword.value.trim() || undefined, categoryId: searchCategoryId.value || undefined } as any) as Record<TabKey, number>
+}
+
+function reloadFromFirstPage(): void { currentPage.value = 1; void loadProducts(); void loadTabCounts() }
 
 // 監聽網址 Query 變更（如瀏覽器上一頁/下一頁）
 watch(
@@ -690,20 +632,23 @@ watch(
   (newTab) => {
     if (newTab && newTab !== activeTab.value) {
       activeTab.value = newTab as TabKey
+      reloadFromFirstPage()
     }
   }
 )
 
 // ── Tab 事件 ──────────────────────────────────────────────────────
 function onTabChange(val: TabKey): void {
-  pagination.page = 1
+  currentPage.value = 1
   // 更新網址 Query，但不重新跳轉頁面
   router.replace({ query: { ...route.query, tab: val } })
+  void loadProducts()
 }
 
 // ── 搜尋 / 重設 ───────────────────────────────────────────────────
 function handleSearch(): void {
-  pagination.page = 1
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => { reloadFromFirstPage() }, 300)
 }
 
 function handleReset(): void {
@@ -715,12 +660,12 @@ function handleReset(): void {
   showAdvanced.value = false
   sortField.value = 'createdAt'
   sortDir.value = 'desc'
-  pagination.page = 1
+  reloadFromFirstPage()
 }
 
 // ── 排序 ──────────────────────────────────────────────────────────
 function toggleSort(field: SortField): void {
-  pagination.page = 1
+  currentPage.value = 1
 
   if (sortField.value !== field) {
     sortField.value = field
@@ -732,6 +677,7 @@ function toggleSort(field: SortField): void {
   } else {
     sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
   }
+  void loadProducts()
 }
 
 function getSortIcon(field: SortField): object {
@@ -785,12 +731,7 @@ async function handleDeleteProduct(product: SellerProduct): Promise<void> {
     await deleteSellerProduct(product.id)
     ElMessage.success('商品已刪除')
 
-    // 本地即時更新：直接標記為已刪除
-    // 不重新呼叫 API，因為後端可能過濾掉已刪除商品，導致商品從所有 tab 消失
-    const idx = allProducts.value.findIndex(p => p.id === product.id)
-    if (idx !== -1) {
-      allProducts.value.splice(idx, 1, { ...allProducts.value[idx]!, isDeleted: true, status: 'deleted', statusText: '已刪除' })
-    }
+    await Promise.all([loadProducts(), loadTabCounts()])
   } catch (error) {
     if (error !== 'cancel') {
       console.error('刪除商品失敗:', error)
@@ -825,12 +766,8 @@ async function handleToggleShelf(product: SellerProduct): Promise<void> {
 
     await updateProductStatus(product.id, newStatusNumber)
 
-    const idx = allProducts.value.findIndex(p => p.id === product.id)
-    if (idx !== -1) {
-      allProducts.value.splice(idx, 1, { ...allProducts.value[idx]!, status: newStatus, statusText: newStatus === 'on' ? '已上架' : '未上架' })
-    }
-
     ElMessage.success(`商品已${actionText}`)
+    await Promise.all([loadProducts(), loadTabCounts()])
   } catch (error) {
     if (error !== 'cancel') {
       console.error(`${actionText}失敗:`, error)
@@ -854,12 +791,8 @@ async function handleSubmitReview(product: SellerProduct): Promise<void> {
 
     await submitProductForReview(product.id)
 
-    const idx = allProducts.value.findIndex(p => p.id === product.id)
-    if (idx !== -1) {
-      allProducts.value.splice(idx, 1, { ...allProducts.value[idx]!, status: 'review', statusText: '審核中' })
-    }
-
     ElMessage.success('已送出審核，請等待管理員審核')
+    await Promise.all([loadProducts(), loadTabCounts()])
   } catch (error) {
     if (error !== 'cancel') {
       console.error('送審失敗:', error)
@@ -869,7 +802,7 @@ async function handleSubmitReview(product: SellerProduct): Promise<void> {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────
-function formatDate(dateString: string | undefined): string {
+function formatDate(dateString: string | null | undefined): string {
   if (!dateString) return '—'
   const d = new Date(dateString)
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`

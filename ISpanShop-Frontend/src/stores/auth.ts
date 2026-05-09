@@ -138,7 +138,7 @@ export const useAuthStore = defineStore('auth', () => {
         memberId: data.id,
         email: data.email,
         account: data.account,
-        memberName: data.fullName,
+        memberName: data.fullName && data.fullName !== '未設定' ? data.fullName : (data as any).FullName || data.account,
         levelName: data.levelName || '一般會員',
         pointBalance: data.pointBalance ?? memberInfo.value.pointBalance,
         avatarUrl: data.avatarUrl || null,

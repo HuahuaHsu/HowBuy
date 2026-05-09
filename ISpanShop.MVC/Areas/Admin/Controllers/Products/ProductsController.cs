@@ -612,7 +612,7 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Products
         /// 傳入 days=0 代表「只要被退回就視為過期」，方便 Demo 展示。
         /// </summary>
         [HttpPost]
-        public async Task<IActionResult> ForceCleanupExpiredProducts(int expirationSeconds = 60)
+        public async Task<IActionResult> ForceCleanupExpiredProducts(int expirationSeconds = 10 * 24 * 60 * 60)
         {
             try
             {
