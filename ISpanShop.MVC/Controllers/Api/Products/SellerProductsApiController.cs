@@ -41,6 +41,7 @@ namespace ISpanShop.MVC.Controllers.Api.Products
             [FromQuery] int?    parentCatId  = null,
             [FromQuery] int?    brandId      = null,
             [FromQuery] int?    status       = null,
+            [FromQuery] string? tab          = null,
             [FromQuery] string? sortBy       = null,
             [FromQuery] int     page         = 1,
             [FromQuery] int     pageSize     = 20)
@@ -63,6 +64,7 @@ namespace ISpanShop.MVC.Controllers.Api.Products
                 BrandId          = brandId,
                 StoreId          = storeId,  // 強制使用 JWT 中的 StoreId
                 Status           = status,
+                SellerTab        = tab,
                 SortOrder        = sortBy ?? "date_desc",
                 PageNumber       = page,
                 PageSize         = pageSize,

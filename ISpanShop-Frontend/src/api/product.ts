@@ -76,6 +76,21 @@ export async function fetchSellerProducts(
   return response.data
 }
 
+export async function fetchSellerProductTabCounts(
+  tabs: string[],
+  params: FetchProductsParams & { tab?: string } = {},
+): Promise<Record<string, number>> {
+  const results = await Promise.all(
+    tabs.map((tab) => fetchSellerProducts({
+      ...params,
+      page: 1,
+      pageSize: 1,
+      tab: tab === 'all' ? undefined : tab,
+    } as FetchProductsParams)),
+  )
+  return Object.fromEntries(tabs.map((tab, idx) => [tab, results[idx]?.totalCount ?? 0]))
+}
+
 /**
  * 新增賣家商品
  * POST /api/seller/products  (multipart/form-data)
@@ -210,4 +225,3 @@ export async function uploadDescriptionImage(
   )
   return response.data
 }
-

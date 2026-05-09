@@ -40,7 +40,7 @@
     <el-tabs v-model="activeTab" @tab-click="handleTabChange" class="promo-tabs">
       <el-tab-pane label="全部" name="all">
         <template #label>
-          全部 <span class="tab-count">({{ allPromotions.length }})</span>
+          全部 <span class="tab-count">({{ stats.all }})</span>
         </template>
       </el-tab-pane>
       <el-tab-pane label="待審核" name="pending">
@@ -73,7 +73,7 @@
     <!-- 活動列表 -->
     <el-table
       v-loading="loading"
-      :data="paginatedPromotions"
+      :data="promotions"
       stripe
       style="width: 100%"
       class="promo-table"
@@ -172,10 +172,10 @@
     <div class="pagination-wrap">
       <el-pagination
         v-model:current-page="currentPage"
-        v-model:page-size="pageSize"
+        :page-size="pageSize"
         :total="total"
-        :page-sizes="[10, 20, 50, 100]"
-        layout="total, sizes, prev, pager, next, jumper"
+        layout="total, prev, pager, next, jumper"
+        @current-change="handlePageChange"
       />
     </div>
 
@@ -670,47 +670,20 @@ interface PromotionFormData {
 // ─── 狀態管理 ─────────────────────────────────────────────────────
 
 const loading = ref(false)
-const allPromotions = ref<SellerPromotion[]>([])  // 存放所有活動資料
+const promotions = ref<SellerPromotion[]>([])
 const currentPage = ref(1)
-const pageSize = ref(20)
+const pageSize = 20
+const total = ref(0)
 const activeTab = ref('all')
-
-// 用 computed 篩選活動
-const filteredPromotions = computed(() => {
-  if (activeTab.value === 'all') return allPromotions.value
-
-  const statusMap: Record<string, string> = {
-    pending: '待審核',
-    active: '進行中',
-    upcoming: '即將開始',
-    rejected: '已拒絕',
-    ended: '已結束',
-  }
-  const targetStatus = statusMap[activeTab.value]
-  if (!targetStatus) return allPromotions.value
-
-  return allPromotions.value.filter(p => p.statusText === targetStatus)
+const stats = ref({
+  all: 0,
+  pending: 0,
+  active: 0,
+  upcoming: 0,
+  rejected: 0,
+  ended: 0,
+  endedOnly: 0,
 })
-
-// 前端分頁：從篩選後的資料中取出當前頁的資料
-const paginatedPromotions = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value
-  const end = start + pageSize.value
-  return filteredPromotions.value.slice(start, end)
-})
-
-// 總筆數 = 篩選後的資料筆數
-const total = computed(() => filteredPromotions.value.length)
-
-// 統計各狀態的筆數
-const stats = computed(() => ({
-  pending: allPromotions.value.filter(p => p.statusText === '待審核').length,
-  active: allPromotions.value.filter(p => p.statusText === '進行中').length,
-  upcoming: allPromotions.value.filter(p => p.statusText === '即將開始').length,
-  rejected: allPromotions.value.filter(p => p.statusText === '已拒絕').length,
-  ended: allPromotions.value.filter(p => p.statusText === '已結束' || p.statusText === '已拒絕').length,
-  endedOnly: allPromotions.value.filter(p => p.statusText === '已結束').length,
-}))
 
 // ─── 彈窗表單 ─────────────────────────────────────────────────────
 
@@ -872,19 +845,21 @@ const discountHint = computed(() => {
 async function loadPromotions(): Promise<void> {
   loading.value = true
   try {
-    // 一次載入所有活動，前端做篩選和分頁
     const params = {
-      page: 1,
-      pageSize: 100,  // 取較大筆數，確保能取得所有活動
+      status: activeTab.value,
+      page: currentPage.value,
+      pageSize,
     }
     const res = await fetchSellerPromotions(params)
 
     // API 回傳格式：axios response.data = { success, data: { items, totalCount, ... } }
     if (res.success) {
-      allPromotions.value = res.data.items || []
+      promotions.value = res.data.items || []
+      total.value = res.data.totalCount ?? 0
     } else {
       console.error('API 回傳 success=false:', res)
-      allPromotions.value = []
+      promotions.value = []
+      total.value = 0
     }
   } catch (error: any) {
     console.error('載入活動列表失敗:', error)
@@ -897,10 +872,37 @@ async function loadPromotions(): Promise<void> {
     } else {
       ElMessage.error('載入失敗，請稍後再試')
     }
-    allPromotions.value = []
+    promotions.value = []
+    total.value = 0
   } finally {
     loading.value = false
   }
+}
+
+async function loadPromotionCounts(): Promise<void> {
+  try {
+    const [all, pending, active, upcoming, rejected, ended] = await Promise.all(
+      ['all', 'pending', 'active', 'upcoming', 'rejected', 'ended'].map((status) =>
+        fetchSellerPromotions({ status, page: 1, pageSize: 1 }),
+      ),
+    )
+    stats.value = {
+      all: all?.data?.totalCount ?? 0,
+      pending: pending?.data?.totalCount ?? 0,
+      active: active?.data?.totalCount ?? 0,
+      upcoming: upcoming?.data?.totalCount ?? 0,
+      rejected: rejected?.data?.totalCount ?? 0,
+      ended: (ended?.data?.totalCount ?? 0) + (rejected?.data?.totalCount ?? 0),
+      endedOnly: ended?.data?.totalCount ?? 0,
+    }
+  } catch (error) {
+    console.error('載入活動統計失敗:', error)
+  }
+}
+
+function handlePageChange(page: number): void {
+  currentPage.value = page
+  void loadPromotions()
 }
 
 // ─── 快速填入測試資料 ──────────────────────────────────────────────
@@ -911,7 +913,7 @@ async function fillDemoCampaign(): Promise<void> {
   demoLoading.value = true
   try {
     // 1. 取賣家全部商品，篩出已上架的
-    const res = await fetchSellerProducts({ pageSize: 100 })
+    const res = await fetchSellerProducts({ page: 1, pageSize: 20 })
     const onShelfProducts = (res.items ?? []).filter(p => p.status === 1)
 
     if (onShelfProducts.length === 0) {
@@ -1150,11 +1152,11 @@ async function handleSubmit(): Promise<void> {
           }
         }
 
-        ElMessage.success('活動已送出審核')
+      ElMessage.success('活動已送出審核')
       }
       dialogVisible.value = false
       currentPage.value = 1
-      await loadPromotions()
+      await Promise.all([loadPromotions(), loadPromotionCounts()])
     } catch (error: any) {
       console.error('提交活動失敗:', error)
       console.error('錯誤回應:', error.response?.data)
@@ -1284,7 +1286,7 @@ async function handleDelete(row: SellerPromotion): Promise<void> {
     )
     await deleteSellerPromotion(row.id)
     ElMessage.success('刪除成功')
-    await loadPromotions()
+    await Promise.all([loadPromotions(), loadPromotionCounts()])
   } catch (error: any) {
     if (error === 'cancel') return
     console.error('刪除活動失敗:', error)
@@ -1301,7 +1303,7 @@ async function handleCancelReview(row: SellerPromotion): Promise<void> {
     )
     await cancelSellerPromotion(row.id)
     ElMessage.success('已撤銷送審')
-    await loadPromotions()
+    await Promise.all([loadPromotions(), loadPromotionCounts()])
   } catch (error: any) {
     if (error === 'cancel') return
     console.error('撤銷送審失敗:', error)
@@ -1318,7 +1320,7 @@ async function handleEndEarly(row: SellerPromotion): Promise<void> {
     )
     await endSellerPromotionEarly(row.id)
     ElMessage.success('活動已提早結束')
-    await loadPromotions()
+    await Promise.all([loadPromotions(), loadPromotionCounts()])
   } catch (error: any) {
     if (error === 'cancel') return
     console.error('提早結束失敗:', error)
@@ -1330,13 +1332,13 @@ async function handleEndEarly(row: SellerPromotion): Promise<void> {
 
 function handleTabChange(): void {
   currentPage.value = 1  // 切換 tab 時重置到第一頁
-  // 不需要重新載入資料，computed 會自動更新
+  void loadPromotions()
 }
 
 function filterByStatus(status: string): void {
   activeTab.value = status
   currentPage.value = 1  // 切換狀態時重置到第一頁
-  // 不需要重新載入資料，computed 會自動更新
+  void loadPromotions()
 }
 
 // ─── 工具函式 ─────────────────────────────────────────────────────
@@ -1490,7 +1492,7 @@ const disabledEndDate = (time: Date) => {
 // ─── 生命週期 ─────────────────────────────────────────────────────
 
 onMounted(() => {
-  void loadPromotions()
+  void Promise.all([loadPromotions(), loadPromotionCounts()])
 })
 </script>
 

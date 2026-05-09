@@ -502,7 +502,7 @@
 
     // ── 常數 ──
     var PAGE_SIZE       = 10;
-    var COUNTDOWN_SECS  = 120;
+    var COUNTDOWN_SECS  = 10 * 24 * 60 * 60;
 
     // ── 資料陣列（唯一真實來源） ──
     var pendingData  = @Html.Raw(pendingJson);   // [{id,name,store,img,category,brand,created}]
@@ -548,6 +548,13 @@
     function nowDateStr() {
         var d = new Date(), pad = n => String(n).padStart(2,'0');
         return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+' '+pad(d.getHours())+':'+pad(d.getMinutes());
+    }
+
+    function formatCountdown(seconds) {
+        var s = Math.max(0, Math.ceil(seconds)), days = Math.floor(s / 86400), pad = n => String(n).padStart(2,'0');
+        s %= 86400;
+        var time = pad(Math.floor(s / 3600)) + ':' + pad(Math.floor((s % 3600) / 60)) + ':' + pad(s % 60);
+        return days > 0 ? days + '天 ' + time : time;
     }
 
     // ── 取得指定 tab 的資料陣列 ──
@@ -699,8 +706,8 @@
                 + '<td class="col-rej-reason reject-reason-col">' + escHtml(d.reason || '') + '</td>'
                 + '<td class="text-center"><div class="countdown-widget" data-initial="' + COUNTDOWN_SECS + '">'
                 +   '<div class="countdown-display"><i class="bx bx-time-five countdown-icon"></i>'
-                +   '<span class="countdown-timer" data-id="' + sid + '">' + remaining + '</span>'
-                +   '<span class="countdown-unit">s</span></div>'
+                +   '<span class="countdown-timer" data-id="' + sid + '">' + formatCountdown(remaining) + '</span>'
+                +   '<span class="countdown-unit"></span></div>'
                 +   '<div class="countdown-track"><div class="countdown-fill" style="width:' + Math.max(0,(remaining/COUNTDOWN_SECS)*100) + '%;"></div></div>'
                 +   '<div class="countdown-label">自動清除</div></div></td>'
                 + '<td class="text-end text-nowrap"><button class="btn btn-sm btn-outline-warning rounded-pill px-3" onclick="simulateResubmit(' + sid + ',\'' + sn + '\')"><i class="bx bx-store-alt me-1"></i>模擬賣家送審</button></td>';
@@ -1143,7 +1150,7 @@
             var item = rejectedData.find(x => x.id === id);
             if (!item) return;
             var rem  = Math.max(0, Math.ceil(COUNTDOWN_SECS - (now - item.rejectedAt) / 1000));
-            el.textContent = rem;
+            el.textContent = formatCountdown(rem);
             var widget   = el.closest('.countdown-widget');
             var fill     = widget && widget.querySelector('.countdown-fill');
             var display  = widget && widget.querySelector('.countdown-display');

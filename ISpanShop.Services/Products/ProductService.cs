@@ -351,7 +351,7 @@ namespace ISpanShop.Services.Products
             => await _productRepository.SubmitProductForReviewAsync(productId);
 
         /// <inheritdoc/>
-        public async Task<int> CleanupExpiredRejectedProductsAsync(int expirationSeconds = 60)
+        public async Task<int> CleanupExpiredRejectedProductsAsync(int expirationSeconds = 10 * 24 * 60 * 60)
             => await _productRepository.CleanupExpiredRejectedAsync(expirationSeconds);
 
         /// <inheritdoc/>
