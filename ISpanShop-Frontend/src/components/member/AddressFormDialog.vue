@@ -57,6 +57,16 @@
 
     <template #footer>
       <div class="dialog-footer">
+        <el-button
+          v-if="!isEdit"
+          type="success"
+          plain
+          :loading="quickAdding"
+          @click="handleQuickAdd"
+          class="mr-auto"
+        >
+          展示用：一鍵新增 2 筆
+        </el-button>
         <el-button @click="visible = false">取消</el-button>
         <el-button type="primary" :loading="loading" @click="handleSubmit">
           確定
@@ -70,6 +80,7 @@
 import { ref, watch, reactive, computed } from 'vue'
 import type { FormInstance } from 'element-plus'
 import type { AddressDto, UpdateAddressDto } from '@/types/member'
+import { useAddressStore } from '@/stores/address'
 
 const props = defineProps<{
   modelValue: boolean
@@ -78,6 +89,34 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits(['update:modelValue', 'submit', 'close'])
+const addressStore = useAddressStore()
+const quickAdding = ref(false)
+
+const handleQuickAdd = async () => {
+  quickAdding.value = true
+  const demo1 = {
+    recipientName: '郭艾倫',
+    recipientPhone: '0912345678',
+    city: '桃園市',
+    region: '中壢區',
+    street: '興和里新生路二段421號',
+    isDefault: true
+  }
+  const demo2 = {
+    recipientName: '李大華',
+    recipientPhone: '0987654321',
+    city: '桃園市',
+    region: '中壢區',
+    street: '興和里新生路二段421號',
+    isDefault: true
+  }
+
+  await addressStore.addAddress(demo1 as any)
+  await addressStore.addAddress(demo2 as any)
+
+  quickAdding.value = false
+  visible.value = false
+}
 
 const visible = computed({
   get: () => props.modelValue,
@@ -156,4 +195,12 @@ defineExpose({
 
 <style scoped>
 .w-full { width: 100%; }
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+.mr-auto {
+  margin-right: auto;
+}
 </style>
