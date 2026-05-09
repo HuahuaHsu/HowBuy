@@ -69,6 +69,7 @@ export interface SellerOrder {
   buyerName: string
   buyerId: number
   recipientName: string
+  recipientAddress: string
   firstProductName: string
   firstProductImage: string
   totalItemCount: number

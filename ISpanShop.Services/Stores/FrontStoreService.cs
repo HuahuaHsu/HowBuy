@@ -463,6 +463,7 @@ namespace ISpanShop.Services.Stores
                     BuyerName = o.User?.Account ?? "未知買家",
                     BuyerId = o.UserId,
                     RecipientName = o.RecipientName,
+                    RecipientAddress = o.RecipientAddress,
                     FirstProductName = firstDetail?.ProductName,
                     FirstProductImage = image,
                     TotalItemCount = o.OrderDetails.Sum(od => od.Quantity),

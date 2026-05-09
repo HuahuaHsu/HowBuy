@@ -103,7 +103,7 @@
             <div class="footer-left">
               <div class="recipient-box">
                 <el-icon><Location /></el-icon>
-                <span class="recipient-name">{{ order.recipientName }}</span>
+                <span class="recipient-address">{{ order.recipientAddress || order.recipientName }}</span>
                 <span class="item-count">共 {{ order.totalItemCount }} 件商品</span>
               </div>
             </div>
@@ -596,7 +596,13 @@ onMounted(() => {
         font-size: 13px;
         color: #555;
         .el-icon { color: #ee4d2d; }
-        .recipient-name { font-weight: 500; }
+        .recipient-address {
+          font-weight: 500;
+          max-width: 420px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
         .item-count { margin-left: 10px; color: #929292; }
       }
     }
