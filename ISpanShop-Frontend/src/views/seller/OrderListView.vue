@@ -24,7 +24,7 @@
           <el-col :xs="24" :sm="10">
             <el-input
               v-model="searchQuery"
-              placeholder="搜尋 訂單編號, 買家名稱, 商品名稱"
+              placeholder="搜尋 訂單編號, 買家名稱, 商品名稱, 收件地址"
               clearable
               @keyup.enter="handleSearch"
               @clear="handleSearch"

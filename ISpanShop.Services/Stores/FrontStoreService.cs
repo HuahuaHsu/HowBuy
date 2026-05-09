@@ -418,6 +418,7 @@ namespace ISpanShop.Services.Stores
             {
                 query = query.Where(o => o.OrderNumber.Contains(keyword) 
                                       || o.User.Account.Contains(keyword)
+                                      || (!string.IsNullOrEmpty(o.RecipientAddress) && o.RecipientAddress.Contains(keyword))
                                       || o.OrderDetails.Any(od => od.ProductName.Contains(keyword)));
             }
 
