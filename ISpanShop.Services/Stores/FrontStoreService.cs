@@ -651,7 +651,7 @@ namespace ISpanShop.Services.Stores
             return await _context.SaveChangesAsync() > 0;
         }
 
-        public async Task<PagedResultDto<SellerReturnListDto>> GetSellerReturnsAsync(int userId, bool? isProcessed = null, int page = 1, int pageSize = 10)
+        public async Task<PagedResultDto<SellerReturnListDto>> GetSellerReturnsAsync(int userId, bool? isProcessed = null, int page = 1, int pageSize = 10, string keyword = null)
         {
             var store = await _context.Stores
                 .AsNoTracking()
@@ -663,6 +663,11 @@ namespace ISpanShop.Services.Stores
                 .Include(o => o.User)
                 .Include(o => o.ReturnRequests)
                 .Where(o => o.StoreId == store.Id && o.ReturnRequests.Any());
+
+            if (!string.IsNullOrWhiteSpace(keyword))
+            {
+                query = query.Where(o => o.OrderNumber.Contains(keyword) || (o.User != null && o.User.Account.Contains(keyword)));
+            }
 
             if (isProcessed.HasValue)
             {
