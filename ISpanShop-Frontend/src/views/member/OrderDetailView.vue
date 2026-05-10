@@ -54,14 +54,29 @@
             <el-image :src="item.coverImage || '/placeholder.png'" class="item-image" fit="cover" />
             <div class="item-info">
               <h4 class="item-name">{{ item.productName }}</h4>
-              <PromotionTags :tags="item.promotionTags" />
               <div class="item-variant">{{ item.variantName }}</div>
               <div class="item-qty">x{{ item.quantity }}</div>
             </div>
           </div>
           <div class="item-price">
-            <span class="unit-price">${{ formatPrice(item.price) }}</span>
+            <div v-if="item.originalPrice && item.originalPrice > item.price" class="price-container">
+              <span class="original-price">NT$ {{ formatPrice(item.originalPrice) }}</span>
+              <span class="unit-price">NT$ {{ formatPrice(item.price) }}</span>
+            </div>
+            <div v-else>
+              <span class="unit-price">${{ formatPrice(item.price) }}</span>
+            </div>
           </div>
+        </div>
+
+        <!-- 訂單折扣標籤 -->
+        <div v-if="order && (order.discountAmount || order.levelDiscount || order.pointDiscount || hasAnyPromotion)" class="order-discount-wrap">
+          <OrderDiscountTags 
+            :discount-amount="order.discountAmount"
+            :level-discount="order.levelDiscount"
+            :point-discount="order.pointDiscount"
+            :promotion-discount="hasAnyPromotion ? 1 : 0"
+          />
         </div>
 
         <!-- 價格結算 (使用抽取的組件) -->
@@ -95,7 +110,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ArrowLeft } from '@element-plus/icons-vue';
 import { getOrderDetailApi } from '@/api/order';
@@ -104,12 +119,19 @@ import { ElMessage } from 'element-plus';
 import OrderSteps from '@/components/order/OrderSteps.vue';
 import OrderActionButtons from '@/components/order/OrderActionButtons.vue';
 import OrderSummary from '@/components/order/OrderSummary.vue';
-import PromotionTags from '@/components/common/PromotionTags.vue';
+import OrderDiscountTags from '@/components/order/OrderDiscountTags.vue';
 
 const route = useRoute();
 const router = useRouter();
 const loading = ref(false);
 const order = ref<OrderDetail | null>(null);
+
+const hasAnyPromotion = computed(() => {
+  if (!order.value) return false;
+  const hasOrderLevel = order.value.promotionDiscount && order.value.promotionDiscount > 0;
+  const hasItemLevel = order.value.items?.some(item => item.originalPrice && item.originalPrice > item.price);
+  return hasOrderLevel || hasItemLevel;
+});
 
 const fetchOrderDetail = async () => {
   const id = Number(route.params.id);
@@ -296,13 +318,30 @@ onMounted(() => {
 }
 
     .item-price {
-  display: flex;
-  align-items: center;
+      display: flex;
+      align-items: center;
+      .price-container {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 4px;
+      }
+      .original-price {
+        color: #999;
+        text-decoration: line-through;
+        font-size: 13px;
+      }
       .unit-price {
         color: #ee4d2d;
-}
-}
-}
+      }
+    }
+  }
+  .order-discount-wrap {
+    padding: 15px 20px 0;
+    background-color: #fffbf8;
+    display: flex;
+    justify-content: flex-end;
+  }
 } /* 這裡正確閉合 items-card */
 
 /* 底部動作按鈕區 (獨立區塊) */
