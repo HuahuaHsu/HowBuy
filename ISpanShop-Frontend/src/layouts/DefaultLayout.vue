@@ -67,6 +67,7 @@
         <div class="search-box">
           <div class="search-bar-container">
             <el-autocomplete
+              ref="searchAutocompleteRef"
               v-model="searchText"
               :fetch-suggestions="fetchSuggestions"
               :debounce="300"
@@ -97,6 +98,15 @@
                     <Search v-else />
                   </el-icon>
                   <span>{{ item.value }}</span>
+                  <button
+                    v-if="item.type === 'history'"
+                    class="suggest-remove"
+                    title="移除這筆紀錄"
+                    @mousedown.prevent.stop
+                    @click.prevent.stop="removeSearchHistory(item.value)"
+                  >
+                    <el-icon><Close /></el-icon>
+                  </button>
                 </div>
               </template>
             </el-autocomplete>
@@ -218,11 +228,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import ChatFloat from '../components/chat/ChatFloat.vue'
 import {
   Search, ShoppingCart, Promotion, Van, Lock, RefreshRight, Service,
-  ChatDotRound, Share, User, ArrowDown, CircleCloseFilled, Clock,
+  ChatDotRound, Share, User, ArrowDown, CircleCloseFilled, Clock, Close,
 } from '@element-plus/icons-vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
@@ -235,6 +245,7 @@ const route = useRoute()
 const authStore = useAuthStore()
 const cartStore = useCartStore()
 const searchText = ref('')
+const searchAutocompleteRef = ref<{ getData?: (query: string) => void } | null>(null)
 const hotKeywords = ref<string[]>(['iPhone 16', '無線耳機', '機械鍵盤', '運動鞋'])
 const SEARCH_HISTORY_KEY = 'howbuySearchHistory'
 const MAX_SEARCH_HISTORY = 6
@@ -339,9 +350,24 @@ function saveSearchHistory(keyword: string): void {
   localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(next))
 }
 
+function refreshSearchSuggestions(): void {
+  void nextTick(() => {
+    searchAutocompleteRef.value?.getData?.(searchText.value)
+  })
+}
+
+function removeSearchHistory(keyword: string): void {
+  const next = searchHistory.value.filter((item) => item !== keyword)
+  searchHistory.value = next
+  if (next.length > 0) localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(next))
+  else localStorage.removeItem(SEARCH_HISTORY_KEY)
+  refreshSearchSuggestions()
+}
+
 function clearSearchHistory(): void {
   searchHistory.value = []
   localStorage.removeItem(SEARCH_HISTORY_KEY)
+  refreshSearchSuggestions()
 }
 
 function handleDropdownCommand(command: string) {
@@ -489,8 +515,25 @@ onMounted(() => {
   gap: 8px;
   min-height: 34px;
 }
+.suggest-item span {
+  flex: 1;
+  min-width: 0;
+}
 .suggest-icon {
   color: #94a3b8;
+}
+.suggest-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px;
+}
+.suggest-remove:hover {
+  color: #EE4D2D;
 }
 
 .header-actions { 
