@@ -85,6 +85,7 @@ namespace ISpanShop.Services.Products
                 MaxPrice     = p.MaxPrice,
                 Status       = p.Status,
                 CreatedAt    = p.CreatedAt,
+                UpdatedAt    = p.UpdatedAt,
                 ReviewStatus = p.ReviewStatus,
                 ReviewedBy   = p.ReviewedBy,
                 ReviewDate   = p.ReviewDate,
@@ -114,6 +115,12 @@ namespace ISpanShop.Services.Products
         /// </summary>
         public void SoftDeleteProduct(int id)
             => _productRepository.SoftDeleteProduct(id);
+
+        /// <summary>
+        /// 將賣家刪除的商品恢復為草稿；後台退回銷毀商品不可恢復
+        /// </summary>
+        public bool RestoreDeletedProductAsDraft(int id)
+            => _productRepository.RestoreDeletedProductAsDraft(id);
 
         /// <summary>
         /// 根據 ID 取得規格詳情

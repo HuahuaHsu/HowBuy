@@ -9,35 +9,41 @@
     </div>
 
     <!-- 統計卡片列 -->
-    <el-row :gutter="16" class="stats-row">
-      <el-col :xs="24" :sm="12" :md="6">
+    <el-row :gutter="16" class="stats-row" justify="space-between">
+      <el-col :xs="24" :sm="12" :md="4">
         <div class="stat-card stat-pending" @click="filterByStatus('pending')">
           <div class="stat-label">待審核</div>
           <div class="stat-value">{{ stats.pending }}</div>
         </div>
       </el-col>
-      <el-col :xs="24" :sm="12" :md="6">
+      <el-col :xs="24" :sm="12" :md="4">
         <div class="stat-card stat-active" @click="filterByStatus('active')">
           <div class="stat-label">進行中</div>
           <div class="stat-value">{{ stats.active }}</div>
         </div>
       </el-col>
-      <el-col :xs="24" :sm="12" :md="6">
+      <el-col :xs="24" :sm="12" :md="4">
         <div class="stat-card stat-upcoming" @click="filterByStatus('upcoming')">
           <div class="stat-label">即將開始</div>
           <div class="stat-value">{{ stats.upcoming }}</div>
         </div>
       </el-col>
-      <el-col :xs="24" :sm="12" :md="6">
+      <el-col :xs="24" :sm="12" :md="4">
+        <div class="stat-card stat-rejected" @click="filterByStatus('rejected')">
+          <div class="stat-label">已拒絕</div>
+          <div class="stat-value">{{ stats.rejected }}</div>
+        </div>
+      </el-col>
+      <el-col :xs="24" :sm="12" :md="4">
         <div class="stat-card stat-ended" @click="filterByStatus('ended')">
-          <div class="stat-label">已結束/已拒絕</div>
+          <div class="stat-label">已結束</div>
           <div class="stat-value">{{ stats.ended }}</div>
         </div>
       </el-col>
     </el-row>
 
     <!-- Tab 列 -->
-    <el-tabs v-model="activeTab" @tab-click="handleTabChange" class="promo-tabs">
+    <el-tabs v-model="activeTab" @tab-change="handleTabChange" class="promo-tabs">
       <el-tab-pane label="全部" name="all">
         <template #label>
           全部 <span class="tab-count">({{ stats.all }})</span>
@@ -65,7 +71,7 @@
       </el-tab-pane>
       <el-tab-pane label="已結束" name="ended">
         <template #label>
-          已結束 <span class="tab-count">({{ stats.endedOnly }})</span>
+          已結束 <span class="tab-count">({{ stats.ended }})</span>
         </template>
       </el-tab-pane>
     </el-tabs>
@@ -682,8 +688,8 @@ const stats = ref({
   upcoming: 0,
   rejected: 0,
   ended: 0,
-  endedOnly: 0,
 })
+let promotionRequestSeq = 0
 
 // ─── 彈窗表單 ─────────────────────────────────────────────────────
 
@@ -843,6 +849,7 @@ const discountHint = computed(() => {
 // ─── API 呼叫 ─────────────────────────────────────────────────────
 
 async function loadPromotions(): Promise<void> {
+  const requestSeq = ++promotionRequestSeq
   loading.value = true
   try {
     const params = {
@@ -851,6 +858,7 @@ async function loadPromotions(): Promise<void> {
       pageSize,
     }
     const res = await fetchSellerPromotions(params)
+    if (requestSeq !== promotionRequestSeq) return
 
     // API 回傳格式：axios response.data = { success, data: { items, totalCount, ... } }
     if (res.success) {
@@ -862,6 +870,7 @@ async function loadPromotions(): Promise<void> {
       total.value = 0
     }
   } catch (error: any) {
+    if (requestSeq !== promotionRequestSeq) return
     console.error('載入活動列表失敗:', error)
     console.error('錯誤詳情:', error.response?.data)
     if (error.response?.status === 401) {
@@ -875,7 +884,7 @@ async function loadPromotions(): Promise<void> {
     promotions.value = []
     total.value = 0
   } finally {
-    loading.value = false
+    if (requestSeq === promotionRequestSeq) loading.value = false
   }
 }
 
@@ -892,8 +901,7 @@ async function loadPromotionCounts(): Promise<void> {
       active: active?.data?.totalCount ?? 0,
       upcoming: upcoming?.data?.totalCount ?? 0,
       rejected: rejected?.data?.totalCount ?? 0,
-      ended: (ended?.data?.totalCount ?? 0) + (rejected?.data?.totalCount ?? 0),
-      endedOnly: ended?.data?.totalCount ?? 0,
+      ended: ended?.data?.totalCount ?? 0,
     }
   } catch (error) {
     console.error('載入活動統計失敗:', error)
@@ -1320,7 +1328,7 @@ async function handleEndEarly(row: SellerPromotion): Promise<void> {
     )
     await endSellerPromotionEarly(row.id)
     ElMessage.success('活動已提早結束')
-    await Promise.all([loadPromotions(), loadPromotionCounts()])
+    await switchPromotionTab('ended')
   } catch (error: any) {
     if (error === 'cancel') return
     console.error('提早結束失敗:', error)
@@ -1330,15 +1338,18 @@ async function handleEndEarly(row: SellerPromotion): Promise<void> {
 
 // ─── Tab 和篩選 ───────────────────────────────────────────────────
 
-function handleTabChange(): void {
+function handleTabChange(name: string | number): void {
+  void switchPromotionTab(String(name))
+}
+
+async function switchPromotionTab(status: string): Promise<void> {
+  activeTab.value = status
   currentPage.value = 1  // 切換 tab 時重置到第一頁
-  void loadPromotions()
+  await Promise.all([loadPromotions(), loadPromotionCounts()])
 }
 
 function filterByStatus(status: string): void {
-  activeTab.value = status
-  currentPage.value = 1  // 切換狀態時重置到第一頁
-  void loadPromotions()
+  void switchPromotionTab(status)
 }
 
 // ─── 工具函式 ─────────────────────────────────────────────────────
@@ -1544,6 +1555,7 @@ onMounted(() => {
 .stat-pending .stat-value { color: #EE4D2D; }
 .stat-active .stat-value { color: #22c55e; }
 .stat-upcoming .stat-value { color: #3b82f6; }
+.stat-rejected .stat-value { color: #ef4444; }
 .stat-ended .stat-value { color: #94a3b8; }
 
 /* Tab */

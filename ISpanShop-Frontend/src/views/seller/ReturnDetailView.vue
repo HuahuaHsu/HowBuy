@@ -61,13 +61,20 @@
               <template #default="{ row }">
                 <div class="product-info clickable" @click="router.push(`/product/${row.productId}`)">
                   <div class="product-name">{{ row.productName }}</div>
-                  <PromotionTags :tags="row.promotionTags" />
                   <div class="product-variant" v-if="row.variantName">規格：{{ row.variantName }}</div>
                 </div>
               </template>
             </el-table-column>
             <el-table-column prop="price" label="單價" width="120" align="right">
-              <template #default="{ row }">NT$ {{ row.price.toLocaleString() }}</template>
+              <template #default="{ row }">
+                <div v-if="row.originalPrice && row.originalPrice > row.price" class="price-container">
+                  <div class="original-price">NT$ {{ row.originalPrice.toLocaleString() }}</div>
+                  <div class="unit-price">NT$ {{ row.price.toLocaleString() }}</div>
+                </div>
+                <div v-else>
+                  NT$ {{ row.price.toLocaleString() }}
+                </div>
+              </template>
             </el-table-column>
             <el-table-column prop="quantity" label="退貨數量" width="100" align="center">
               <template #default="{ row }">
@@ -75,6 +82,16 @@
               </template>
             </el-table-column>
           </el-table>
+
+          <!-- 訂單折扣標籤 -->
+          <div v-if="detail && (detail.discountAmount || detail.levelDiscount || detail.pointDiscount || hasAnyPromotion)" class="order-discount-wrap">
+            <OrderDiscountTags 
+              :discount-amount="detail.discountAmount"
+              :level-discount="detail.levelDiscount"
+              :point-discount="detail.pointDiscount"
+              :promotion-discount="hasAnyPromotion ? 1 : 0"
+            />
+          </div>
         </el-card>
 
         <!-- 3. 憑證圖片 -->
@@ -176,13 +193,20 @@ import { ArrowLeft, UserFilled, InfoFilled, Picture, Goods } from '@element-plus
 import { getSellerReturnDetailApi, reviewReturnApi } from '@/api/store'
 import type { SellerReturnDetail } from '@/types/store'
 import RefundSummary from '@/components/order/RefundSummary.vue'
-import PromotionTags from '@/components/common/PromotionTags.vue'
+import OrderDiscountTags from '@/components/order/OrderDiscountTags.vue'
 
 const route = useRoute()
 const router = useRouter()
 const loading = ref(false)
 const submitting = ref(false)
 const detail = ref<SellerReturnDetail | null>(null)
+
+const hasAnyPromotion = computed(() => {
+  if (!detail.value) return false;
+  const hasOrderLevel = detail.value.promotionDiscount && detail.value.promotionDiscount > 0;
+  const hasItemLevel = detail.value.items?.some(item => item.originalPrice && item.originalPrice > item.price);
+  return hasOrderLevel || hasItemLevel;
+});
 
 const reviewForm = ref({
   isApproved: true,
@@ -352,6 +376,30 @@ onMounted(fetchDetail)
 }
 .product-variant { font-size: 12px; color: #64748b; margin-top: 4px; }
 .qty-highlight { font-weight: 700; color: #ee4d2d; font-size: 16px; }
+
+.price-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+.original-price {
+  color: #999;
+  text-decoration: line-through;
+  font-size: 12px;
+}
+.unit-price {
+  color: #ee4d2d;
+  font-weight: 500;
+}
+
+.order-discount-wrap {
+  padding: 15px 20px;
+  display: flex;
+  justify-content: flex-end;
+  background-color: #fffbf8;
+  border-top: 1px solid #f1f5f9;
+}
 
 .side-card {
   border-radius: 8px;

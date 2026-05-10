@@ -16,6 +16,7 @@
         <el-tab-pane label="已完成" name="3" />
         <el-tab-pane label="已取消" name="4" />
         <el-tab-pane label="退貨/款中" name="5" />
+        <el-tab-pane label="已退款" name="6" />
       </el-tabs>
 
       <!-- ── 搜尋列 ── -->
@@ -24,7 +25,7 @@
           <el-col :xs="24" :sm="10">
             <el-input
               v-model="searchQuery"
-              placeholder="搜尋 訂單編號, 買家名稱, 商品名稱"
+              placeholder="搜尋 訂單編號, 買家名稱, 商品名稱, 收件地址"
               clearable
               @keyup.enter="handleSearch"
               @clear="handleSearch"
@@ -103,7 +104,7 @@
             <div class="footer-left">
               <div class="recipient-box">
                 <el-icon><Location /></el-icon>
-                <span class="recipient-name">{{ order.recipientName }}</span>
+                <span class="recipient-address">{{ order.recipientAddress || order.recipientName }}</span>
                 <span class="item-count">共 {{ order.totalItemCount }} 件商品</span>
               </div>
             </div>
@@ -111,7 +112,6 @@
               <!-- 賣家動作按鈕 -->
               <template v-if="order.status === 1">
                 <el-button type="primary" class="action-btn" @click="handleShip(order.id)">安排出貨</el-button>
-                <el-button class="action-btn secondary" @click="handleCancel(order.id)">取消訂單</el-button>
               </template>
               
               <template v-else-if="order.status === 2">
@@ -356,6 +356,7 @@ const getStatusClass = (status: number) => {
     case 2: return 'status-shipped';
     case 3: return 'status-completed';
     case 4: return 'status-cancelled';
+    case 6: return 'status-refunded';
     default: return '';
   }
 };
@@ -495,6 +496,7 @@ onMounted(() => {
         &.status-shipped { color: #26aa99; }
         &.status-completed { color: #ee4d2d; }
         &.status-cancelled { color: #929292; }
+        &.status-refunded { color: #929292; }
       }
     }
   }
@@ -596,7 +598,13 @@ onMounted(() => {
         font-size: 13px;
         color: #555;
         .el-icon { color: #ee4d2d; }
-        .recipient-name { font-weight: 500; }
+        .recipient-address {
+          font-weight: 500;
+          max-width: 420px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
         .item-count { margin-left: 10px; color: #929292; }
       }
     }

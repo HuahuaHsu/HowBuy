@@ -221,12 +221,16 @@
             :brand-loading="brandLoading"
             :selected-sub-category-id="selectedSubCategoryId"
             :selected-brand-ids="selectedBrandIds"
+            :min-price="minPrice"
+            :max-price="maxPrice"
             :brand-keyword="isBrandSearchKeyword"
             :is-brand-expanded="isBrandListExpanded"
             @clear="onClearCategory"
             @filter-change="onFilterChange"
             @update:selected-sub-category-id="onSubCategoryChange($event)"
             @update:selected-brand-ids="selectedBrandIds = $event"
+            @update:min-price="minPrice = $event"
+            @update:max-price="maxPrice = $event"
             @update:brand-keyword="isBrandSearchKeyword = $event"
             @update:is-brand-expanded="isBrandListExpanded = $event"
           />
@@ -248,12 +252,16 @@
             :brand-loading="brandLoading"
             :selected-sub-category-id="selectedSubCategoryId"
             :selected-brand-ids="selectedBrandIds"
+            :min-price="minPrice"
+            :max-price="maxPrice"
             :brand-keyword="isBrandSearchKeyword"
             :is-brand-expanded="isBrandListExpanded"
             @clear="onClearCategory"
             @filter-change="onFilterChange"
             @update:selected-sub-category-id="onSubCategoryChange($event)"
             @update:selected-brand-ids="selectedBrandIds = $event"
+            @update:min-price="minPrice = $event"
+            @update:max-price="maxPrice = $event"
             @update:brand-keyword="isBrandSearchKeyword = $event"
             @update:is-brand-expanded="isBrandListExpanded = $event"
           />
@@ -377,6 +385,7 @@ const total = ref<number>(0)
 const sectionRef = ref<HTMLElement | null>(null)
 const keyword = ref<string>('')
 const sortBy = ref<SortBy>('latest')
+let productRequestSeq = 0
 
 // ── 排序選項 ──────────────────────────────────────────────────────
 const sortOptions = [
@@ -408,6 +417,8 @@ const subLoading = ref<boolean>(false)
 const brandLoading = ref<boolean>(false)
 const selectedSubCategoryId = ref<number | null>(null)
 const selectedBrandIds = ref<number[]>([])
+const minPrice = ref<number | null>(null)
+const maxPrice = ref<number | null>(null)
 const isBrandSearchKeyword = ref<string>('')
 const isBrandListExpanded = ref<boolean>(false)
 const drawerOpen = ref<boolean>(false)
@@ -497,6 +508,7 @@ function getSlideBackground(banner: any): Record<string, string> {
 }
 
 async function loadProducts(): Promise<void> {
+  const requestSeq = ++productRequestSeq
   loading.value = true
   try {
     const params: FetchProductsParams = {
@@ -507,19 +519,23 @@ async function loadProducts(): Promise<void> {
     if (selectedCategoryId.value !== null) params.categoryId = selectedCategoryId.value
     if (selectedSubCategoryId.value !== null) params.subCategoryId = selectedSubCategoryId.value
     if (selectedBrandIds.value.length > 0) params.brandIds = selectedBrandIds.value
+    if (minPrice.value !== null) params.minPrice = minPrice.value
+    if (maxPrice.value !== null) params.maxPrice = maxPrice.value
     if (keyword.value.trim()) params.keyword = keyword.value.trim()
 
     const res = await fetchProductList(params)
+    if (requestSeq !== productRequestSeq) return
     if (res.success) {
       products.value = res.data.items
-      total.value = res.data.totalCount
+      total.value = res.data.totalCount ?? res.data.total ?? 0
     } else {
       ElMessage.error(res.message || '載入失敗')
     }
   } catch {
+    if (requestSeq !== productRequestSeq) return
     ElMessage.error('載入失敗，請稍後再試')
   } finally {
-    loading.value = false
+    if (requestSeq === productRequestSeq) loading.value = false
   }
 }
 
@@ -597,6 +613,8 @@ async function loadPromotions(): Promise<void> {
 function clearSidebarState(): void {
   selectedSubCategoryId.value = null
   selectedBrandIds.value = []
+  minPrice.value = null
+  maxPrice.value = null
   isBrandSearchKeyword.value = ''
   isBrandListExpanded.value = false
   subCategories.value = []
@@ -697,14 +715,14 @@ function goToProductsPage(): void {
   if (selectedCategoryId.value !== null) {
     query['categoryId'] = String(selectedCategoryId.value)
   }
-  if (selectedSubCategoryId.value !== null) {
-    query['subCategoryId'] = String(selectedSubCategoryId.value)
-  }
-  if (selectedBrandIds.value.length > 0) {
-    query['brandIds'] = selectedBrandIds.value.join(',')
-  }
   if (sortBy.value !== 'latest') {
     query['sortBy'] = sortBy.value
+  }
+  if (minPrice.value !== null) {
+    query['minPrice'] = String(minPrice.value)
+  }
+  if (maxPrice.value !== null) {
+    query['maxPrice'] = String(maxPrice.value)
   }
   void router.push({ path: '/products', query })
 }

@@ -59,7 +59,7 @@
 
     <header class="main-header">
       <div class="main-header-inner">
-        <div class="logo" @click="$router.push('/')">
+        <div class="logo" @click="handleLogoClick">
           <img src="@/assets/images/howbuyLogo.png" class="logo-icon" alt="HowBuy Logo">
           <span class="logo-text">HowBuy</span>
         </div>
@@ -67,10 +67,11 @@
         <div class="search-box">
           <div class="search-bar-container">
             <el-autocomplete
+              ref="searchAutocompleteRef"
               v-model="searchText"
               :fetch-suggestions="fetchSuggestions"
               :debounce="300"
-              :trigger-on-focus="false"
+              :trigger-on-focus="true"
               placeholder="搜尋商品、品牌或關鍵字..."
               class="seamless-input"
               size="large"
@@ -79,6 +80,34 @@
             >
               <template #prefix>
                 <el-icon><Search /></el-icon>
+              </template>
+              <template #default="{ item }">
+                <div v-if="item.showHeader" class="suggest-section">
+                  <span>{{ item.section }}</span>
+                  <button
+                    v-if="item.type === 'history'"
+                    class="suggest-clear"
+                    @mousedown.prevent.stop="clearSearchHistory"
+                  >
+                    清除
+                  </button>
+                </div>
+                <div class="suggest-item">
+                  <el-icon class="suggest-icon">
+                    <Clock v-if="item.type === 'history'" />
+                    <Search v-else />
+                  </el-icon>
+                  <span>{{ item.value }}</span>
+                  <button
+                    v-if="item.type === 'history'"
+                    class="suggest-remove"
+                    title="移除這筆紀錄"
+                    @mousedown.prevent.stop
+                    @click.prevent.stop="removeSearchHistory(item.value)"
+                  >
+                    <el-icon><Close /></el-icon>
+                  </button>
+                </div>
               </template>
             </el-autocomplete>
 
@@ -199,11 +228,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import ChatFloat from '../components/chat/ChatFloat.vue'
 import {
-  Search, ShoppingCart, Promotion, Van, Lock, RefreshRight, Service, 
-  ChatDotRound, Share, User, ArrowDown, CircleCloseFilled
+  Search, ShoppingCart, Promotion, Van, Lock, RefreshRight, Service,
+  ChatDotRound, Share, User, ArrowDown, CircleCloseFilled, Clock, Close,
 } from '@element-plus/icons-vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
@@ -216,7 +245,17 @@ const route = useRoute()
 const authStore = useAuthStore()
 const cartStore = useCartStore()
 const searchText = ref('')
+const searchAutocompleteRef = ref<{ getData?: (query: string) => void } | null>(null)
 const hotKeywords = ref<string[]>(['iPhone 16', '無線耳機', '機械鍵盤', '運動鞋'])
+const SEARCH_HISTORY_KEY = 'howbuySearchHistory'
+const MAX_SEARCH_HISTORY = 6
+type SearchSuggestion = {
+  value: string
+  type: 'history' | 'product'
+  section?: string
+  showHeader?: boolean
+}
+const searchHistory = ref<string[]>([])
 
 // ── 停權控制邏輯 ──────────────────────────────────
 const showBlacklistDialog = computed(() => {
@@ -230,30 +269,105 @@ const showBlacklistDialog = computed(() => {
 function handleGoMemberCenter() { router.push('/member'); }
 function handleLogout() { authStore.logout(); router.push('/'); }
 
+function handleLogoClick(): void {
+  searchText.value = ''
+  void router.push({ path: '/' })
+}
+
 /** 導向搜尋結果頁 */
 function handleSearch(): void {
   const kw = searchText.value.trim()
+  if (kw) saveSearchHistory(kw)
   void router.push(kw ? { path: '/products', query: { keyword: kw } } : { path: '/products' })
 }
 
 /** el-autocomplete 點選建議項目 */
-function handleAutoSelect(item: { value: string }): void {
+function handleAutoSelect(item: SearchSuggestion): void {
   searchText.value = item.value
+  saveSearchHistory(item.value)
   void router.push({ path: '/products', query: { keyword: item.value } })
 }
 
 /** 點擊熱搜關鍵字 */
 function handleHotKeywordClick(keyword: string): void {
   searchText.value = keyword
+  saveSearchHistory(keyword)
   void router.push({ path: '/products', query: { keyword } })
 }
 
 /** fetch-suggestions callback */
-function fetchSuggestions(queryString: string, cb: (results: { value: string }[]) => void): void {
-  if (!queryString.trim()) { cb([]); return }
+function fetchSuggestions(queryString: string, cb: (results: SearchSuggestion[]) => void): void {
+  const q = queryString.trim().toLowerCase()
+  const history = searchHistory.value
+    .filter((keyword) => !q || keyword.toLowerCase().includes(q))
+    .slice(0, MAX_SEARCH_HISTORY)
+    .map<SearchSuggestion>((value, index) => ({
+      value,
+      type: 'history',
+      section: '最近搜尋',
+      showHeader: index === 0,
+    }))
+
+  if (!q) {
+    cb(history)
+    return
+  }
+
   getProductSuggestions(queryString)
-    .then((names) => cb(names.map((n) => ({ value: n }))))
-    .catch(() => cb([]))
+    .then((names) => {
+      const existing = new Set(history.map((item) => item.value))
+      const products = names
+        .filter((name) => !existing.has(name))
+        .slice(0, 8)
+        .map<SearchSuggestion>((value, index) => ({
+          value,
+          type: 'product',
+          section: '相關商品',
+          showHeader: index === 0,
+        }))
+      cb([...history, ...products])
+    })
+    .catch(() => cb(history))
+}
+
+function loadSearchHistory(): void {
+  try {
+    const raw = localStorage.getItem(SEARCH_HISTORY_KEY)
+    const parsed = raw ? JSON.parse(raw) : []
+    searchHistory.value = Array.isArray(parsed)
+      ? parsed.filter((item): item is string => typeof item === 'string').slice(0, MAX_SEARCH_HISTORY)
+      : []
+  } catch {
+    searchHistory.value = []
+  }
+}
+
+function saveSearchHistory(keyword: string): void {
+  const kw = keyword.trim()
+  if (!kw) return
+  const next = [kw, ...searchHistory.value.filter((item) => item !== kw)].slice(0, MAX_SEARCH_HISTORY)
+  searchHistory.value = next
+  localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(next))
+}
+
+function refreshSearchSuggestions(): void {
+  void nextTick(() => {
+    searchAutocompleteRef.value?.getData?.(searchText.value)
+  })
+}
+
+function removeSearchHistory(keyword: string): void {
+  const next = searchHistory.value.filter((item) => item !== keyword)
+  searchHistory.value = next
+  if (next.length > 0) localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(next))
+  else localStorage.removeItem(SEARCH_HISTORY_KEY)
+  refreshSearchSuggestions()
+}
+
+function clearSearchHistory(): void {
+  searchHistory.value = []
+  localStorage.removeItem(SEARCH_HISTORY_KEY)
+  refreshSearchSuggestions()
 }
 
 function handleDropdownCommand(command: string) {
@@ -286,6 +400,7 @@ async function loadHotKeywords(): Promise<void> {
 }
 
 onMounted(() => {
+  loadSearchHistory()
   void loadHotKeywords()
   if (authStore.isLoggedIn) { authStore.fetchUserInfo(); }
 })
@@ -377,6 +492,49 @@ onMounted(() => {
 .hot-label { color: #fbbf24; margin-right: 6px; white-space: nowrap; }
 .hot-keywords a { color: #cbd5e1; text-decoration: none; margin-right: 12px; white-space: nowrap; margin-bottom: 4px; }
 .hot-keywords a:hover { color: #EE4D2D; }
+.suggest-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #94a3b8;
+  font-size: 12px;
+  line-height: 28px;
+  padding-top: 4px;
+}
+.suggest-clear {
+  border: 0;
+  background: transparent;
+  color: #EE4D2D;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0;
+}
+.suggest-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+}
+.suggest-item span {
+  flex: 1;
+  min-width: 0;
+}
+.suggest-icon {
+  color: #94a3b8;
+}
+.suggest-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px;
+}
+.suggest-remove:hover {
+  color: #EE4D2D;
+}
 
 .header-actions { 
   display: flex; 

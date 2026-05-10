@@ -406,6 +406,8 @@ namespace ISpanShop.Services.Stores
             var query = _context.Orders
                 .Include(o => o.User)
                 .Include(o => o.OrderDetails)
+                    .ThenInclude(od => od.Product)
+                        .ThenInclude(p => p.ProductVariants)
                 .Include(o => o.OrderReviews)
                 .Where(o => o.StoreId == store.Id);
 
@@ -418,6 +420,7 @@ namespace ISpanShop.Services.Stores
             {
                 query = query.Where(o => o.OrderNumber.Contains(keyword) 
                                       || o.User.Account.Contains(keyword)
+                                      || (!string.IsNullOrEmpty(o.RecipientAddress) && o.RecipientAddress.Contains(keyword))
                                       || o.OrderDetails.Any(od => od.ProductName.Contains(keyword)));
             }
 
@@ -448,6 +451,18 @@ namespace ISpanShop.Services.Stores
                     image = "/" + image;
                 }
 
+                var promotionDiscount = o.PromotionDiscount.GetValueOrDefault() > 0
+                    ? o.PromotionDiscount.GetValueOrDefault()
+                    : o.OrderDetails.Sum(od =>
+                    {
+                        var originalPrice = od.Product?.ProductVariants?
+                            .FirstOrDefault(v => v.Id == od.VariantId)?.Price
+                            ?? od.Product?.MinPrice
+                            ?? 0;
+                        var orderPrice = od.Price ?? 0;
+                        return originalPrice > orderPrice ? (originalPrice - orderPrice) * od.Quantity : 0;
+                    });
+
                 return new SellerOrderListDto
                 {
                     Id = o.Id,
@@ -457,12 +472,13 @@ namespace ISpanShop.Services.Stores
                     DiscountAmount = o.DiscountAmount,
                     LevelDiscount = o.LevelDiscount,
                     PointDiscount = o.PointDiscount,
-                    PromotionDiscount = o.PromotionDiscount,
+                    PromotionDiscount = promotionDiscount,
                     Status = (OrderStatus)o.Status,
                     StatusName = GetStatusName(o.Status),
                     BuyerName = o.User?.Account ?? "未知買家",
                     BuyerId = o.UserId,
                     RecipientName = o.RecipientName,
+                    RecipientAddress = o.RecipientAddress,
                     FirstProductName = firstDetail?.ProductName,
                     FirstProductImage = image,
                     TotalItemCount = o.OrderDetails.Sum(od => od.Quantity),
@@ -514,6 +530,8 @@ namespace ISpanShop.Services.Stores
                 .Include(o => o.User)
                     .ThenInclude(u => u.MemberProfile)
                 .Include(o => o.OrderDetails)
+                    .ThenInclude(od => od.Product)
+                        .ThenInclude(p => p.ProductVariants)
                 .Include(o => o.OrderReviews)
                     .ThenInclude(r => r.ReviewImages)
                 .FirstOrDefaultAsync(o => o.Id == orderId && o.StoreId == store.Id);
@@ -571,8 +589,15 @@ namespace ISpanShop.Services.Stores
 
                     var tags = new List<string>();
                     decimal originalPrice = od.Product?.ProductVariants?.FirstOrDefault(v => v.Id == od.VariantId)?.Price ?? od.Product?.MinPrice ?? 0;
-                    if (originalPrice > 0 && od.Price < originalPrice) tags.Add("單品特價優惠");
-                    if ((order.PromotionDiscount ?? 0) > 0) tags.Add("符合賣場滿額活動");
+                    bool isSingleProductDiscount = originalPrice > 0 && od.Price < originalPrice;
+                    
+                    bool hasAllocatedPromotion = od.AllocatedDiscountAmount.HasValue && od.AllocatedDiscountAmount.Value > 0;
+                    bool shouldShowThresholdTag = hasAllocatedPromotion || ((order.PromotionDiscount ?? 0) > 0 && !isSingleProductDiscount);
+
+                    if (shouldShowThresholdTag)
+                    {
+                        tags.Add("符合賣場滿額活動");
+                    }
 
                     return new SellerOrderItemDto
                     {
@@ -584,6 +609,7 @@ namespace ISpanShop.Services.Stores
                         SkuCode = od.SkuCode,
                         CoverImage = image,
                         Price = od.Price ?? 0,
+                        OriginalPrice = isSingleProductDiscount ? originalPrice : null,
                         Quantity = od.Quantity,
                         PromotionTags = tags.Distinct().ToList()
                     };
@@ -625,7 +651,7 @@ namespace ISpanShop.Services.Stores
             return await _context.SaveChangesAsync() > 0;
         }
 
-        public async Task<PagedResultDto<SellerReturnListDto>> GetSellerReturnsAsync(int userId, bool? isProcessed = null, int page = 1, int pageSize = 10)
+        public async Task<PagedResultDto<SellerReturnListDto>> GetSellerReturnsAsync(int userId, bool? isProcessed = null, int page = 1, int pageSize = 10, string keyword = null)
         {
             var store = await _context.Stores
                 .AsNoTracking()
@@ -637,6 +663,11 @@ namespace ISpanShop.Services.Stores
                 .Include(o => o.User)
                 .Include(o => o.ReturnRequests)
                 .Where(o => o.StoreId == store.Id && o.ReturnRequests.Any());
+
+            if (!string.IsNullOrWhiteSpace(keyword))
+            {
+                query = query.Where(o => o.OrderNumber.Contains(keyword) || (o.User != null && o.User.Account.Contains(keyword)));
+            }
 
             if (isProcessed.HasValue)
             {
@@ -698,6 +729,8 @@ namespace ISpanShop.Services.Stores
                 .Include(o => o.ReturnRequests)
                     .ThenInclude(r => r.ReturnRequestItems)
                         .ThenInclude(ri => ri.OrderDetail)
+                            .ThenInclude(od => od.Product)
+                                .ThenInclude(p => p.ProductVariants)
                 .FirstOrDefaultAsync(o => o.Id == orderId && o.StoreId == store.Id);
 
             if (order == null || !order.ReturnRequests.Any()) throw new Exception("找不到該筆退貨申請");
@@ -750,8 +783,15 @@ namespace ISpanShop.Services.Stores
 
                     var tags = new List<string>();
                     decimal originalPrice = ri.OrderDetail.Product?.ProductVariants?.FirstOrDefault(v => v.Id == ri.OrderDetail.VariantId)?.Price ?? ri.OrderDetail.Product?.MinPrice ?? 0;
-                    if (originalPrice > 0 && ri.OrderDetail.Price < originalPrice) tags.Add("單品特價優惠");
-                    if ((order.PromotionDiscount ?? 0) > 0) tags.Add("符合賣場滿額活動");
+                    bool isSingleProductDiscount = originalPrice > 0 && ri.OrderDetail.Price < originalPrice;
+                    
+                    bool hasAllocatedPromotion = ri.OrderDetail.AllocatedDiscountAmount.HasValue && ri.OrderDetail.AllocatedDiscountAmount.Value > 0;
+                    bool shouldShowThresholdTag = hasAllocatedPromotion || ((order.PromotionDiscount ?? 0) > 0 && !isSingleProductDiscount);
+
+                    if (shouldShowThresholdTag)
+                    {
+                        tags.Add("符合賣場滿額活動");
+                    }
 
                     return new SellerOrderItemDto
                     {
@@ -763,6 +803,7 @@ namespace ISpanShop.Services.Stores
                         SkuCode = ri.OrderDetail.SkuCode,
                         CoverImage = image,
                         Price = ri.OrderDetail.Price ?? 0,
+                        OriginalPrice = isSingleProductDiscount ? originalPrice : null,
                         Quantity = ri.Quantity, // 這是退貨的數量
                         PromotionTags = tags.Distinct().ToList()
                     };

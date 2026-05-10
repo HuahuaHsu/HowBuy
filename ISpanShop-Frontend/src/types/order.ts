@@ -27,6 +27,7 @@ export interface OrderItem {
   variantName: string;
   coverImage: string;
   price: number;
+  originalPrice?: number | null;
   quantity: number;
   promotionTags?: string[];
 }
@@ -71,11 +72,12 @@ export interface ReturnDetail {
   items: ReturnItem[];
 }
 
-export interface ReturnItem {
+export interface FrontReturnItem {
   productName: string;
   variantName: string;
   coverImage: string;
   price: number;
+  originalPrice?: number | null;
   returnQuantity: number;
   promotionTags?: string[];
 }

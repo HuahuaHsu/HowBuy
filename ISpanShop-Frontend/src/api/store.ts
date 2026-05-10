@@ -60,7 +60,7 @@ export const updateSellerOrderStatusApi = (orderId: number, status: number) => {
 /**
  * 取得賣場退貨申請列表
  */
-export const getSellerReturnsApi = (params: { isProcessed?: boolean, page?: number, pageSize?: number } = {}) => {
+export const getSellerReturnsApi = (params: { isProcessed?: boolean, page?: number, pageSize?: number, keyword?: string } = {}) => {
   return axios.get<{ items: SellerReturnItem[], totalCount: number }>('/api/front/store/returns', { params })
 }
 

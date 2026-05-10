@@ -259,14 +259,14 @@ namespace ISpanShop.MVC.Controllers.Api
         /// 取得賣場退貨申請列表
         /// </summary>
         [HttpGet("returns")]
-        public async Task<IActionResult> GetSellerReturns([FromQuery] bool? isProcessed = null, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        public async Task<IActionResult> GetSellerReturns([FromQuery] bool? isProcessed = null, [FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string keyword = null)
         {
             try
             {
                 var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (!int.TryParse(userIdStr, out int userId)) return Unauthorized();
 
-                var result = await _storeService.GetSellerReturnsAsync(userId, isProcessed, page, pageSize);
+                var result = await _storeService.GetSellerReturnsAsync(userId, isProcessed, page, pageSize, keyword);
                 return Ok(result);
             }
             catch (Exception ex)

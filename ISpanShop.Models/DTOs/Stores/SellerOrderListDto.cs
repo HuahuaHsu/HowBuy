@@ -18,6 +18,7 @@ namespace ISpanShop.Models.DTOs.Stores
         public string BuyerName { get; set; }
         public int BuyerId { get; set; }
         public string RecipientName { get; set; }
+        public string RecipientAddress { get; set; }
         
         // 用於列表顯示的第一個商品資訊
         public string FirstProductName { get; set; }

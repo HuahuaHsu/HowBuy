@@ -67,6 +67,7 @@ export interface ProductDetail {
   variants: ProductVariant[] | null
   totalStock: number | null
   soldCount: number | null
+  viewCount: number | null
   rating: number | null
   reviewCount: number | null
   isOnShelf: boolean
@@ -117,8 +118,9 @@ export interface ProductListResponse {
   items: ProductListItem[]
   page: number
   pageSize: number
-  totalCount: number
-  totalPages: number
+  total?: number
+  totalCount?: number
+  totalPages?: number
 }
 
 /** 統一 API 回傳包裝 */
@@ -144,6 +146,7 @@ export interface SellerProductListItem {
   statusText: string
   mainImageUrl: string | null
   createdAt: string | null
+  updatedAt: string | null
   rejectReason: string | null
   reviewStatus: number
   isDeleted?: boolean

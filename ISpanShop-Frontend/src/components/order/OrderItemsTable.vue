@@ -13,7 +13,6 @@
             </el-image>
             <div class="product-text">
               <div class="name">{{ row.productName }}</div>
-              <PromotionTags :tags="row.promotionTags" />
               <div class="variant" v-if="row.variantName">規格：{{ row.variantName }}</div>
               <!-- SKU 已根據需求移除 -->
             </div>
@@ -23,7 +22,13 @@
       
       <el-table-column label="單價" width="120" align="center">
         <template #default="{ row }">
-          NT$ {{ formatPrice(row.price) }}
+          <div v-if="row.originalPrice && row.originalPrice > row.price" class="price-container">
+            <div class="original-price">NT$ {{ formatPrice(row.originalPrice) }}</div>
+            <div class="unit-price">NT$ {{ formatPrice(row.price) }}</div>
+          </div>
+          <div v-else>
+            NT$ {{ formatPrice(row.price) }}
+          </div>
         </template>
       </el-table-column>
       
@@ -46,7 +51,6 @@
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Picture } from '@element-plus/icons-vue'
-import PromotionTags from '@/components/common/PromotionTags.vue'
 
 interface OrderItem {
   productId: number
@@ -126,6 +130,21 @@ function formatPrice(price: number) {
     font-size: 12px;
     color: #64748b;
   }
+}
+
+.price-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.original-price {
+  color: #999;
+  text-decoration: line-through;
+  font-size: 13px;
+}
+.unit-price {
+  color: #ee4d2d;
 }
 
 .subtotal {

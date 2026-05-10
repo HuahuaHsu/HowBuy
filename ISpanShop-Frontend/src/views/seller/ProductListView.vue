@@ -190,15 +190,15 @@
                   <span title="評論數"><el-icon><ChatDotRound /></el-icon> 0</span>
                 </div>
                 <div class="card-date">建立時間: {{ formatDate(product.createdAt) }}</div>
+                <div class="card-date">編輯時間: {{ formatDate(product.updatedAt) }}</div>
               </div>
 
               <!-- 操作列 -->
               <div class="card-footer">
                 <template v-if="product.isDeleted">
-                  <span class="deleted-footer-label">
-                    <el-icon :size="12"><Delete /></el-icon>
-                    已刪除
-                  </span>
+                  <button class="card-action-btn restore-btn" @click="handleRestoreProduct(product)">
+                    恢復草稿
+                  </button>
                 </template>
                 <template v-else>
                   <button
@@ -304,6 +304,7 @@
                   <div class="table-info">
                     <div class="table-name">{{ row.name }}</div>
                     <div class="table-meta">建立於 {{ formatDate(row.createdAt) }}</div>
+                    <div class="table-meta">編輯於 {{ formatDate(row.updatedAt) }}</div>
                     <div v-if="row.status === 'rejected' && row.rejectReason" class="table-reject-reason">
                       <el-icon :size="12"><WarningFilled /></el-icon>
                       {{ row.rejectReason }}
@@ -363,7 +364,9 @@
                     </template>
                   </el-popconfirm>
                 </template>
-                <el-tag v-else type="danger" size="small">已刪除</el-tag>
+                <el-button v-else text type="primary" size="small" @click="handleRestoreProduct(row)">
+                  恢復草稿
+                </el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -406,7 +409,7 @@ import {
   ArrowDown, ArrowUp, DCaret, CaretTop, CaretBottom,
   MoreFilled, WarningFilled, View, ChatDotRound,
 } from '@element-plus/icons-vue'
-import { fetchSellerProducts, fetchSellerProductTabCounts, updateProductStatus, deleteSellerProduct, submitProductForReview } from '@/api/product'
+import { fetchSellerProducts, fetchSellerProductTabCounts, updateProductStatus, deleteSellerProduct, restoreSellerProduct, submitProductForReview } from '@/api/product'
 import { fetchMainCategories } from '@/api/category'
 import { useSellerStore } from '@/stores/seller'
 import type { SellerProductListItem } from '@/types/product'
@@ -437,7 +440,7 @@ function getProductPrice(product: SellerProduct): string {
 // ── 型別定義 ──────────────────────────────────────────────────────
 type ProductStatus = 'on' | 'off' | 'deleted' | 'review' | 'rejected' | 'draft'
 type TabKey = 'all' | 'on' | 'off' | 'deleted' | 'review' | 'rejected' | 'draft'
-type SortField = 'minPrice' | 'createdAt' | 'totalStock' | 'totalSales'
+type SortField = 'minPrice' | 'createdAt' | 'updatedAt' | 'totalStock' | 'totalSales'
 type SortDir = 'asc' | 'desc' | null
 
 /** 將後端 status 數字 + reviewStatus 對應至 tab key 字串
@@ -504,6 +507,7 @@ const level1Tabs: Array<{ key: TabKey; label: string }> = [
 const sortOptions: Array<{ field: string; label: string }> = [
   { field: 'minPrice',    label: '價格' },
   { field: 'createdAt',   label: '建立時間' },
+  { field: 'updatedAt',   label: '編輯時間' },
   { field: 'totalSales',  label: '已售出' },
   { field: 'totalStock',  label: '商品數量' },
 ]
@@ -585,6 +589,8 @@ async function loadProducts(): Promise<void> {
       sortByParam = sortDir.value === 'asc' ? 'stock_asc' : 'stock_desc'
     } else if (sortField.value === 'totalSales') {
       sortByParam = sortDir.value === 'asc' ? 'sales_asc' : 'sales_desc'
+    } else if (sortField.value === 'updatedAt') {
+      sortByParam = sortDir.value === 'asc' ? 'updated_asc' : 'updated_desc'
     } else {
       sortByParam = sortDir.value === 'asc' ? 'date_asc' : 'date_desc'
     }
@@ -672,7 +678,7 @@ function toggleSort(field: SortField): void {
     // 庫存預設 asc（找低庫存）；已售出預設 desc（找熱賣）；時間預設 desc；價格預設 asc
     if (field === 'totalStock') sortDir.value = 'asc'
     else if (field === 'totalSales') sortDir.value = 'desc'
-    else if (field === 'createdAt') sortDir.value = 'desc'
+    else if (field === 'createdAt' || field === 'updatedAt') sortDir.value = 'desc'
     else sortDir.value = 'asc'
   } else {
     sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
@@ -736,6 +742,32 @@ async function handleDeleteProduct(product: SellerProduct): Promise<void> {
     if (error !== 'cancel') {
       console.error('刪除商品失敗:', error)
       ElMessage.error('刪除失敗，請稍後再試')
+    }
+  }
+}
+
+// ── 恢復已刪除商品 ────────────────────────────────────────────────
+async function handleRestoreProduct(product: SellerProduct): Promise<void> {
+  try {
+    await ElMessageBox.confirm(
+      `確定要將「${product.name}」恢復為草稿嗎？`,
+      '恢復確認',
+      {
+        confirmButtonText: '恢復草稿',
+        cancelButtonText: '取消',
+        type: 'info',
+      }
+    )
+
+    await restoreSellerProduct(product.id)
+    ElMessage.success('商品已恢復為草稿')
+    activeTab.value = 'draft'
+    currentPage.value = 1
+    await Promise.all([loadProducts(), loadTabCounts()])
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      console.error('恢復商品失敗:', error)
+      ElMessage.error(error?.response?.data?.message || '恢復失敗，請稍後再試')
     }
   }
 }
@@ -971,13 +1003,17 @@ function getStatusTagType(status: ProductStatus): 'success' | 'warning' | 'dange
   border-color: #ee4d2d;
 }
 .product-card-deleted {
-  opacity: 0.55;
-  filter: grayscale(40%);
+  border-style: dashed;
 }
 .product-card-deleted:hover {
   box-shadow: none;
   transform: none;
   border-color: #e8eaf0;
+}
+.product-card-deleted .card-img-wrap,
+.product-card-deleted .card-body {
+  opacity: 0.55;
+  filter: grayscale(40%);
 }
 .product-card-deleted .card-img-wrap::after {
   content: '';
@@ -1099,6 +1135,17 @@ function getStatusTagType(status: ProductStatus): 'success' | 'warning' | 'dange
 }
 .edit-btn { color: #64748b; }
 .edit-btn:hover { color: #ee4d2d; background: #fff7ed; }
+.restore-btn {
+  color: #ee4d2d;
+  background: #fff7ed;
+  border: 1px solid #fb923c;
+  font-weight: 600;
+}
+.restore-btn:hover {
+  color: #ffffff;
+  background: #ee4d2d;
+  border-color: #ee4d2d;
+}
 .more-btn { color: #94a3b8; }
 .more-btn:hover { color: #ee4d2d; background: #fff7ed; }
 .deleted-footer-label {

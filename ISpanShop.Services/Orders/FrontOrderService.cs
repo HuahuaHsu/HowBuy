@@ -38,6 +38,10 @@ namespace ISpanShop.Services.Orders
             
             return orders.Select(o => {
                 var firstDetail = o.OrderDetails.FirstOrDefault();
+                var promotionDiscount = o.PromotionDiscount.GetValueOrDefault() > 0
+                    ? o.PromotionDiscount.GetValueOrDefault()
+                    : CalculateDirectPromotionDiscount(o);
+                
                 return new FrontOrderListDto
                 {
                     Id = o.Id,
@@ -47,7 +51,7 @@ namespace ISpanShop.Services.Orders
                     DiscountAmount = o.DiscountAmount,
                     LevelDiscount = o.LevelDiscount, // 從資料庫讀取
                     PointDiscount = o.PointDiscount,
-                    PromotionDiscount = o.PromotionDiscount, // 從資料庫讀取活動折抵
+                    PromotionDiscount = promotionDiscount, // 從資料庫讀取活動折抵
                     Status = (OrderStatus)(o.Status ?? 0),
                     StatusName = GetStatusName(o.Status),
                     StoreName = o.Store?.StoreName ?? "未知商店",
@@ -63,6 +67,22 @@ namespace ISpanShop.Services.Orders
             }).ToList();
         }
 
+        private decimal CalculateDirectPromotionDiscount(Order order)
+        {
+            return order.OrderDetails.Sum(od =>
+            {
+                var originalPrice = od.Product?.ProductVariants?
+                    .FirstOrDefault(v => v.Id == od.VariantId)?.Price
+                    ?? od.Product?.MinPrice
+                    ?? 0;
+                var orderPrice = od.Price ?? 0;
+
+                return originalPrice > orderPrice
+                    ? (originalPrice - orderPrice) * od.Quantity
+                    : 0;
+            });
+        }
+
         public async Task<FrontOrderDetailDto> GetOrderDetailAsync(long orderId, int memberId)
         {
             var o = await _orderRepository.GetOrderByIdAsync(orderId);
@@ -75,6 +95,11 @@ namespace ISpanShop.Services.Orders
             // [安全性強化] 如果是為了結帳而讀取，或是在任何詳情檢查中
             // 這裡保留通用讀取，但在下面 API 調用處會做更嚴格的攔截。
             
+            var promotionDiscount = o.PromotionDiscount.GetValueOrDefault();
+            // 這裡不再把單品折抵加進 promotionDiscount，因為前端要分開顯示了。
+            // 只有當資料庫明確有紀錄滿額折抵時，才算作整筆訂單的活動促銷。
+            // (註: 原本的 CalculateDirectPromotionDiscount 算出來的是單品折抵總和，現在不加總了)
+
             return new FrontOrderDetailDto
             {
                 Id = o.Id,
@@ -89,7 +114,7 @@ namespace ISpanShop.Services.Orders
                 LevelDiscount = o.LevelDiscount, // 從資料庫讀取
                 CouponId = o.CouponId,
                 CouponTitle = o.Coupon?.Title ?? (o.CouponId.HasValue ? "優惠券" : null),
-                PromotionDiscount = o.PromotionDiscount, // 從資料庫讀取活動折抵
+                PromotionDiscount = promotionDiscount, // 只顯示真正的滿額活動折抵
                 FinalAmount = o.FinalAmount,
                 Status = (OrderStatus)(o.Status ?? 0),
                 StatusName = GetStatusName(o.Status),
@@ -108,14 +133,7 @@ namespace ISpanShop.Services.Orders
                     decimal originalPrice = od.Product?.ProductVariants?.FirstOrDefault(v => v.Id == od.VariantId)?.Price ?? od.Product?.MinPrice ?? 0;
                     bool isSingleProductDiscount = originalPrice > 0 && od.Price < originalPrice;
 
-                    if (isSingleProductDiscount)
-                    {
-                        tags.Add("單品特價優惠");
-                    }
-                    
                     // 2. 檢查滿額活動：整筆訂單有活動折抵
-                    // 修正邏輯：如果該品項已有單品特價，通常不重複顯示滿額標籤（除非有明確分攤金額證明兩者並存）
-                    // 對於舊訂單（無 AllocatedDiscountAmount），我們採用互斥邏輯；對於新訂單，檢查 AllocatedDiscountAmount
                     bool hasAllocatedPromotion = od.AllocatedDiscountAmount.HasValue && od.AllocatedDiscountAmount.Value > 0;
                     bool shouldShowThresholdTag = hasAllocatedPromotion || ((o.PromotionDiscount ?? 0) > 0 && !isSingleProductDiscount);
 
@@ -133,6 +151,7 @@ namespace ISpanShop.Services.Orders
                         VariantName = od.VariantName,
                         CoverImage = GetFinalImage(od),
                         Price = od.Price ?? 0,
+                        OriginalPrice = isSingleProductDiscount ? originalPrice : null, // 只有單品折扣才傳回原價
                         Quantity = od.Quantity,
                         StoreStatus = o.Store?.StoreStatus ?? 1,
                         PromotionTags = tags.Distinct().ToList()
@@ -162,7 +181,6 @@ namespace ISpanShop.Services.Orders
                         var tags = new List<string>();
                         decimal originalPrice = ri.OrderDetail.Product?.ProductVariants?.FirstOrDefault(v => v.Id == ri.OrderDetail.VariantId)?.Price ?? ri.OrderDetail.Product?.MinPrice ?? 0;
                         bool isSingleProductDiscount = originalPrice > 0 && ri.OrderDetail.Price < originalPrice;
-                        if (isSingleProductDiscount) tags.Add("單品特價優惠");
                         
                         bool hasAllocatedPromotion = ri.OrderDetail.AllocatedDiscountAmount.HasValue && ri.OrderDetail.AllocatedDiscountAmount.Value > 0;
                         if (hasAllocatedPromotion || ((o.PromotionDiscount ?? 0) > 0 && !isSingleProductDiscount))
@@ -176,6 +194,7 @@ namespace ISpanShop.Services.Orders
                             VariantName = ri.OrderDetail.VariantName,
                             CoverImage = img,
                             Price = ri.OrderDetail.Price ?? 0,
+                            OriginalPrice = isSingleProductDiscount ? originalPrice : null,
                             ReturnQuantity = ri.Quantity,
                             PromotionTags = tags.Distinct().ToList()
                         };

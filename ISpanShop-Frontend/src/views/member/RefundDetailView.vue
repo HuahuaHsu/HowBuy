@@ -41,10 +41,15 @@
             <el-image :src="item.coverImage" class="item-img" fit="cover" />
             <div class="item-info">
               <div class="name">{{ item.productName }}</div>
-              <PromotionTags :tags="item.promotionTags" />
               <div class="variant" v-if="item.variantName">規格：{{ item.variantName }}</div>
               <div class="price-qty">
-                <span class="price">${{ formatPrice(item.price) }}</span>
+                <div v-if="item.originalPrice && item.originalPrice > item.price" class="price-container">
+                  <span class="original-price">NT$ {{ formatPrice(item.originalPrice) }}</span>
+                  <span class="price">NT$ {{ formatPrice(item.price) }}</span>
+                </div>
+                <div v-else>
+                  <span class="price">${{ formatPrice(item.price) }}</span>
+                </div>
                 <span class="qty">退貨數量：{{ item.returnQuantity }}</span>
               </div>
             </div>
@@ -52,6 +57,16 @@
           <div v-if="!order?.returnInfo?.items?.length" class="empty-items-tip">
             (整筆訂單退貨)
           </div>
+        </div>
+
+        <!-- 訂單折扣標籤 -->
+        <div v-if="order && (order.discountAmount || order.levelDiscount || order.pointDiscount || hasAnyPromotion)" class="order-discount-wrap">
+          <OrderDiscountTags 
+            :discount-amount="order.discountAmount"
+            :level-discount="order.levelDiscount"
+            :point-discount="order.pointDiscount"
+            :promotion-discount="hasAnyPromotion ? 1 : 0"
+          />
         </div>
 
         <!-- 費用折抵分攤明細 -->
@@ -168,13 +183,22 @@ import { getOrderDetailApi } from '@/api/order';
 import type { OrderDetail } from '@/types/order';
 import { ElMessage } from 'element-plus';
 import { useChatStore } from '@/stores/chat';
-import PromotionTags from '@/components/common/PromotionTags.vue';
+import OrderDiscountTags from '@/components/order/OrderDiscountTags.vue';
 
 const route = useRoute();
 const router = useRouter();
 const chatStore = useChatStore();
 const loading = ref(false);
 const order = ref<OrderDetail | null>(null);
+
+const hasAnyPromotion = computed(() => {
+  if (!order.value) return false;
+  // 檢查整筆訂單促銷
+  const hasOrderLevel = (order.value.promotionDiscount && order.value.promotionDiscount > 0);
+  // 檢查退貨品項中是否有單品折扣
+  const hasItemLevel = order.value.returnInfo?.items?.some(item => item.originalPrice && item.originalPrice > item.price);
+  return hasOrderLevel || hasItemLevel;
+});
 
 // 計算屬性：退貨商品原價小計
 const returnedItemsSubtotal = computed(() => {
@@ -352,11 +376,31 @@ onMounted(fetchOrderDetail);
       .price-qty {
         display: flex;
         justify-content: space-between;
+        align-items: center;
+
+        .price-container {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          
+          .original-price {
+            color: #999;
+            text-decoration: line-through;
+            font-size: 12px;
+          }
+        }
         .price { color: #666; }
         .qty { color: #ee4d2d; font-weight: 500; }
       }
     }
   }
+}
+
+.order-discount-wrap {
+  padding: 15px 20px;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .refund-summary-detail {

@@ -83,7 +83,30 @@
       </template>
     </div>
 
-    <!-- ④ 已套用篩選 -->
+    <!-- ④ 價格區間 -->
+    <div class="sb-block">
+      <div class="sb-title">價格區間</div>
+      <div class="price-inputs">
+        <el-input
+          v-model="priceMinInput"
+          placeholder="最低"
+          size="small"
+          type="number"
+        />
+        <span class="price-sep">~</span>
+        <el-input
+          v-model="priceMaxInput"
+          placeholder="最高"
+          size="small"
+          type="number"
+        />
+      </div>
+      <el-button class="price-apply-btn" size="small" plain type="danger" @click="applyPriceFilter">
+        套用
+      </el-button>
+    </div>
+
+    <!-- ⑤ 已套用篩選 -->
     <div v-if="appliedFilters.length > 0" class="sb-block">
       <div class="sb-title">已套用篩選</div>
       <div class="applied-tags">
@@ -106,7 +129,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { Close } from '@element-plus/icons-vue'
 import type { SubCategory } from '@/types/category'
 import type { Brand } from '@/types/brand'
@@ -116,8 +139,8 @@ const BRAND_LIMIT = 10
 interface AppliedFilter {
   key: string
   label: string
-  type: 'sub' | 'brand'
-  id: number
+  type: 'sub' | 'brand' | 'price'
+  id?: number
 }
 
 const props = defineProps<{
@@ -128,6 +151,8 @@ const props = defineProps<{
   brandLoading: boolean
   selectedSubCategoryId: number | null
   selectedBrandIds: number[]
+  minPrice: number | null
+  maxPrice: number | null
   brandKeyword: string
   isBrandExpanded: boolean
 }>()
@@ -137,9 +162,22 @@ const emit = defineEmits<{
   'filter-change': []
   'update:selectedSubCategoryId': [value: number | null]
   'update:selectedBrandIds': [value: number[]]
+  'update:minPrice': [value: number | null]
+  'update:maxPrice': [value: number | null]
   'update:brandKeyword': [value: string]
   'update:isBrandExpanded': [value: boolean]
 }>()
+
+const priceMinInput = ref(props.minPrice !== null ? String(props.minPrice) : '')
+const priceMaxInput = ref(props.maxPrice !== null ? String(props.maxPrice) : '')
+
+watch(
+  () => [props.minPrice, props.maxPrice] as const,
+  ([min, max]) => {
+    priceMinInput.value = min !== null ? String(min) : ''
+    priceMaxInput.value = max !== null ? String(max) : ''
+  },
+)
 
 // null → -1 作為 el-radio-group 的「全部」sentinel
 const subCatModel = computed<number>({
@@ -189,21 +227,37 @@ const appliedFilters = computed<AppliedFilter[]>(() => {
       result.push({ key: `brand-${brand.id}`, label: brand.name, type: 'brand', id: brand.id })
     }
   }
+  if (props.minPrice !== null || props.maxPrice !== null) {
+    const min = props.minPrice !== null ? props.minPrice.toLocaleString() : '不限'
+    const max = props.maxPrice !== null ? props.maxPrice.toLocaleString() : '不限'
+    result.push({ key: 'price', label: `$${min} ~ $${max}`, type: 'price' })
+  }
   return result
 })
 
 function removeFilter(f: AppliedFilter): void {
   if (f.type === 'sub') {
     emit('update:selectedSubCategoryId', null)
-  } else {
+  } else if (f.type === 'brand' && f.id !== undefined) {
     emit('update:selectedBrandIds', props.selectedBrandIds.filter(id => id !== f.id))
+  } else {
+    emit('update:minPrice', null)
+    emit('update:maxPrice', null)
   }
+  emit('filter-change')
+}
+
+function applyPriceFilter(): void {
+  emit('update:minPrice', priceMinInput.value ? Number(priceMinInput.value) : null)
+  emit('update:maxPrice', priceMaxInput.value ? Number(priceMaxInput.value) : null)
   emit('filter-change')
 }
 
 function clearAll(): void {
   emit('update:selectedSubCategoryId', null)
   emit('update:selectedBrandIds', [])
+  emit('update:minPrice', null)
+  emit('update:maxPrice', null)
   emit('filter-change')
 }
 </script>
@@ -291,6 +345,21 @@ function clearAll(): void {
   margin-top: 6px;
   padding: 0;
   font-size: 12px;
+}
+
+/* 價格 */
+.price-inputs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.price-sep {
+  color: #94a3b8;
+  font-size: 12px;
+}
+.price-apply-btn {
+  width: 100%;
+  margin-top: 8px;
 }
 
 /* 已套用篩選 */

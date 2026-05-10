@@ -253,6 +253,7 @@ namespace ISpanShop.Repositories.Products
                 "stock_asc"    => query.OrderBy(p => p.ProductVariants.Where(v => v.IsDeleted != true).Sum(v => (int?)v.Stock ?? 0)),
                 "sales_desc"   => query.OrderByDescending(p => p.TotalSales ?? 0),
                 "sales_asc"    => query.OrderBy(p => p.TotalSales ?? 0),
+                "updated_asc"  => query.OrderBy(p => p.UpdatedAt),
                 "updated_desc" => query.OrderByDescending(p => p.UpdatedAt),
                 "date_desc"    => query.OrderByDescending(p => p.CreatedAt),
                 _              => query.OrderBy(p => p.MinPrice)
@@ -423,6 +424,23 @@ namespace ISpanShop.Repositories.Products
             _context.SaveChanges();
         }
 
+        public bool RestoreDeletedProductAsDraft(int id)
+        {
+            var product = _context.Products.Find(id);
+            if (product == null || !product.IsDeleted || product.ReviewStatus == 2)
+                return false;
+
+            product.IsDeleted = false;
+            product.Status = 0;
+            product.ReviewStatus = 4;
+            product.ReviewedBy = null;
+            product.ReviewDate = null;
+            product.RejectReason = null;
+            product.UpdatedAt = DateTime.Now;
+            _context.SaveChanges();
+            return true;
+        }
+
         public ProductVariant? GetVariantById(int id)
             => _context.ProductVariants.Include(v => v.Product).FirstOrDefault(v => v.Id == id);
 
@@ -551,6 +569,7 @@ namespace ISpanShop.Repositories.Products
                 "stock_asc"    => query.OrderBy(p => p.ProductVariants.Where(v => v.IsDeleted != true).Sum(v => (int?)v.Stock ?? 0)),
                 "sales_desc"   => query.OrderByDescending(p => p.TotalSales ?? 0),
                 "sales_asc"    => query.OrderBy(p => p.TotalSales ?? 0),
+                "updated_asc"  => query.OrderBy(p => p.UpdatedAt),
                 "updated_desc" => query.OrderByDescending(p => p.UpdatedAt),
                 "date_desc"    => query.OrderByDescending(p => p.CreatedAt),
                 _              => query.OrderBy(p => p.MinPrice)
@@ -574,6 +593,7 @@ namespace ISpanShop.Repositories.Products
                     MaxPrice            = p.MaxPrice,
                     Status              = p.Status,
                     CreatedAt           = p.CreatedAt,
+                    UpdatedAt           = p.UpdatedAt,
                     ReviewStatus        = p.ReviewStatus,
                     ReviewedBy          = p.ReviewedBy,
                     ReviewDate          = p.ReviewDate,

@@ -11,6 +11,31 @@
         <el-tab-pane label="全部" name="all" />
       </el-tabs>
 
+      <!-- ── 搜尋列 ── -->
+      <div class="search-section">
+        <el-row :gutter="12" align="middle">
+          <el-col :xs="24" :sm="10">
+            <el-input
+              v-model="searchQuery"
+              placeholder="搜尋 訂單編號, 買家名稱"
+              clearable
+              @keyup.enter="handleSearch"
+              @clear="handleSearch"
+            >
+              <template #prefix><el-icon><Search /></el-icon></template>
+            </el-input>
+          </el-col>
+          <el-col :xs="24" :sm="14">
+            <el-button class="search-btn" @click="handleSearch">搜尋</el-button>
+            <el-button @click="handleReset">重設</el-button>
+          </el-col>
+        </el-row>
+        
+        <div class="result-count">
+          共 <strong class="count-num">{{ totalCount }}</strong> 筆退貨申請
+        </div>
+      </div>
+
       <div v-loading="loading" class="list-container">
         <el-table :data="returns" stripe style="width: 100%">
           <el-table-column prop="orderNumber" label="訂單編號" min-width="180" />
@@ -67,6 +92,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { Search } from '@element-plus/icons-vue'
 import { getSellerReturnsApi } from '@/api/store'
 import type { SellerReturnItem } from '@/types/store'
 import { ElMessage } from 'element-plus'
@@ -76,6 +102,7 @@ const loading = ref(false)
 const returns = ref<SellerReturnItem[]>([])
 const totalCount = ref(0)
 const activeTab = ref('pending')
+const searchQuery = ref('')
 const currentPage = ref(1)
 const pageSize = ref(10)
 
@@ -89,7 +116,8 @@ const fetchReturns = async () => {
     const res = await getSellerReturnsApi({
       isProcessed,
       page: currentPage.value,
-      pageSize: pageSize.value
+      pageSize: pageSize.value,
+      keyword: searchQuery.value
     })
     returns.value = res.data.items
     totalCount.value = res.data.totalCount
@@ -103,6 +131,18 @@ const fetchReturns = async () => {
 
 const handleTabChange = () => {
   currentPage.value = 1
+  fetchReturns()
+}
+
+const handleSearch = () => {
+  currentPage.value = 1
+  fetchReturns()
+}
+
+const handleReset = () => {
+  searchQuery.value = ''
+  currentPage.value = 1
+  activeTab.value = 'pending'
   fetchReturns()
 }
 
@@ -157,9 +197,33 @@ onMounted(() => {
 :deep(.el-tabs__active-bar) {
   background-color: #ee4d2d;
 }
+
+/* ─ 搜尋列 ─────────────────────────────────────────────────────── */
+.search-section {
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.search-btn {
+  border-color: #ee4d2d !important;
+  color: #ee4d2d !important;
+  background: white !important;
+  margin-left: 8px;
+}
+.search-btn:hover { background: #fff7ed !important; }
+
+.result-count {
+  font-size: 13px;
+  color: #64748b;
+  margin-top: 10px;
+}
+.count-num { color: #ee4d2d; }
+
 .price {
   color: #ee4d2d;
   font-weight: 600;
+}
+.list-container {
+  padding: 16px 20px;
 }
 .action-btn {
   border-radius: 4px;
