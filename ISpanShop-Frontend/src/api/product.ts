@@ -10,11 +10,49 @@ import type {
   SellerProductDetail,
 } from '@/types/product'
 
+const PRODUCT_LIST_CACHE_TTL_MS = 30_000
+const PRODUCT_LIST_CACHE_MAX = 30
+const productListCache = new Map<string, { expiresAt: number; data: ApiResponse<ProductListResponse> }>()
+const productListInflight = new Map<string, Promise<ApiResponse<ProductListResponse>>>()
+
+function getProductListCacheKey(params: FetchProductsParams): string {
+  const normalized = {
+    ...params,
+    brandIds: params.brandIds ? [...params.brandIds].sort((a, b) => a - b) : undefined,
+  }
+  return JSON.stringify(normalized)
+}
+
+function setProductListCache(key: string, data: ApiResponse<ProductListResponse>): void {
+  productListCache.set(key, { expiresAt: Date.now() + PRODUCT_LIST_CACHE_TTL_MS, data })
+  if (productListCache.size > PRODUCT_LIST_CACHE_MAX) {
+    const oldestKey = productListCache.keys().next().value
+    if (oldestKey) productListCache.delete(oldestKey)
+  }
+}
+
 export async function fetchProductList(
   params: FetchProductsParams = {},
 ): Promise<ApiResponse<ProductListResponse>> {
-  const response = await request.get<ApiResponse<ProductListResponse>>('/api/products', { params })
-  return response.data
+  const cacheKey = getProductListCacheKey(params)
+  const cached = productListCache.get(cacheKey)
+  if (cached && cached.expiresAt > Date.now()) return cached.data
+
+  const inflight = productListInflight.get(cacheKey)
+  if (inflight) return inflight
+
+  const promise = request
+    .get<ApiResponse<ProductListResponse>>('/api/products', { params })
+    .then((response) => {
+      setProductListCache(cacheKey, response.data)
+      return response.data
+    })
+    .finally(() => {
+      productListInflight.delete(cacheKey)
+    })
+
+  productListInflight.set(cacheKey, promise)
+  return promise
 }
 
 export async function fetchProductDetail(id: number): Promise<ApiResponse<ProductDetail>> {

@@ -47,6 +47,11 @@ namespace ISpanShop.Repositories.Products
         void SoftDeleteProduct(int id);
 
         /// <summary>
+        /// 將賣家刪除的商品恢復為草稿；後台退回銷毀商品不可恢復
+        /// </summary>
+        bool RestoreDeletedProductAsDraft(int id);
+
+        /// <summary>
         /// 根據 ID 取得規格（含所屬商品）
         /// </summary>
         ProductVariant? GetVariantById(int id);

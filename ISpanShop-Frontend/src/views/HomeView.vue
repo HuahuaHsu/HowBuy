@@ -377,6 +377,7 @@ const total = ref<number>(0)
 const sectionRef = ref<HTMLElement | null>(null)
 const keyword = ref<string>('')
 const sortBy = ref<SortBy>('latest')
+let productRequestSeq = 0
 
 // ── 排序選項 ──────────────────────────────────────────────────────
 const sortOptions = [
@@ -497,6 +498,7 @@ function getSlideBackground(banner: any): Record<string, string> {
 }
 
 async function loadProducts(): Promise<void> {
+  const requestSeq = ++productRequestSeq
   loading.value = true
   try {
     const params: FetchProductsParams = {
@@ -510,6 +512,7 @@ async function loadProducts(): Promise<void> {
     if (keyword.value.trim()) params.keyword = keyword.value.trim()
 
     const res = await fetchProductList(params)
+    if (requestSeq !== productRequestSeq) return
     if (res.success) {
       products.value = res.data.items
       total.value = res.data.totalCount
@@ -517,9 +520,10 @@ async function loadProducts(): Promise<void> {
       ElMessage.error(res.message || '載入失敗')
     }
   } catch {
+    if (requestSeq !== productRequestSeq) return
     ElMessage.error('載入失敗，請稍後再試')
   } finally {
-    loading.value = false
+    if (requestSeq === productRequestSeq) loading.value = false
   }
 }
 

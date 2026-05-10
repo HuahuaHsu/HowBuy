@@ -286,6 +286,7 @@ const products = ref<ProductListItem[]>([])
 const total    = ref<number>(0)
 const pageSize = ref<number>(20)
 const loading  = ref<boolean>(false)
+let productRequestSeq = 0
 
 // ── 分類清單 ─────────────────────────────────────────────────────
 const categories  = ref<Category[]>([])
@@ -387,6 +388,7 @@ function onPageChange(page: number): void {
 
 // ── API 呼叫 ────────────────────────────────────────────────────
 async function loadProducts(): Promise<void> {
+  const requestSeq = ++productRequestSeq
   loading.value = true
   try {
     const params: FetchProductsParams = {
@@ -402,16 +404,18 @@ async function loadProducts(): Promise<void> {
     if (routeMaxPrice.value !== undefined)    params.maxPrice      = routeMaxPrice.value
 
     const res = await fetchProductList(params)
+    if (requestSeq !== productRequestSeq) return
     if (res.success) {
       products.value = res.data.items
-      total.value    = res.data.total
+      total.value    = res.data.totalCount
     } else {
       ElMessage.error(res.message || '載入失敗')
     }
   } catch {
+    if (requestSeq !== productRequestSeq) return
     ElMessage.error('載入失敗，請稍後再試')
   } finally {
-    loading.value = false
+    if (requestSeq === productRequestSeq) loading.value = false
   }
 }
 
