@@ -407,7 +407,7 @@ async function loadProducts(): Promise<void> {
     if (requestSeq !== productRequestSeq) return
     if (res.success) {
       products.value = res.data.items
-      total.value    = res.data.totalCount
+      total.value    = res.data.totalCount ?? res.data.total ?? 0
     } else {
       ElMessage.error(res.message || '載入失敗')
     }

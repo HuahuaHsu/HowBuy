@@ -118,8 +118,9 @@ export interface ProductListResponse {
   items: ProductListItem[]
   page: number
   pageSize: number
-  totalCount: number
-  totalPages: number
+  total?: number
+  totalCount?: number
+  totalPages?: number
 }
 
 /** 統一 API 回傳包裝 */
