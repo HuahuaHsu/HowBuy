@@ -515,7 +515,7 @@ async function loadProducts(): Promise<void> {
     if (requestSeq !== productRequestSeq) return
     if (res.success) {
       products.value = res.data.items
-      total.value = res.data.totalCount
+      total.value = res.data.totalCount ?? res.data.total ?? 0
     } else {
       ElMessage.error(res.message || '載入失敗')
     }
@@ -700,12 +700,6 @@ function goToProductsPage(): void {
   const query: Record<string, string> = {}
   if (selectedCategoryId.value !== null) {
     query['categoryId'] = String(selectedCategoryId.value)
-  }
-  if (selectedSubCategoryId.value !== null) {
-    query['subCategoryId'] = String(selectedSubCategoryId.value)
-  }
-  if (selectedBrandIds.value.length > 0) {
-    query['brandIds'] = selectedBrandIds.value.join(',')
   }
   if (sortBy.value !== 'latest') {
     query['sortBy'] = sortBy.value
