@@ -221,12 +221,16 @@
             :brand-loading="brandLoading"
             :selected-sub-category-id="selectedSubCategoryId"
             :selected-brand-ids="selectedBrandIds"
+            :min-price="minPrice"
+            :max-price="maxPrice"
             :brand-keyword="isBrandSearchKeyword"
             :is-brand-expanded="isBrandListExpanded"
             @clear="onClearCategory"
             @filter-change="onFilterChange"
             @update:selected-sub-category-id="onSubCategoryChange($event)"
             @update:selected-brand-ids="selectedBrandIds = $event"
+            @update:min-price="minPrice = $event"
+            @update:max-price="maxPrice = $event"
             @update:brand-keyword="isBrandSearchKeyword = $event"
             @update:is-brand-expanded="isBrandListExpanded = $event"
           />
@@ -248,12 +252,16 @@
             :brand-loading="brandLoading"
             :selected-sub-category-id="selectedSubCategoryId"
             :selected-brand-ids="selectedBrandIds"
+            :min-price="minPrice"
+            :max-price="maxPrice"
             :brand-keyword="isBrandSearchKeyword"
             :is-brand-expanded="isBrandListExpanded"
             @clear="onClearCategory"
             @filter-change="onFilterChange"
             @update:selected-sub-category-id="onSubCategoryChange($event)"
             @update:selected-brand-ids="selectedBrandIds = $event"
+            @update:min-price="minPrice = $event"
+            @update:max-price="maxPrice = $event"
             @update:brand-keyword="isBrandSearchKeyword = $event"
             @update:is-brand-expanded="isBrandListExpanded = $event"
           />
@@ -409,6 +417,8 @@ const subLoading = ref<boolean>(false)
 const brandLoading = ref<boolean>(false)
 const selectedSubCategoryId = ref<number | null>(null)
 const selectedBrandIds = ref<number[]>([])
+const minPrice = ref<number | null>(null)
+const maxPrice = ref<number | null>(null)
 const isBrandSearchKeyword = ref<string>('')
 const isBrandListExpanded = ref<boolean>(false)
 const drawerOpen = ref<boolean>(false)
@@ -509,6 +519,8 @@ async function loadProducts(): Promise<void> {
     if (selectedCategoryId.value !== null) params.categoryId = selectedCategoryId.value
     if (selectedSubCategoryId.value !== null) params.subCategoryId = selectedSubCategoryId.value
     if (selectedBrandIds.value.length > 0) params.brandIds = selectedBrandIds.value
+    if (minPrice.value !== null) params.minPrice = minPrice.value
+    if (maxPrice.value !== null) params.maxPrice = maxPrice.value
     if (keyword.value.trim()) params.keyword = keyword.value.trim()
 
     const res = await fetchProductList(params)
@@ -601,6 +613,8 @@ async function loadPromotions(): Promise<void> {
 function clearSidebarState(): void {
   selectedSubCategoryId.value = null
   selectedBrandIds.value = []
+  minPrice.value = null
+  maxPrice.value = null
   isBrandSearchKeyword.value = ''
   isBrandListExpanded.value = false
   subCategories.value = []
@@ -703,6 +717,12 @@ function goToProductsPage(): void {
   }
   if (sortBy.value !== 'latest') {
     query['sortBy'] = sortBy.value
+  }
+  if (minPrice.value !== null) {
+    query['minPrice'] = String(minPrice.value)
+  }
+  if (maxPrice.value !== null) {
+    query['maxPrice'] = String(maxPrice.value)
   }
   void router.push({ path: '/products', query })
 }
