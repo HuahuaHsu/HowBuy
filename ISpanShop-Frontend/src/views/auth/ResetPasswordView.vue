@@ -5,6 +5,9 @@
         <div class="card-header">
           <h2>重設密碼</h2>
           <p class="subtitle">請輸入您的新密碼</p>
+          <el-button link type="primary" size="small" @click="quickFill" class="quick-fill-btn">
+            快速填入 (展示用)
+          </el-button>
         </div>
       </template>
 
@@ -68,6 +71,11 @@ const resetForm = reactive({
   newPassword: '',
   confirmPassword: ''
 })
+
+const quickFill = () => {
+  resetForm.newPassword = 'Test1234567'
+  resetForm.confirmPassword = 'Test1234567'
+}
 
 onMounted(() => {
   // 從 URL 取得參數
@@ -157,6 +165,10 @@ const handleReset = async () => {
   margin-top: 8px;
   font-size: 14px;
   color: #888;
+}
+
+.quick-fill-btn {
+  margin-top: 8px;
 }
 
 .w-full {
