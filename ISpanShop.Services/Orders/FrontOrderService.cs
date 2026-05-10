@@ -194,6 +194,7 @@ namespace ISpanShop.Services.Orders
                             VariantName = ri.OrderDetail.VariantName,
                             CoverImage = img,
                             Price = ri.OrderDetail.Price ?? 0,
+                            OriginalPrice = isSingleProductDiscount ? originalPrice : null,
                             ReturnQuantity = ri.Quantity,
                             PromotionTags = tags.Distinct().ToList()
                         };

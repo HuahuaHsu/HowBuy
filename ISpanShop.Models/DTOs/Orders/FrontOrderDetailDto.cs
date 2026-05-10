@@ -47,6 +47,7 @@ namespace ISpanShop.Models.DTOs.Orders
         public string ReasonDescription { get; set; }
         public decimal RefundAmount { get; set; }
         public byte Status { get; set; }
+        public string StatusName { get; set; }
         public DateTime CreatedAt { get; set; }
         public List<string> ImageUrls { get; set; }
         public List<FrontReturnItemDto> Items { get; set; } = new List<FrontReturnItemDto>();
@@ -58,8 +59,9 @@ namespace ISpanShop.Models.DTOs.Orders
         public string VariantName { get; set; }
         public string CoverImage { get; set; }
         public decimal Price { get; set; }
+        public decimal? OriginalPrice { get; set; } // 新增：商品原價
         public int ReturnQuantity { get; set; }
-        public List<string> PromotionTags { get; set; } = new List<string>(); // 新增：活動標籤
+        public List<string> PromotionTags { get; set; } = new List<string>();
     }
 
     public class FrontOrderItemDto
