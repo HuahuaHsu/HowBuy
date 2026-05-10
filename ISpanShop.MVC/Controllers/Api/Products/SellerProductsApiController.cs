@@ -327,6 +327,28 @@ namespace ISpanShop.MVC.Controllers.Api.Products
             return Ok(new { message = "商品已刪除" });
         }
 
+        // PUT api/seller/products/{id}/restore
+        // 將賣家刪除的商品恢復為草稿
+        [HttpPut("{id:int}/restore")]
+        public IActionResult RestoreDeletedProduct(int id)
+        {
+            var storeIdClaim = User.FindFirst("StoreId")?.Value;
+            if (string.IsNullOrEmpty(storeIdClaim) || !int.TryParse(storeIdClaim, out var storeId))
+                return Unauthorized(new { success = false, message = "無法識別賣家身份" });
+
+            var existing = _productService.GetProductDetail(id);
+            if (existing == null)
+                return NotFound(new { success = false, message = "商品不存在" });
+
+            if (existing.StoreId != storeId)
+                return StatusCode(StatusCodes.Status403Forbidden, new { success = false, message = "無權恢復此商品" });
+
+            if (!_productService.RestoreDeletedProductAsDraft(id))
+                return BadRequest(new { success = false, message = "此商品無法恢復，請重新建立商品" });
+
+            return Ok(new { success = true, message = "商品已恢復為草稿" });
+        }
+
         // ──────────────────────────────────────────────────────────
         // PUT api/seller/products/{id}/images
         // 更新商品圖片（保留舊圖 + 上傳新圖）

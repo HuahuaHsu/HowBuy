@@ -423,6 +423,23 @@ namespace ISpanShop.Repositories.Products
             _context.SaveChanges();
         }
 
+        public bool RestoreDeletedProductAsDraft(int id)
+        {
+            var product = _context.Products.Find(id);
+            if (product == null || !product.IsDeleted || product.ReviewStatus == 2)
+                return false;
+
+            product.IsDeleted = false;
+            product.Status = 0;
+            product.ReviewStatus = 4;
+            product.ReviewedBy = null;
+            product.ReviewDate = null;
+            product.RejectReason = null;
+            product.UpdatedAt = DateTime.Now;
+            _context.SaveChanges();
+            return true;
+        }
+
         public ProductVariant? GetVariantById(int id)
             => _context.ProductVariants.Include(v => v.Product).FirstOrDefault(v => v.Id == id);
 

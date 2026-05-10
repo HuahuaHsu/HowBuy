@@ -210,6 +210,19 @@ export async function deleteSellerProduct(
 }
 
 /**
+ * 恢復已刪除商品為草稿
+ * PUT /api/seller/products/{id}/restore
+ */
+export async function restoreSellerProduct(
+  id: number,
+): Promise<ApiResponse<unknown>> {
+  const response = await request.put<ApiResponse<unknown>>(
+    `/api/seller/products/${id}/restore`,
+  )
+  return response.data
+}
+
+/**
  * 上傳商品描述圖片 (供編輯器使用)
  * POST /api/seller/products/upload-image (multipart/form-data)
  */

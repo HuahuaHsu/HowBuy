@@ -195,10 +195,9 @@
               <!-- 操作列 -->
               <div class="card-footer">
                 <template v-if="product.isDeleted">
-                  <span class="deleted-footer-label">
-                    <el-icon :size="12"><Delete /></el-icon>
-                    已刪除
-                  </span>
+                  <button class="card-action-btn restore-btn" @click="handleRestoreProduct(product)">
+                    恢復草稿
+                  </button>
                 </template>
                 <template v-else>
                   <button
@@ -363,7 +362,9 @@
                     </template>
                   </el-popconfirm>
                 </template>
-                <el-tag v-else type="danger" size="small">已刪除</el-tag>
+                <el-button v-else text type="primary" size="small" @click="handleRestoreProduct(row)">
+                  恢復草稿
+                </el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -406,7 +407,7 @@ import {
   ArrowDown, ArrowUp, DCaret, CaretTop, CaretBottom,
   MoreFilled, WarningFilled, View, ChatDotRound,
 } from '@element-plus/icons-vue'
-import { fetchSellerProducts, fetchSellerProductTabCounts, updateProductStatus, deleteSellerProduct, submitProductForReview } from '@/api/product'
+import { fetchSellerProducts, fetchSellerProductTabCounts, updateProductStatus, deleteSellerProduct, restoreSellerProduct, submitProductForReview } from '@/api/product'
 import { fetchMainCategories } from '@/api/category'
 import { useSellerStore } from '@/stores/seller'
 import type { SellerProductListItem } from '@/types/product'
@@ -740,6 +741,32 @@ async function handleDeleteProduct(product: SellerProduct): Promise<void> {
   }
 }
 
+// ── 恢復已刪除商品 ────────────────────────────────────────────────
+async function handleRestoreProduct(product: SellerProduct): Promise<void> {
+  try {
+    await ElMessageBox.confirm(
+      `確定要將「${product.name}」恢復為草稿嗎？`,
+      '恢復確認',
+      {
+        confirmButtonText: '恢復草稿',
+        cancelButtonText: '取消',
+        type: 'info',
+      }
+    )
+
+    await restoreSellerProduct(product.id)
+    ElMessage.success('商品已恢復為草稿')
+    activeTab.value = 'draft'
+    currentPage.value = 1
+    await Promise.all([loadProducts(), loadTabCounts()])
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      console.error('恢復商品失敗:', error)
+      ElMessage.error(error?.response?.data?.message || '恢復失敗，請稍後再試')
+    }
+  }
+}
+
 // ── 上/下架切換 ───────────────────────────────────────────────────
 async function handleToggleShelf(product: SellerProduct): Promise<void> {
   // 只有已上架('on') 或 未上架-已審核('off') 可以切換
@@ -971,13 +998,17 @@ function getStatusTagType(status: ProductStatus): 'success' | 'warning' | 'dange
   border-color: #ee4d2d;
 }
 .product-card-deleted {
-  opacity: 0.55;
-  filter: grayscale(40%);
+  border-style: dashed;
 }
 .product-card-deleted:hover {
   box-shadow: none;
   transform: none;
   border-color: #e8eaf0;
+}
+.product-card-deleted .card-img-wrap,
+.product-card-deleted .card-body {
+  opacity: 0.55;
+  filter: grayscale(40%);
 }
 .product-card-deleted .card-img-wrap::after {
   content: '';
@@ -1099,6 +1130,17 @@ function getStatusTagType(status: ProductStatus): 'success' | 'warning' | 'dange
 }
 .edit-btn { color: #64748b; }
 .edit-btn:hover { color: #ee4d2d; background: #fff7ed; }
+.restore-btn {
+  color: #ee4d2d;
+  background: #fff7ed;
+  border: 1px solid #fb923c;
+  font-weight: 600;
+}
+.restore-btn:hover {
+  color: #ffffff;
+  background: #ee4d2d;
+  border-color: #ee4d2d;
+}
 .more-btn { color: #94a3b8; }
 .more-btn:hover { color: #ee4d2d; background: #fff7ed; }
 .deleted-footer-label {
