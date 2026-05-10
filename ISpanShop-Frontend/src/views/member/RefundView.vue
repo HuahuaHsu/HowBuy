@@ -24,29 +24,43 @@
                 <el-image :src="item.coverImage" class="item-img" fit="cover" />
                 <div class="item-info">
                   <div class="name">{{ item.productName }}</div>
-                  <PromotionTags :tags="item.promotionTags" />
                   <div class="variant">{{ item.variantName }}</div>
                   <div class="price-qty">
-                    <span class="price">${{ formatPrice(item.price) }}</span>
+                    <div v-if="item.originalPrice && item.originalPrice > item.price" class="price-container">
+                      <span class="original-price">NT$ {{ formatPrice(item.originalPrice) }}</span>
+                      <span class="price">NT$ {{ formatPrice(item.price) }}</span>
+                    </div>
+                    <div v-else>
+                      <span class="price">${{ formatPrice(item.price) }}</span>
+                    </div>
                     <span class="qty">x{{ item.quantity }}</span>
                   </div>
                 </div>
-              </div>
-            </el-checkbox>
-            <!-- 選擇數量 -->
-            <div class="qty-selector" v-if="selectedItems.includes(item.id)">
-              <span class="label">退貨數量:</span>
-              <el-input-number 
-                v-model="returnQuantities[item.id]" 
-                :min="1" 
-                :max="item.quantity" 
-                size="small" 
-              />
-            </div>
-          </div>
-        </div>
-      </el-card>
+                </div>
+                </el-checkbox>
+                <!-- 選擇數量 -->
+                <div class="qty-selector" v-if="selectedItems.includes(item.id)">
+                <span class="label">退貨數量:</span>
+                <el-input-number
+                v-model="returnQuantities[item.id]"
+                :min="1"
+                :max="item.quantity"
+                size="small"
+                />
+                </div>
+                </div>
+                </div>
 
+                <!-- 訂單折扣標籤 -->
+                <div v-if="order && (order.discountAmount || order.levelDiscount || order.pointDiscount || hasAnyPromotion)" class="order-discount-wrap">
+                <OrderDiscountTags 
+                :discount-amount="order.discountAmount"
+                :level-discount="order.levelDiscount"
+                :point-discount="order.pointDiscount"
+                :promotion-discount="hasAnyPromotion ? 1 : 0"
+                />
+                </div>
+                </el-card>
       <!-- 2. 退款明細與原因 -->
       <el-card class="section-card" shadow="never">
         <el-form :model="form" label-position="top">
@@ -116,13 +130,20 @@ import { getOrderDetailApi, requestRefundApi, uploadImagesApi } from '@/api/orde
 import type { OrderDetail } from '@/types/order';
 import { ElMessage } from 'element-plus';
 import RefundSummary from '@/components/order/RefundSummary.vue';
-import PromotionTags from '@/components/common/PromotionTags.vue';
+import OrderDiscountTags from '@/components/order/OrderDiscountTags.vue';
 
 const route = useRoute();
 const router = useRouter();
 const loading = ref(false);
 const order = ref<OrderDetail | null>(null);
 const summaryRef = ref<any>(null);
+
+const hasAnyPromotion = computed(() => {
+  if (!order.value) return false;
+  const hasOrderLevel = (order.value.promotionDiscount && order.value.promotionDiscount > 0);
+  const hasItemLevel = order.value.items?.some(item => item.originalPrice && item.originalPrice > item.price);
+  return hasOrderLevel || hasItemLevel;
+});
 
 // ── 商品選擇狀態 ──
 const selectedItems = ref<number[]>([]);
@@ -308,11 +329,31 @@ onMounted(fetchOrder);
       .variant { font-size: 12px; color: #999; margin-bottom: 8px; }
       .price-qty {
         display: flex;
+        align-items: center;
         gap: 15px;
+
+        .price-container {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          
+          .original-price {
+            color: #999;
+            text-decoration: line-through;
+            font-size: 12px;
+          }
+        }
         .price { color: #ee4d2d; font-weight: 500; }
         .qty { color: #999; }
       }
     }
+  }
+
+  .order-discount-wrap {
+    padding: 15px 20px;
+    border-top: 1px solid #f0f0f0;
+    display: flex;
+    justify-content: flex-end;
   }
 
   .qty-selector {
