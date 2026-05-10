@@ -619,6 +619,7 @@ namespace ISpanShop.MVC.Controllers.Api.Products
             StatusText   = ToStatusText(dto.Status, dto.ReviewStatus),
             MainImageUrl = dto.MainImageUrl,
             CreatedAt    = dto.CreatedAt,
+            UpdatedAt    = dto.UpdatedAt,
             TotalStock   = dto.TotalStock,
             TotalSales   = dto.TotalSales,
             ViewCount    = dto.ViewCount,

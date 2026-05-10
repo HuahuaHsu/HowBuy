@@ -22,6 +22,7 @@ namespace ISpanShop.Models.DTOs.Products
         public byte? Status { get; set; }
         public required string MainImageUrl { get; set; }
         public DateTime? CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
         /// <summary>審核狀態 (0=待審核, 1=通過, 2=退回, 3=重新申請審核)</summary>
         public int ReviewStatus { get; set; }
         public string? ReviewedBy { get; set; }

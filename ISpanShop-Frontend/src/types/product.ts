@@ -145,6 +145,7 @@ export interface SellerProductListItem {
   statusText: string
   mainImageUrl: string | null
   createdAt: string | null
+  updatedAt: string | null
   rejectReason: string | null
   reviewStatus: number
   isDeleted?: boolean

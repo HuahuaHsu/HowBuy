@@ -85,6 +85,7 @@ namespace ISpanShop.Services.Products
                 MaxPrice     = p.MaxPrice,
                 Status       = p.Status,
                 CreatedAt    = p.CreatedAt,
+                UpdatedAt    = p.UpdatedAt,
                 ReviewStatus = p.ReviewStatus,
                 ReviewedBy   = p.ReviewedBy,
                 ReviewDate   = p.ReviewDate,

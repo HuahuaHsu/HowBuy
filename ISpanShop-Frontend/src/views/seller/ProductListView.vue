@@ -190,6 +190,7 @@
                   <span title="評論數"><el-icon><ChatDotRound /></el-icon> 0</span>
                 </div>
                 <div class="card-date">建立時間: {{ formatDate(product.createdAt) }}</div>
+                <div class="card-date">編輯時間: {{ formatDate(product.updatedAt) }}</div>
               </div>
 
               <!-- 操作列 -->
@@ -303,6 +304,7 @@
                   <div class="table-info">
                     <div class="table-name">{{ row.name }}</div>
                     <div class="table-meta">建立於 {{ formatDate(row.createdAt) }}</div>
+                    <div class="table-meta">編輯於 {{ formatDate(row.updatedAt) }}</div>
                     <div v-if="row.status === 'rejected' && row.rejectReason" class="table-reject-reason">
                       <el-icon :size="12"><WarningFilled /></el-icon>
                       {{ row.rejectReason }}
@@ -438,7 +440,7 @@ function getProductPrice(product: SellerProduct): string {
 // ── 型別定義 ──────────────────────────────────────────────────────
 type ProductStatus = 'on' | 'off' | 'deleted' | 'review' | 'rejected' | 'draft'
 type TabKey = 'all' | 'on' | 'off' | 'deleted' | 'review' | 'rejected' | 'draft'
-type SortField = 'minPrice' | 'createdAt' | 'totalStock' | 'totalSales'
+type SortField = 'minPrice' | 'createdAt' | 'updatedAt' | 'totalStock' | 'totalSales'
 type SortDir = 'asc' | 'desc' | null
 
 /** 將後端 status 數字 + reviewStatus 對應至 tab key 字串
@@ -505,6 +507,7 @@ const level1Tabs: Array<{ key: TabKey; label: string }> = [
 const sortOptions: Array<{ field: string; label: string }> = [
   { field: 'minPrice',    label: '價格' },
   { field: 'createdAt',   label: '建立時間' },
+  { field: 'updatedAt',   label: '編輯時間' },
   { field: 'totalSales',  label: '已售出' },
   { field: 'totalStock',  label: '商品數量' },
 ]
@@ -586,6 +589,8 @@ async function loadProducts(): Promise<void> {
       sortByParam = sortDir.value === 'asc' ? 'stock_asc' : 'stock_desc'
     } else if (sortField.value === 'totalSales') {
       sortByParam = sortDir.value === 'asc' ? 'sales_asc' : 'sales_desc'
+    } else if (sortField.value === 'updatedAt') {
+      sortByParam = sortDir.value === 'asc' ? 'updated_asc' : 'updated_desc'
     } else {
       sortByParam = sortDir.value === 'asc' ? 'date_asc' : 'date_desc'
     }
@@ -673,7 +678,7 @@ function toggleSort(field: SortField): void {
     // 庫存預設 asc（找低庫存）；已售出預設 desc（找熱賣）；時間預設 desc；價格預設 asc
     if (field === 'totalStock') sortDir.value = 'asc'
     else if (field === 'totalSales') sortDir.value = 'desc'
-    else if (field === 'createdAt') sortDir.value = 'desc'
+    else if (field === 'createdAt' || field === 'updatedAt') sortDir.value = 'desc'
     else sortDir.value = 'asc'
   } else {
     sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
