@@ -71,6 +71,7 @@ namespace ISpanShop.Models.DTOs.Orders
         public string VariantName { get; set; }
         public string CoverImage { get; set; }
         public decimal Price { get; set; }
+        public decimal? OriginalPrice { get; set; } // 新增：商品原價
         public int Quantity { get; set; }
         public int StoreStatus { get; set; }
         public List<string> PromotionTags { get; set; } = new List<string>(); // 新增：活動標籤

@@ -59,7 +59,13 @@
             </div>
           </div>
           <div class="item-price">
-            <span class="unit-price">${{ formatPrice(item.price) }}</span>
+            <div v-if="item.originalPrice && item.originalPrice > item.price" class="price-container">
+              <span class="original-price">NT$ {{ formatPrice(item.originalPrice) }}</span>
+              <span class="unit-price">NT$ {{ formatPrice(item.price) }}</span>
+            </div>
+            <div v-else>
+              <span class="unit-price">${{ formatPrice(item.price) }}</span>
+            </div>
           </div>
         </div>
 
@@ -305,13 +311,24 @@ onMounted(() => {
 }
 
     .item-price {
-  display: flex;
-  align-items: center;
+      display: flex;
+      align-items: center;
+      .price-container {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 4px;
+      }
+      .original-price {
+        color: #999;
+        text-decoration: line-through;
+        font-size: 13px;
+      }
       .unit-price {
         color: #ee4d2d;
-}
-}
-}
+      }
+    }
+  }
   .order-discount-wrap {
     padding: 15px 20px 0;
     background-color: #fffbf8;

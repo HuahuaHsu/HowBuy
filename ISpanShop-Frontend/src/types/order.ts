@@ -27,6 +27,7 @@ export interface OrderItem {
   variantName: string;
   coverImage: string;
   price: number;
+  originalPrice?: number | null;
   quantity: number;
   promotionTags?: string[];
 }
