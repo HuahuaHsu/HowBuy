@@ -70,12 +70,12 @@
         </div>
 
         <!-- 訂單折扣標籤 -->
-        <div v-if="order && (order.discountAmount || order.levelDiscount || order.pointDiscount || order.promotionDiscount)" class="order-discount-wrap">
+        <div v-if="order && (order.discountAmount || order.levelDiscount || order.pointDiscount || hasAnyPromotion)" class="order-discount-wrap">
           <OrderDiscountTags 
             :discount-amount="order.discountAmount"
             :level-discount="order.levelDiscount"
             :point-discount="order.pointDiscount"
-            :promotion-discount="order.promotionDiscount"
+            :promotion-discount="hasAnyPromotion ? 1 : 0"
           />
         </div>
 
@@ -110,7 +110,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ArrowLeft } from '@element-plus/icons-vue';
 import { getOrderDetailApi } from '@/api/order';
@@ -125,6 +125,13 @@ const route = useRoute();
 const router = useRouter();
 const loading = ref(false);
 const order = ref<OrderDetail | null>(null);
+
+const hasAnyPromotion = computed(() => {
+  if (!order.value) return false;
+  const hasOrderLevel = order.value.promotionDiscount && order.value.promotionDiscount > 0;
+  const hasItemLevel = order.value.items?.some(item => item.originalPrice && item.originalPrice > item.price);
+  return hasOrderLevel || hasItemLevel;
+});
 
 const fetchOrderDetail = async () => {
   const id = Number(route.params.id);

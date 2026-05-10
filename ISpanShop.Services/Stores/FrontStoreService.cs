@@ -406,6 +406,8 @@ namespace ISpanShop.Services.Stores
             var query = _context.Orders
                 .Include(o => o.User)
                 .Include(o => o.OrderDetails)
+                    .ThenInclude(od => od.Product)
+                        .ThenInclude(p => p.ProductVariants)
                 .Include(o => o.OrderReviews)
                 .Where(o => o.StoreId == store.Id);
 
@@ -449,6 +451,18 @@ namespace ISpanShop.Services.Stores
                     image = "/" + image;
                 }
 
+                var promotionDiscount = o.PromotionDiscount.GetValueOrDefault() > 0
+                    ? o.PromotionDiscount.GetValueOrDefault()
+                    : o.OrderDetails.Sum(od =>
+                    {
+                        var originalPrice = od.Product?.ProductVariants?
+                            .FirstOrDefault(v => v.Id == od.VariantId)?.Price
+                            ?? od.Product?.MinPrice
+                            ?? 0;
+                        var orderPrice = od.Price ?? 0;
+                        return originalPrice > orderPrice ? (originalPrice - orderPrice) * od.Quantity : 0;
+                    });
+
                 return new SellerOrderListDto
                 {
                     Id = o.Id,
@@ -458,7 +472,7 @@ namespace ISpanShop.Services.Stores
                     DiscountAmount = o.DiscountAmount,
                     LevelDiscount = o.LevelDiscount,
                     PointDiscount = o.PointDiscount,
-                    PromotionDiscount = o.PromotionDiscount,
+                    PromotionDiscount = promotionDiscount,
                     Status = (OrderStatus)o.Status,
                     StatusName = GetStatusName(o.Status),
                     BuyerName = o.User?.Account ?? "未知買家",

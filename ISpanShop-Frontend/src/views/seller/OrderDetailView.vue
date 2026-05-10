@@ -47,6 +47,16 @@
         <el-card class="items-card" shadow="never" header="商品明細">
           <OrderItemsTable :items="order.items" />
 
+          <!-- 訂單折扣標籤 -->
+          <div v-if="order && (order.discountAmount || order.levelDiscount || order.pointDiscount || hasAnyPromotion)" class="order-discount-wrap">
+            <OrderDiscountTags 
+              :discount-amount="order.discountAmount"
+              :level-discount="order.levelDiscount"
+              :point-discount="order.pointDiscount"
+              :promotion-discount="hasAnyPromotion ? 1 : 0"
+            />
+          </div>
+
           <!-- 價格結算 -->
           <div class="seller-summary-wrapper">
             <OrderSummary 
@@ -188,6 +198,7 @@ import { useChatStore } from '@/stores/chat'
 import OrderSteps from '@/components/order/OrderSteps.vue'
 import OrderSummary from '@/components/order/OrderSummary.vue'
 import OrderItemsTable from '@/components/order/OrderItemsTable.vue'
+import OrderDiscountTags from '@/components/order/OrderDiscountTags.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -196,6 +207,13 @@ const loading = ref(false)
 const order = ref<SellerOrderDetail | null>(null)
 
 const orderId = computed(() => route.params.id as string)
+
+const hasAnyPromotion = computed(() => {
+  if (!order.value) return false;
+  const hasOrderLevel = order.value.promotionDiscount && order.value.promotionDiscount > 0;
+  const hasItemLevel = order.value.items?.some(item => item.promotionTags && item.promotionTags.length > 0);
+  return hasOrderLevel || hasItemLevel;
+});
 
 // 評價回覆相關
 const replyDialogVisible = ref(false)
@@ -349,6 +367,12 @@ onMounted(fetchDetail)
 .items-card {
   margin-bottom: 20px;
   border-radius: 8px;
+}
+
+.order-discount-wrap {
+  padding: 15px 20px 0;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .seller-summary-wrapper {

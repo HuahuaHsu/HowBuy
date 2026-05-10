@@ -41,6 +41,7 @@ namespace ISpanShop.Services.Orders
                 var promotionDiscount = o.PromotionDiscount.GetValueOrDefault() > 0
                     ? o.PromotionDiscount.GetValueOrDefault()
                     : CalculateDirectPromotionDiscount(o);
+                
                 return new FrontOrderListDto
                 {
                     Id = o.Id,
