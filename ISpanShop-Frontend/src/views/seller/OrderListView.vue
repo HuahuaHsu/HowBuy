@@ -111,7 +111,6 @@
               <!-- 賣家動作按鈕 -->
               <template v-if="order.status === 1">
                 <el-button type="primary" class="action-btn" @click="handleShip(order.id)">安排出貨</el-button>
-                <el-button class="action-btn secondary" @click="handleCancel(order.id)">取消訂單</el-button>
               </template>
               
               <template v-else-if="order.status === 2">
