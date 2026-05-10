@@ -54,7 +54,6 @@
             <el-image :src="item.coverImage || '/placeholder.png'" class="item-image" fit="cover" />
             <div class="item-info">
               <h4 class="item-name">{{ item.productName }}</h4>
-              <PromotionTags :tags="item.promotionTags" />
               <div class="item-variant">{{ item.variantName }}</div>
               <div class="item-qty">x{{ item.quantity }}</div>
             </div>
@@ -62,6 +61,16 @@
           <div class="item-price">
             <span class="unit-price">${{ formatPrice(item.price) }}</span>
           </div>
+        </div>
+
+        <!-- 訂單折扣標籤 -->
+        <div v-if="order && (order.discountAmount || order.levelDiscount || order.pointDiscount || order.promotionDiscount)" class="order-discount-wrap">
+          <OrderDiscountTags 
+            :discount-amount="order.discountAmount"
+            :level-discount="order.levelDiscount"
+            :point-discount="order.pointDiscount"
+            :promotion-discount="order.promotionDiscount"
+          />
         </div>
 
         <!-- 價格結算 (使用抽取的組件) -->
@@ -104,7 +113,7 @@ import { ElMessage } from 'element-plus';
 import OrderSteps from '@/components/order/OrderSteps.vue';
 import OrderActionButtons from '@/components/order/OrderActionButtons.vue';
 import OrderSummary from '@/components/order/OrderSummary.vue';
-import PromotionTags from '@/components/common/PromotionTags.vue';
+import OrderDiscountTags from '@/components/order/OrderDiscountTags.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -303,6 +312,12 @@ onMounted(() => {
 }
 }
 }
+  .order-discount-wrap {
+    padding: 15px 20px 0;
+    background-color: #fffbf8;
+    display: flex;
+    justify-content: flex-end;
+  }
 } /* 這裡正確閉合 items-card */
 
 /* 底部動作按鈕區 (獨立區塊) */

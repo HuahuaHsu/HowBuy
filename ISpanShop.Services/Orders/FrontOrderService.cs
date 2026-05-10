@@ -94,6 +94,10 @@ namespace ISpanShop.Services.Orders
             // [安全性強化] 如果是為了結帳而讀取，或是在任何詳情檢查中
             // 這裡保留通用讀取，但在下面 API 調用處會做更嚴格的攔截。
             
+            var promotionDiscount = o.PromotionDiscount.GetValueOrDefault() > 0
+                ? o.PromotionDiscount.GetValueOrDefault()
+                : CalculateDirectPromotionDiscount(o);
+
             return new FrontOrderDetailDto
             {
                 Id = o.Id,
@@ -108,7 +112,7 @@ namespace ISpanShop.Services.Orders
                 LevelDiscount = o.LevelDiscount, // 從資料庫讀取
                 CouponId = o.CouponId,
                 CouponTitle = o.Coupon?.Title ?? (o.CouponId.HasValue ? "優惠券" : null),
-                PromotionDiscount = o.PromotionDiscount, // 從資料庫讀取活動折抵
+                PromotionDiscount = promotionDiscount, // 從資料庫讀取活動折抵 (加上重新計算防呆)
                 FinalAmount = o.FinalAmount,
                 Status = (OrderStatus)(o.Status ?? 0),
                 StatusName = GetStatusName(o.Status),
