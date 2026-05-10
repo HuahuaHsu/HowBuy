@@ -778,8 +778,15 @@ namespace ISpanShop.Services.Stores
 
                     var tags = new List<string>();
                     decimal originalPrice = ri.OrderDetail.Product?.ProductVariants?.FirstOrDefault(v => v.Id == ri.OrderDetail.VariantId)?.Price ?? ri.OrderDetail.Product?.MinPrice ?? 0;
-                    if (originalPrice > 0 && ri.OrderDetail.Price < originalPrice) tags.Add("單品特價優惠");
-                    if ((order.PromotionDiscount ?? 0) > 0) tags.Add("符合賣場滿額活動");
+                    bool isSingleProductDiscount = originalPrice > 0 && ri.OrderDetail.Price < originalPrice;
+                    
+                    bool hasAllocatedPromotion = ri.OrderDetail.AllocatedDiscountAmount.HasValue && ri.OrderDetail.AllocatedDiscountAmount.Value > 0;
+                    bool shouldShowThresholdTag = hasAllocatedPromotion || ((order.PromotionDiscount ?? 0) > 0 && !isSingleProductDiscount);
+
+                    if (shouldShowThresholdTag)
+                    {
+                        tags.Add("符合賣場滿額活動");
+                    }
 
                     return new SellerOrderItemDto
                     {
@@ -791,6 +798,7 @@ namespace ISpanShop.Services.Stores
                         SkuCode = ri.OrderDetail.SkuCode,
                         CoverImage = image,
                         Price = ri.OrderDetail.Price ?? 0,
+                        OriginalPrice = isSingleProductDiscount ? originalPrice : null,
                         Quantity = ri.Quantity, // 這是退貨的數量
                         PromotionTags = tags.Distinct().ToList()
                     };
