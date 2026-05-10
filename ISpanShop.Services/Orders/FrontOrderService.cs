@@ -38,6 +38,9 @@ namespace ISpanShop.Services.Orders
             
             return orders.Select(o => {
                 var firstDetail = o.OrderDetails.FirstOrDefault();
+                var promotionDiscount = o.PromotionDiscount.GetValueOrDefault() > 0
+                    ? o.PromotionDiscount.GetValueOrDefault()
+                    : CalculateDirectPromotionDiscount(o);
                 return new FrontOrderListDto
                 {
                     Id = o.Id,
@@ -47,7 +50,7 @@ namespace ISpanShop.Services.Orders
                     DiscountAmount = o.DiscountAmount,
                     LevelDiscount = o.LevelDiscount, // 從資料庫讀取
                     PointDiscount = o.PointDiscount,
-                    PromotionDiscount = o.PromotionDiscount, // 從資料庫讀取活動折抵
+                    PromotionDiscount = promotionDiscount, // 從資料庫讀取活動折抵
                     Status = (OrderStatus)(o.Status ?? 0),
                     StatusName = GetStatusName(o.Status),
                     StoreName = o.Store?.StoreName ?? "未知商店",
@@ -61,6 +64,22 @@ namespace ISpanShop.Services.Orders
                     HasAppealed = o.SupportTickets.Any()
                 };
             }).ToList();
+        }
+
+        private decimal CalculateDirectPromotionDiscount(Order order)
+        {
+            return order.OrderDetails.Sum(od =>
+            {
+                var originalPrice = od.Product?.ProductVariants?
+                    .FirstOrDefault(v => v.Id == od.VariantId)?.Price
+                    ?? od.Product?.MinPrice
+                    ?? 0;
+                var orderPrice = od.Price ?? 0;
+
+                return originalPrice > orderPrice
+                    ? (originalPrice - orderPrice) * od.Quantity
+                    : 0;
+            });
         }
 
         public async Task<FrontOrderDetailDto> GetOrderDetailAsync(long orderId, int memberId)
