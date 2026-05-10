@@ -56,7 +56,7 @@ namespace ISpanShop.Repositories.Promotions
                 "active" => query.Where(p => p.Status == 1 && p.StartTime <= now && p.EndTime >= now),
                 "upcoming" => query.Where(p => p.Status == 1 && p.StartTime > now),
                 "rejected" => query.Where(p => p.Status == 2),
-                "ended" => query.Where(p => p.Status == 1 && p.EndTime < now),
+                "ended" => query.Where(p => p.Status == 3 || (p.Status == 1 && p.EndTime < now)),
                 _ => query
             };
 
