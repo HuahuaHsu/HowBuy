@@ -530,6 +530,8 @@ namespace ISpanShop.Services.Stores
                 .Include(o => o.User)
                     .ThenInclude(u => u.MemberProfile)
                 .Include(o => o.OrderDetails)
+                    .ThenInclude(od => od.Product)
+                        .ThenInclude(p => p.ProductVariants)
                 .Include(o => o.OrderReviews)
                     .ThenInclude(r => r.ReviewImages)
                 .FirstOrDefaultAsync(o => o.Id == orderId && o.StoreId == store.Id);
@@ -587,8 +589,15 @@ namespace ISpanShop.Services.Stores
 
                     var tags = new List<string>();
                     decimal originalPrice = od.Product?.ProductVariants?.FirstOrDefault(v => v.Id == od.VariantId)?.Price ?? od.Product?.MinPrice ?? 0;
-                    if (originalPrice > 0 && od.Price < originalPrice) tags.Add("單品特價優惠");
-                    if ((order.PromotionDiscount ?? 0) > 0) tags.Add("符合賣場滿額活動");
+                    bool isSingleProductDiscount = originalPrice > 0 && od.Price < originalPrice;
+                    
+                    bool hasAllocatedPromotion = od.AllocatedDiscountAmount.HasValue && od.AllocatedDiscountAmount.Value > 0;
+                    bool shouldShowThresholdTag = hasAllocatedPromotion || ((order.PromotionDiscount ?? 0) > 0 && !isSingleProductDiscount);
+
+                    if (shouldShowThresholdTag)
+                    {
+                        tags.Add("符合賣場滿額活動");
+                    }
 
                     return new SellerOrderItemDto
                     {
@@ -600,6 +609,7 @@ namespace ISpanShop.Services.Stores
                         SkuCode = od.SkuCode,
                         CoverImage = image,
                         Price = od.Price ?? 0,
+                        OriginalPrice = isSingleProductDiscount ? originalPrice : null,
                         Quantity = od.Quantity,
                         PromotionTags = tags.Distinct().ToList()
                     };
@@ -714,6 +724,8 @@ namespace ISpanShop.Services.Stores
                 .Include(o => o.ReturnRequests)
                     .ThenInclude(r => r.ReturnRequestItems)
                         .ThenInclude(ri => ri.OrderDetail)
+                            .ThenInclude(od => od.Product)
+                                .ThenInclude(p => p.ProductVariants)
                 .FirstOrDefaultAsync(o => o.Id == orderId && o.StoreId == store.Id);
 
             if (order == null || !order.ReturnRequests.Any()) throw new Exception("找不到該筆退貨申請");

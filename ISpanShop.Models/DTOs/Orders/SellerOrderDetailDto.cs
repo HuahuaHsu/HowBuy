@@ -55,6 +55,7 @@ namespace ISpanShop.Models.DTOs.Orders
         public string SkuCode { get; set; }
         public string CoverImage { get; set; }
         public decimal Price { get; set; }
+        public decimal? OriginalPrice { get; set; } // 新增：商品原價
         public int Quantity { get; set; }
         public decimal Subtotal => Price * Quantity;
         public List<string> PromotionTags { get; set; } = new List<string>();

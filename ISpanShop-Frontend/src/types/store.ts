@@ -125,13 +125,14 @@ export interface SellerOrderItem {
   productId: number
   variantId: number | null
   productName: string
-  variantName: string
+  variantName: string | null
   skuCode: string
   coverImage: string
   price: number
+  originalPrice?: number | null
   quantity: number
-  subtotal: number
   promotionTags?: string[]
+}
 }
 
 export interface SellerReturnItem {

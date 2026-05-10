@@ -181,7 +181,6 @@ namespace ISpanShop.Services.Orders
                         var tags = new List<string>();
                         decimal originalPrice = ri.OrderDetail.Product?.ProductVariants?.FirstOrDefault(v => v.Id == ri.OrderDetail.VariantId)?.Price ?? ri.OrderDetail.Product?.MinPrice ?? 0;
                         bool isSingleProductDiscount = originalPrice > 0 && ri.OrderDetail.Price < originalPrice;
-                        if (isSingleProductDiscount) tags.Add("單品特價優惠");
                         
                         bool hasAllocatedPromotion = ri.OrderDetail.AllocatedDiscountAmount.HasValue && ri.OrderDetail.AllocatedDiscountAmount.Value > 0;
                         if (hasAllocatedPromotion || ((o.PromotionDiscount ?? 0) > 0 && !isSingleProductDiscount))

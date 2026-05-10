@@ -211,7 +211,7 @@ const orderId = computed(() => route.params.id as string)
 const hasAnyPromotion = computed(() => {
   if (!order.value) return false;
   const hasOrderLevel = order.value.promotionDiscount && order.value.promotionDiscount > 0;
-  const hasItemLevel = order.value.items?.some(item => item.promotionTags && item.promotionTags.length > 0);
+  const hasItemLevel = order.value.items?.some(item => item.originalPrice && item.originalPrice > item.price);
   return hasOrderLevel || hasItemLevel;
 });
 
