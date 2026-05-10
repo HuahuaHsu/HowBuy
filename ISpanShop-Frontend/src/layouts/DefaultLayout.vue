@@ -59,7 +59,7 @@
 
     <header class="main-header">
       <div class="main-header-inner">
-        <div class="logo" @click="$router.push('/')">
+        <div class="logo" @click="handleLogoClick">
           <img src="@/assets/images/howbuyLogo.png" class="logo-icon" alt="HowBuy Logo">
           <span class="logo-text">HowBuy</span>
         </div>
@@ -229,6 +229,11 @@ const showBlacklistDialog = computed(() => {
 
 function handleGoMemberCenter() { router.push('/member'); }
 function handleLogout() { authStore.logout(); router.push('/'); }
+
+function handleLogoClick(): void {
+  searchText.value = ''
+  void router.push({ path: '/' })
+}
 
 /** 導向搜尋結果頁 */
 function handleSearch(): void {
