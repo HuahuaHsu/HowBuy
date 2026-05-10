@@ -67,6 +67,7 @@ export interface ProductDetail {
   variants: ProductVariant[] | null
   totalStock: number | null
   soldCount: number | null
+  viewCount: number | null
   rating: number | null
   reviewCount: number | null
   isOnShelf: boolean

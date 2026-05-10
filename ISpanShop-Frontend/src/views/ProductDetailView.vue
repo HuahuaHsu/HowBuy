@@ -119,10 +119,11 @@
               <template v-if="safeProduct.rating !== null">
                 <el-rate :model-value="safeProduct.rating" disabled show-score />
                 <span class="pd-review-count">{{ safeProduct.reviewCount }} 評價</span>
+                <span class="pd-meta-divider"></span>
               </template>
-              <template v-else>
-                <span class="pd-review-count">{{ formatSoldCount(safeProduct.soldCount) }}</span>
-              </template>
+              <span class="pd-review-count">{{ formatSoldCount(safeProduct.soldCount) }}</span>
+              <span class="pd-meta-divider"></span>
+              <span class="pd-review-count">瀏覽 {{ safeProduct.viewCount }} 次</span>
             </div>
 
             <div class="pd-price-block">
@@ -483,6 +484,7 @@ const safeProduct = computed(() => {
     brandName: p.brand?.name || '—',
     storeLogo: p.store?.logoUrl || '',
     totalStock: p.totalStock || 0,
+    viewCount: p.viewCount || 0,
     priceRange: p.priceRange || { min: 0, max: 0 },
     categoryPath: (p.categoryPath || []) as CategoryPathItem[],
     images: (p.images || []) as ProductImage[],
@@ -742,6 +744,7 @@ function mapSellerToProductDetail(seller: SellerProductDetail): ProductDetail {
     variants,
     totalStock: seller.variants.reduce((sum, v) => sum + (v.stock ?? 0), 0),
     soldCount: 0,
+    viewCount: 0,
     rating: null,
     reviewCount: null,
     isOnShelf: seller.status === 1,
@@ -939,6 +942,7 @@ watch(() => route.params.id, (newId) => {
 .pd-info { flex: 1; min-width: 0; }
 .pd-name { font-size: 22px; font-weight: 700; color: #1e293b; line-height: 1.4; margin: 0 0 12px; }
 .pd-rating-row { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid #f1f5f9; }
+.pd-meta-divider { width: 1px; height: 14px; background: #e2e8f0; }
 .pd-vacation-alert { margin-bottom: 20px; }
 .pd-price-block { background: #fffbf8; border-radius: 4px; padding: 16px; margin-bottom: 20px; }
 .pd-price-row { display: flex; align-items: baseline; gap: 12px; }
