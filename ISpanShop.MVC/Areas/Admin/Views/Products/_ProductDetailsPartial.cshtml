@@ -271,14 +271,14 @@ else
     </div>
 
     @* ── 商品描述 ── *@
-    @if (!string.IsNullOrWhiteSpace(Model.PlainDescription))
+    @if (Model.HasAdminDescription)
     {
         <div class="mb-4">
             <div class="oc-section-label mb-2">
                 <i class="bx bx-notepad me-1"></i>商品描述
             </div>
-            <div class="p-3 rounded-3" style="background:#f8f9fa;border-left:3px solid #d1d5db;font-size:1rem;line-height:1.85;color:#374151;white-space:pre-line;">
-                @Model.PlainDescription
+            <div class="oc-description-content p-3 rounded-3" style="background:#f8f9fa;border-left:3px solid #d1d5db;font-size:1rem;line-height:1.85;color:#374151;">
+                @Html.Raw(Model.AdminDescriptionHtml)
             </div>
         </div>
     }
@@ -602,6 +602,17 @@ else
 
     /* ── 庫存 badge ── */
     .oc-stock { padding: 3px 10px; border-radius: 8px; font-size: .85rem; font-weight: 600; }
+
+    .oc-description-content .oc-description-image {
+        display: block;
+        max-width: 100%;
+        max-height: 360px;
+        object-fit: contain;
+        margin: 12px 0;
+        border-radius: 10px;
+        background: #fff;
+        border: 1px solid #e5e7eb;
+    }
 
     /* ── 面板底部操作按鈕區 ── */
     .panel-action-footer {

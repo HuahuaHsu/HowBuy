@@ -14,6 +14,8 @@ namespace ISpanShop.MVC.Areas.Admin.Models.Products
         public string BrandName { get; set; }
         public string Description { get; set; }
         public string PlainDescription => ToPlainText(Description);
+        public string AdminDescriptionHtml => ToAdminDescriptionHtml(Description);
+        public bool HasAdminDescription => !string.IsNullOrWhiteSpace(AdminDescriptionHtml);
         public byte? Status { get; set; }
         public int CategoryId { get; set; }
 
@@ -73,6 +75,58 @@ namespace ISpanShop.MVC.Areas.Admin.Models.Products
             var withoutTags = Regex.Replace(withBreaks, "<.*?>", string.Empty);
             var decoded = WebUtility.HtmlDecode(withoutTags).Replace('\u00A0', ' ');
             return Regex.Replace(decoded, @"[ \t]+", " ").Trim();
+        }
+
+        private static string ToAdminDescriptionHtml(string? html)
+        {
+            if (string.IsNullOrWhiteSpace(html)) return string.Empty;
+
+            var imageTags = new List<string>();
+            var withImageTokens = Regex.Replace(html, @"<img\b[^>]*>", match =>
+            {
+                var src = ExtractImageSrc(match.Value);
+                if (string.IsNullOrWhiteSpace(src) || !IsAllowedImageSrc(src))
+                {
+                    return string.Empty;
+                }
+
+                var token = $"[[ADMIN_DESC_IMG_{imageTags.Count}]]";
+                imageTags.Add(
+                    $"<img src=\"{WebUtility.HtmlEncode(src)}\" alt=\"商品描述圖片\" loading=\"lazy\" class=\"oc-description-image\" />"
+                );
+                return $"\n{token}\n";
+            }, RegexOptions.IgnoreCase);
+
+            var withBreaks = Regex.Replace(withImageTokens, @"</(p|div|br|li|h[1-6])\s*>", "\n", RegexOptions.IgnoreCase);
+            var withoutTags = Regex.Replace(withBreaks, "<.*?>", string.Empty);
+            var decoded = WebUtility.HtmlDecode(withoutTags).Replace('\u00A0', ' ');
+            var normalized = Regex.Replace(decoded, @"[ \t]+", " ").Trim();
+            normalized = Regex.Replace(normalized, @"\n{3,}", "\n\n");
+
+            var encoded = WebUtility.HtmlEncode(normalized).Replace("\r\n", "\n").Replace("\n", "<br />");
+            for (var i = 0; i < imageTags.Count; i++)
+            {
+                encoded = encoded.Replace($"[[ADMIN_DESC_IMG_{i}]]", imageTags[i]);
+            }
+
+            return encoded;
+        }
+
+        private static string? ExtractImageSrc(string imgTag)
+        {
+            var match = Regex.Match(
+                imgTag,
+                @"\bsrc\s*=\s*(?:""(?<src>[^""]*)""|'(?<src>[^']*)'|(?<src>[^\s>]+))",
+                RegexOptions.IgnoreCase
+            );
+            return match.Success ? WebUtility.HtmlDecode(match.Groups["src"].Value) : null;
+        }
+
+        private static bool IsAllowedImageSrc(string src)
+        {
+            if (src.StartsWith("/", StringComparison.Ordinal)) return true;
+            return Uri.TryCreate(src, UriKind.Absolute, out var uri)
+                && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
         }
     }
 
