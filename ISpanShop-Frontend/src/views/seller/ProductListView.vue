@@ -504,7 +504,7 @@ const level1Tabs: Array<{ key: TabKey; label: string }> = [
   { key: 'rejected', label: '已退回' },
   { key: 'review',   label: '審核中' },
   { key: 'draft',    label: '草稿' },
-  { key: 'deleted',  label: '違規/刪除' },
+  { key: 'deleted',  label: '已刪除' },
 ]
 
 const sortOptions: Array<{ field: string; label: string }> = [
@@ -750,7 +750,7 @@ async function handleCardCommand(cmd: string, product: SellerProduct): Promise<v
 async function handleDeleteProduct(product: SellerProduct): Promise<void> {
   try {
     await ElMessageBox.confirm(
-      '確定要刪除此商品嗎？刪除後可在「違規/刪除」中查看',
+      '確定要刪除此商品嗎？刪除後可在「已刪除」中查看',
       '刪除確認',
       {
         confirmButtonText: '確定刪除',

@@ -429,7 +429,7 @@ namespace ISpanShop.Repositories.Products
         public bool RestoreDeletedProductAsDraft(int id)
         {
             var product = _context.Products.Find(id);
-            if (product == null || !product.IsDeleted || product.ReviewStatus == 2)
+            if (product == null || !product.IsDeleted)
                 return false;
 
             product.IsDeleted = false;
