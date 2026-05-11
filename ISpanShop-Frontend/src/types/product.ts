@@ -188,6 +188,7 @@ export interface SellerProductDetail {
   reviewStatus: number
   createdAt: string | null
   updatedAt: string | null
+  attributesJson: string | null
   images: string[]
   variants: SellerVariantDetail[]
 }

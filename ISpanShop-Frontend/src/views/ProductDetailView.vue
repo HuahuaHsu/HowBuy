@@ -749,7 +749,7 @@ function mapSellerToProductDetail(seller: SellerProductDetail): ProductDetail {
     reviewCount: null,
     isOnShelf: seller.status === 1,
     createdAt: seller.createdAt,
-    attributesJson: null,
+    attributesJson: seller.attributesJson,
   }
 }
 

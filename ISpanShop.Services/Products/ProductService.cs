@@ -40,6 +40,7 @@ namespace ISpanShop.Services.Products
                 Description        = dto.Description,
                 VideoUrl           = dto.VideoUrl,
                 SpecDefinitionJson = dto.SpecDefinitionJson,
+                AttributesJson     = dto.AttributesJson,
                 CreatedAt          = DateTime.Now,
                 UpdatedAt          = DateTime.Now,
                 Status             = dto.Status,
