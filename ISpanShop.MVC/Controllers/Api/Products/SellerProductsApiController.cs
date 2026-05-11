@@ -611,6 +611,7 @@ namespace ISpanShop.MVC.Controllers.Api.Products
             Id           = dto.Id,
             Name         = dto.Name,
             StoreName    = dto.StoreName,
+            CategoryId   = dto.CategoryId,
             CategoryName = dto.CategoryName,
             BrandName    = dto.BrandName,
             MinPrice     = dto.MinPrice,

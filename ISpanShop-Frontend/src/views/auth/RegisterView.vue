@@ -116,7 +116,7 @@ const quickRegister = () => {
   registerForm.password = 'Test123456';
   registerForm.confirmPassword = 'Test123456';
   registerForm.email = 'fuen49.02@gmail.com';
-  registerForm.fullName = '好買會員';
+  registerForm.fullName = '會員Kid';
 };
 </script>
 

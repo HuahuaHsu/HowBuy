@@ -138,6 +138,7 @@ export interface SellerProductListItem {
   id: number
   name: string
   storeName: string
+  categoryId: number
   categoryName: string
   brandName: string
   minPrice: number | null

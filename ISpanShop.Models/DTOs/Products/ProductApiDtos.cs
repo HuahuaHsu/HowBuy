@@ -140,6 +140,7 @@ namespace ISpanShop.Models.DTOs.Products
         public int      Id           { get; set; }
         public string   Name         { get; set; } = string.Empty;
         public string?  StoreName    { get; set; }
+        public int      CategoryId   { get; set; }
         public string?  CategoryName { get; set; }
         public string?  BrandName    { get; set; }
         public decimal? MinPrice     { get; set; }

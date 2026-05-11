@@ -56,7 +56,6 @@
             :format-tooltip="formatSliderTooltip"
             class="price-slider"
             @change="syncPriceInputsFromSlider"
-            @input="syncPriceInputsFromSlider"
           />
           <div class="price-inputs">
             <el-input
@@ -342,8 +341,8 @@ function buildQuery(
   overrides: Partial<{
     keyword: string
     categoryId: number | null
-    minPrice: number | undefined
-    maxPrice: number | undefined
+    minPrice: number | null | undefined
+    maxPrice: number | null | undefined
     sortBy: SortBy
     page: number
   }> = {},
@@ -354,8 +353,8 @@ function buildQuery(
   const merged = {
     keyword:    overrides.keyword    !== undefined ? overrides.keyword    : keyword.value,
     categoryId: overrides.categoryId !== undefined ? overrides.categoryId : selectedCategoryId.value,
-    minPrice:   overrides.minPrice   !== undefined ? overrides.minPrice   : routeMinPrice.value,
-    maxPrice:   overrides.maxPrice   !== undefined ? overrides.maxPrice   : routeMaxPrice.value,
+    minPrice:   Object.prototype.hasOwnProperty.call(overrides, 'minPrice') ? overrides.minPrice : routeMinPrice.value,
+    maxPrice:   Object.prototype.hasOwnProperty.call(overrides, 'maxPrice') ? overrides.maxPrice : routeMaxPrice.value,
     sortBy:     overrides.sortBy     !== undefined ? overrides.sortBy     : sortBy.value,
     page:       overrides.page       !== undefined ? overrides.page       : currentPage.value,
   }
@@ -367,10 +366,10 @@ function buildQuery(
   if (merged.categoryId !== null)         q['categoryId'] = String(merged.categoryId)
   else                                    delete q['categoryId']
 
-  if (merged.minPrice !== undefined)      q['minPrice']   = String(merged.minPrice)
+  if (merged.minPrice != null)            q['minPrice']   = String(merged.minPrice)
   else                                    delete q['minPrice']
 
-  if (merged.maxPrice !== undefined)      q['maxPrice']   = String(merged.maxPrice)
+  if (merged.maxPrice != null)            q['maxPrice']   = String(merged.maxPrice)
   else                                    delete q['maxPrice']
 
   if (merged.sortBy !== 'latest')         q['sortBy']     = merged.sortBy
@@ -405,14 +404,31 @@ function applyPriceFilter(): void {
   const min = priceMinStr.value ? Number(priceMinStr.value) : undefined
   const max = priceMaxStr.value ? Number(priceMaxStr.value) : undefined
   if (min !== undefined && max !== undefined && min > max) return
-  pushQuery({ minPrice: min, maxPrice: max })
+
+  const isFullRange =
+    min !== undefined &&
+    max !== undefined &&
+    min <= sliderMin.value &&
+    max >= sliderMax.value
+
+  const isUninitializedRange =
+    min === 0 &&
+    max === 0 &&
+    sliderMin.value === 0 &&
+    sliderMax.value === 0
+
+  pushQuery({
+    minPrice: isFullRange || isUninitializedRange ? null : min,
+    maxPrice: isFullRange || isUninitializedRange ? null : max,
+  })
 }
 
 function syncPriceInputsFromSlider(value: number | number[]): void {
   if (!Array.isArray(value)) return
+  if (sliderMax.value <= sliderMin.value) return
   priceMinStr.value = String(value[0])
   priceMaxStr.value = String(value[1])
-  schedulePriceFilter()
+  applyPriceFilter()
 }
 
 function syncSliderFromRoute(): void {
@@ -449,6 +465,7 @@ function formatSliderTooltip(value: number): string {
 function syncSliderFromInputs(): void {
   const min = priceMinStr.value ? Number(priceMinStr.value) : sliderMin.value
   const max = priceMaxStr.value ? Number(priceMaxStr.value) : sliderMax.value
+  if (sliderMax.value <= sliderMin.value && !priceMinStr.value && !priceMaxStr.value) return
   if (!Number.isFinite(min) || !Number.isFinite(max)) return
   const clampedMin = Math.max(sliderMin.value, Math.min(min, sliderMax.value))
   const clampedMax = Math.max(sliderMin.value, Math.min(max, sliderMax.value))

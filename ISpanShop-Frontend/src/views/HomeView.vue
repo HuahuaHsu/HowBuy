@@ -43,7 +43,11 @@
                   <el-button type="danger" round size="large" @click.stop="goToActivity(promo)">立即搶購</el-button>
                 </div>
                 <!-- 右側商品圖拼貼（最多 3 張） -->
-                <div v-if="promo.productImages && promo.productImages.length > 0" class="slide-products">
+                <div
+                  v-if="promo.productImages && promo.productImages.length > 0"
+                  class="slide-products"
+                  :class="`count-${Math.min(promo.productImages.length, 3)}`"
+                >
                   <div
                     v-for="(img, i) in promo.productImages.slice(0, 3)"
                     :key="i"
@@ -883,6 +887,51 @@ const quickItems = [
   }
 }
 
+@media (min-width: 1025px) and (max-width: 1280px) {
+  .slide-content {
+    max-width: 43%;
+    padding-left: 44px;
+  }
+
+  .slide-title {
+    max-width: 360px;
+    font-size: 30px;
+  }
+
+  .slide-desc {
+    max-width: 370px;
+    font-size: 15px;
+  }
+
+  .slide-products {
+    right: 28px;
+    max-width: 48%;
+    padding: 12px;
+    border-radius: 24px;
+  }
+
+  .slide-products.count-3 {
+    width: 52%;
+    padding: 18px;
+  }
+
+  .slide-product-card {
+    width: 104px;
+    height: 104px;
+    border-radius: 16px;
+  }
+
+  .slide-products.count-1 .slide-product-card {
+    width: 124px;
+    height: 124px;
+  }
+
+  .slide-products.count-2 .slide-product-card {
+    width: 112px;
+    height: 112px;
+  }
+}
+
 /* 響應式：小螢幕 (平板直向/手機) */
 @media (max-width: 900px) {
   .home {
@@ -1252,7 +1301,7 @@ const quickItems = [
   position: relative;
   z-index: 10;
   padding: 40px 40px 40px 60px;
-  max-width: 56%;
+  max-width: min(46%, 440px);
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -1285,7 +1334,7 @@ const quickItems = [
 .slide-tag.other      { background: linear-gradient(135deg, #334155, #0f172a); }
 
 .slide-title {
-  max-width: 520px;
+  max-width: 420px;
   font-size: clamp(28px, 3.1vw, 34px);
   font-weight: 850;
   margin: 0 0 14px;
@@ -1299,7 +1348,7 @@ const quickItems = [
   overflow: hidden;
 }
 .slide-desc {
-  max-width: 560px;
+  max-width: 430px;
   font-size: clamp(15px, 1.45vw, 17px);
   opacity: 0.92;
   margin-bottom: 20px;
@@ -1318,18 +1367,33 @@ const quickItems = [
   top: 50%;
   transform: translateY(-50%);
   display: flex;
-  gap: 14px;
+  gap: clamp(8px, 1vw, 14px);
   z-index: 5;
-  padding: 18px;
+  width: auto;
+  max-width: min(47%, 500px);
+  justify-content: center;
+  padding: clamp(12px, 1.3vw, 18px);
   border-radius: 28px;
   background: linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.08));
   border: 1px solid rgba(255,255,255,0.18);
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 24px 50px rgba(0,0,0,0.28);
   backdrop-filter: blur(10px);
 }
+.slide-products.count-1 {
+  padding: 18px;
+  border-radius: 26px;
+}
+.slide-products.count-2 {
+  padding: 16px;
+  border-radius: 26px;
+}
+.slide-products.count-3 {
+  width: min(50%, 560px);
+  padding: clamp(18px, 1.8vw, 24px);
+}
 .slide-product-card {
-  width: 130px;
-  height: 130px;
+  width: clamp(96px, 9.2vw, 130px);
+  height: clamp(96px, 9.2vw, 130px);
   border-radius: 18px;
   overflow: hidden;
   background: linear-gradient(180deg, #fff, #f8fafc);
@@ -1338,11 +1402,27 @@ const quickItems = [
   flex-shrink: 0;
   transition: transform 0.3s;
 }
+.slide-products.count-1 .slide-product-card {
+  width: clamp(118px, 11vw, 150px);
+  height: clamp(118px, 11vw, 150px);
+}
+.slide-products.count-2 .slide-product-card {
+  width: clamp(108px, 10vw, 140px);
+  height: clamp(108px, 10vw, 140px);
+}
 .slide-product-card:nth-child(2) { transform: translateY(12px); }
 .slide-product-card:nth-child(3) { transform: translateY(-10px); }
+.slide-products.count-1 .slide-product-card,
+.slide-products.count-2 .slide-product-card:nth-child(2) {
+  transform: none;
+}
 .slide-product-card:hover { transform: translateY(-6px) scale(1.03); }
 .slide-product-card:nth-child(2):hover { transform: translateY(6px) scale(1.03); }
 .slide-product-card:nth-child(3):hover { transform: translateY(-16px) scale(1.03); }
+.slide-products.count-1 .slide-product-card:hover,
+.slide-products.count-2 .slide-product-card:nth-child(2):hover {
+  transform: translateY(-4px) scale(1.03);
+}
 .slide-product-card img { width: 100%; height: 100%; object-fit: contain; padding: 8px; }
 
 /* 單張主圖（無多張商品圖時） */

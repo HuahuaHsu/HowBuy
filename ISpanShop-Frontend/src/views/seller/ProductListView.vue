@@ -399,7 +399,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
@@ -408,10 +408,8 @@ import {
   MoreFilled, WarningFilled, View,
 } from '@element-plus/icons-vue'
 import { fetchSellerProducts, fetchSellerProductTabCounts, updateProductStatus, deleteSellerProduct, restoreSellerProduct, submitProductForReview } from '@/api/product'
-import { fetchMainCategories } from '@/api/category'
 import { useSellerStore } from '@/stores/seller'
 import type { SellerProductListItem } from '@/types/product'
-import type { Category } from '@/types/category'
 
 const router = useRouter()
 const route = useRoute()
@@ -466,9 +464,16 @@ interface SellerProduct extends Omit<SellerProductListItem, 'status'> {
   reviewStatus: number
 }
 
+interface SellerCategoryOption {
+  id: number
+  name: string
+}
+
 // ── State ─────────────────────────────────────────────────────────
 const loading = ref<boolean>(false)
-const products = ref<SellerProduct[]>([]), categories = ref<Category[]>([])
+const products = ref<SellerProduct[]>([])
+const sellerCategoryOptions = ref<SellerCategoryOption[]>([])
+const categories = computed<SellerCategoryOption[]>(() => sellerCategoryOptions.value)
 
 // Tabs
 const activeTab = ref<TabKey>((route.query.tab as TabKey) || 'all')
@@ -518,7 +523,8 @@ onMounted(async () => {
   // 1. 嘗試還原狀態
   restoreListState()
   
-  await Promise.all([loadCategories(), loadProducts(), loadTabCounts()])
+  await loadCategories()
+  await Promise.all([loadProducts(), loadTabCounts()])
 })
 
 /** 從 sessionStorage 還原搜尋/分頁狀態 */
@@ -570,8 +576,28 @@ watch(
 
 async function loadCategories(): Promise<void> {
   try {
-    const res = await fetchMainCategories()
-    if (res.success) categories.value = res.data
+    const res = await fetchSellerProducts({
+      page: 1,
+      pageSize: 1000,
+      sortBy: 'date_desc',
+    } as any)
+
+    const optionMap = new Map<number, string>()
+    for (const item of res.items) {
+      if (item.categoryId && item.categoryName) {
+        optionMap.set(item.categoryId, item.categoryName)
+      }
+    }
+
+    sellerCategoryOptions.value = Array.from(optionMap, ([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'zh-Hant'))
+
+    if (
+      searchCategoryId.value !== null &&
+      !optionMap.has(searchCategoryId.value)
+    ) {
+      searchCategoryId.value = null
+    }
   } catch {
     // 靜默失敗，不阻塞頁面
   }
