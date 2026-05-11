@@ -66,28 +66,42 @@
         <!-- 進階篩選（折疊） -->
         <el-collapse-transition>
           <div v-show="showAdvanced" class="advanced-filter">
-            <el-row :gutter="12">
-              <el-col :xs="12" :sm="5">
-                <label class="adv-label">最低價</label>
+            <div class="price-filter">
+              <div class="price-filter-main">
+                <div class="price-filter-head">
+                  <span class="adv-label">價格區間</span>
+                  <span class="price-range-text">{{ displayPriceRange }}</span>
+                </div>
+                <el-slider
+                  v-model="advPriceRange"
+                  range
+                  :min="0"
+                  :max="priceSliderMax"
+                  :step="500"
+                  :format-tooltip="formatPriceTooltip"
+                  @change="handlePriceRangeChange"
+                />
+              </div>
+              <div class="price-inputs">
                 <el-input-number
                   v-model="advMinPrice"
                   :min="0"
-                  placeholder="NT$"
-                  controls-position="right"
-                  style="width:100%"
+                  :max="advMaxPrice ?? priceSliderMax"
+                  placeholder="最低價"
+                  :controls="false"
+                  @change="handlePriceInputChange"
                 />
-              </el-col>
-              <el-col :xs="12" :sm="5">
-                <label class="adv-label">最高價</label>
+                <span class="price-separator">-</span>
                 <el-input-number
                   v-model="advMaxPrice"
                   :min="0"
-                  placeholder="NT$"
-                  controls-position="right"
-                  style="width:100%"
+                  :max="priceSliderMax"
+                  placeholder="最高價"
+                  :controls="false"
+                  @change="handlePriceInputChange"
                 />
-              </el-col>
-            </el-row>
+              </div>
+            </div>
           </div>
         </el-collapse-transition>
 
@@ -482,6 +496,8 @@ const activeTab = ref<TabKey>((route.query.tab as TabKey) || 'all')
 const searchKeyword = ref<string>('')
 const searchCategoryId = ref<number | null>(null)
 const showAdvanced = ref<boolean>(false)
+const priceSliderMax = 100000
+const advPriceRange = ref<[number, number]>([0, priceSliderMax])
 const advMinPrice = ref<number | null>(null)
 const advMaxPrice = ref<number | null>(null)
 
@@ -491,6 +507,13 @@ const sortDir = ref<SortDir>('desc')
 
 // 顯示模式
 const viewMode = ref<'grid' | 'list'>('grid')
+
+const displayPriceRange = computed(() => {
+  const min = advMinPrice.value ?? 0
+  const max = advMaxPrice.value ?? priceSliderMax
+  if (min === 0 && max === priceSliderMax) return '不限價格'
+  return `${formatPriceTooltip(min)} - ${formatPriceTooltip(max)}`
+})
 
 // 分頁
 const currentPage = ref(1), total = ref(0), pageSize = 20
@@ -538,6 +561,7 @@ function restoreListState(): void {
     if (state.searchKeyword) searchKeyword.value = state.searchKeyword
     if (state.advMinPrice !== undefined) advMinPrice.value = state.advMinPrice
     if (state.advMaxPrice !== undefined) advMaxPrice.value = state.advMaxPrice
+    syncPriceRangeFromInputs()
     if (state.sortField) sortField.value = state.sortField
     if (state.sortDir) sortDir.value = state.sortDir
     if (state.page) currentPage.value = state.page
@@ -561,6 +585,38 @@ function saveListState(): void {
     viewMode: viewMode.value,
   }
   sessionStorage.setItem(SESSION_STATE_KEY, JSON.stringify(state))
+}
+
+function formatPriceTooltip(value: number): string {
+  return `NT$ ${value.toLocaleString()}`
+}
+
+function syncPriceRangeFromInputs(): void {
+  const min = Math.max(0, advMinPrice.value ?? 0)
+  const max = Math.min(priceSliderMax, Math.max(min, advMaxPrice.value ?? priceSliderMax))
+  advPriceRange.value = [min, max]
+}
+
+function handlePriceRangeChange(value: number | number[]): void {
+  const nextRange = Array.isArray(value) && value.length >= 2
+    ? [Number(value[0] ?? 0), Number(value[1] ?? priceSliderMax)] as [number, number]
+    : advPriceRange.value
+  const [min, max] = nextRange
+  advMinPrice.value = min > 0 ? min : null
+  advMaxPrice.value = max < priceSliderMax ? max : null
+  handleSearch()
+}
+
+function handlePriceInputChange(): void {
+  if (
+    advMinPrice.value !== null &&
+    advMaxPrice.value !== null &&
+    advMinPrice.value > advMaxPrice.value
+  ) {
+    advMaxPrice.value = advMinPrice.value
+  }
+  syncPriceRangeFromInputs()
+  handleSearch()
 }
 
 // 監聽所有狀態變動，自動儲存
@@ -652,7 +708,12 @@ async function loadProducts(): Promise<void> {
 
 async function loadTabCounts(): Promise<void> {
   const tabs = level1Tabs.map((tab) => tab.key)
-  tabCounts.value = await fetchSellerProductTabCounts(tabs, { keyword: searchKeyword.value.trim() || undefined, categoryId: searchCategoryId.value || undefined } as any) as Record<TabKey, number>
+  tabCounts.value = await fetchSellerProductTabCounts(tabs, {
+    keyword: searchKeyword.value.trim() || undefined,
+    categoryId: searchCategoryId.value || undefined,
+    minPrice: advMinPrice.value ?? undefined,
+    maxPrice: advMaxPrice.value ?? undefined,
+  } as any) as Record<TabKey, number>
 }
 
 function reloadFromFirstPage(): void { currentPage.value = 1; void loadProducts(); void loadTabCounts() }
@@ -688,6 +749,7 @@ function handleReset(): void {
   searchCategoryId.value = null
   advMinPrice.value = null
   advMaxPrice.value = null
+  advPriceRange.value = [0, priceSliderMax]
   showAdvanced.value = false
   sortField.value = 'createdAt'
   sortDir.value = 'desc'
@@ -936,12 +998,64 @@ function getStatusTagType(status: ProductStatus): 'success' | 'warning' | 'dange
 }
 .search-btn:hover { background: #fff7ed !important; }
 
-.advanced-filter { padding-top: 12px; }
+.advanced-filter {
+  padding-top: 12px;
+  max-width: 760px;
+}
 .adv-label {
   display: block;
   font-size: 12px;
   color: #94a3b8;
   margin-bottom: 4px;
+}
+.price-filter {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) 320px;
+  gap: 18px;
+  align-items: end;
+  padding: 12px 0 2px;
+}
+.price-filter-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 2px;
+}
+.price-filter-head .adv-label {
+  margin-bottom: 0;
+}
+.price-range-text {
+  font-size: 12px;
+  color: #64748b;
+  white-space: nowrap;
+}
+.price-filter-main :deep(.el-slider) {
+  --el-slider-main-bg-color: #ee4d2d;
+  --el-slider-runway-bg-color: #e8eaf0;
+  --el-slider-stop-bg-color: #fff;
+  --el-slider-button-size: 16px;
+  margin-top: 8px;
+}
+.price-inputs {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 14px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+.price-inputs :deep(.el-input-number) {
+  width: 100%;
+}
+.price-inputs :deep(.el-input__wrapper) {
+  box-shadow: 0 0 0 1px #e2e8f0 inset;
+}
+.price-inputs :deep(.el-input__wrapper:hover),
+.price-inputs :deep(.el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 1px #ee4d2d inset;
+}
+.price-separator {
+  color: #94a3b8;
+  text-align: center;
 }
 .result-count {
   font-size: 13px;
@@ -1275,8 +1389,21 @@ function getStatusTagType(status: ProductStatus): 'success' | 'warning' | 'dange
 }
 @media (max-width: 900px) {
   .product-grid { grid-template-columns: repeat(3, 1fr); }
+  .advanced-filter {
+    max-width: none;
+  }
+  .price-filter {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
 }
 @media (max-width: 600px) {
   .product-grid { grid-template-columns: repeat(2, 1fr); }
+  .price-inputs {
+    grid-template-columns: 1fr;
+  }
+  .price-separator {
+    display: none;
+  }
 }
 </style>

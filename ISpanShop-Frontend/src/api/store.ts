@@ -1,6 +1,15 @@
 import axios from './axios'
 import request from './request'
-import type { StoreApplyRequest, StoreStatusResponse, SellerDashboardData, StoreProfileData } from '../types/store'
+import type {
+  SellerOrder,
+  SellerOrderDetail,
+  SellerReturnDetail,
+  SellerReturnItem,
+  StoreApplyRequest,
+  StoreProfileData,
+  StoreStatusResponse,
+  SellerDashboardData,
+} from '../types/store'
 import type { ApiResponse } from '../types/api'
 
 /**

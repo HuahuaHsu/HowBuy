@@ -71,7 +71,7 @@
           :total="total"
           layout="total, prev, pager, next"
           background
-          @current-change="loadProducts"
+          @current-change="(page: number) => loadProducts(page, true)"
         />
       </div>
     </div>
@@ -128,15 +128,18 @@ async function loadStore(id: number): Promise<void> {
   }
 }
 
-async function loadProducts(page = currentPage.value): Promise<void> {
+async function loadProducts(page = currentPage.value, shouldScrollToTop = false): Promise<void> {
   const id = Number(route.params['id'])
   productsLoading.value = true
   try {
     const res = await getStoreProducts(id, { page, pageSize })
     const payload = res.data?.data ?? res.data
     products.value = payload?.items ?? []
-    total.value = payload?.totalCount ?? 0
-    currentPage.value = page
+    total.value = payload?.totalCount ?? payload?.total ?? 0
+    currentPage.value = payload?.page ?? page
+    if (shouldScrollToTop) {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
   } catch {
     ElMessage.error('載入商品失敗')
   } finally {
