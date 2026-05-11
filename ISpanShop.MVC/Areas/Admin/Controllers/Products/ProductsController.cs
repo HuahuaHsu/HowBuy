@@ -10,6 +10,9 @@ using ISpanShop.Services.Products;
 using ISpanShop.MVC.Areas.Admin.Models.Products;
 using Microsoft.AspNetCore.Http;
 using ISpanShop.MVC.Middleware;
+using ISpanShop.Models.EfModels;
+using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace ISpanShop.MVC.Areas.Admin.Controllers.Products
 {
@@ -22,14 +25,16 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Products
     {
         private readonly IProductService _productService;
         private readonly IWebHostEnvironment _env;
+        private readonly ISpanShopDBContext _db;
 
         private static readonly string[] _allowedExts = { ".jpg", ".jpeg", ".png", ".webp" };
         private const long MaxFileSize = 5 * 1024 * 1024; // 5 MB
 
-        public ProductsController(IProductService productService, IWebHostEnvironment env)
+        public ProductsController(IProductService productService, IWebHostEnvironment env, ISpanShopDBContext db)
         {
             _productService = productService;
             _env = env;
+            _db = db;
         }
 
         /// <summary>
@@ -650,6 +655,7 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Products
                 Id                 = productDto.Id,
                 Name               = productDto.Name,
                 StoreName          = productDto.StoreName,
+                CategoryId         = productDto.CategoryId,
                 CategoryName       = productDto.CategoryName,
                 BrandName          = productDto.BrandName,
                 Description        = productDto.Description,
@@ -660,6 +666,7 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Products
                 ViewCount          = productDto.ViewCount,
                 RejectReason       = productDto.RejectReason,
                 SpecDefinitionJson = productDto.SpecDefinitionJson,
+                AttributesJson     = productDto.AttributesJson,
                 CreatedAt          = productDto.CreatedAt,
                 UpdatedAt          = productDto.UpdatedAt,
                 ReviewStatus       = productDto.ReviewStatus,
@@ -679,6 +686,7 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Products
                     IsDeleted     = v.IsDeleted ?? false
                 }).ToList()
             };
+            viewModel.Attributes = BuildAttributeDisplayItems(viewModel.CategoryId, viewModel.AttributesJson);
 
             return View(viewModel);
         }
@@ -697,6 +705,7 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Products
                 Id                  = productDto.Id,
                 Name                = productDto.Name,
                 StoreName           = productDto.StoreName,
+                CategoryId          = productDto.CategoryId,
                 CategoryName        = productDto.CategoryName,
                 BrandName           = productDto.BrandName,
                 Description         = productDto.Description,
@@ -707,6 +716,7 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Products
                 ViewCount           = productDto.ViewCount,
                 RejectReason        = productDto.RejectReason,
                 SpecDefinitionJson  = productDto.SpecDefinitionJson,
+                AttributesJson      = productDto.AttributesJson,
                 CreatedAt           = productDto.CreatedAt,
                 UpdatedAt           = productDto.UpdatedAt,
                 ReviewStatus        = productDto.ReviewStatus,
@@ -730,9 +740,108 @@ namespace ISpanShop.MVC.Areas.Admin.Controllers.Products
                     IsDeleted     = v.IsDeleted ?? false
                 }).ToList()
             };
+            vm.Attributes = BuildAttributeDisplayItems(vm.CategoryId, vm.AttributesJson);
 
             ViewBag.IsReviewMode = isReviewMode;
             return PartialView("_ProductDetailsPartial", vm);
+        }
+
+        private List<ProductAttributeDisplayVm> BuildAttributeDisplayItems(int categoryId, string? attributesJson)
+        {
+            if (categoryId <= 0 || string.IsNullOrWhiteSpace(attributesJson))
+                return new List<ProductAttributeDisplayVm>();
+
+            JsonElement[]? savedAttributes;
+            try
+            {
+                savedAttributes = JsonSerializer.Deserialize<JsonElement[]>(attributesJson);
+            }
+            catch
+            {
+                return new List<ProductAttributeDisplayVm>();
+            }
+
+            if (savedAttributes == null || savedAttributes.Length == 0)
+                return new List<ProductAttributeDisplayVm>();
+
+            var mappings = _db.CategoryAttributeMappings
+                .AsNoTracking()
+                .Where(m => m.CategoryId == categoryId)
+                .Include(m => m.CategoryAttribute)
+                    .ThenInclude(a => a.CategoryAttributeOptions)
+                .OrderBy(m => m.Sort)
+                .ThenBy(m => m.CategoryAttributeId)
+                .ToList();
+
+            var defs = mappings.ToDictionary(m => m.CategoryAttributeId, m => m.CategoryAttribute);
+            var grouped = new Dictionary<int, ProductAttributeDisplayVm>();
+
+            foreach (var attr in savedAttributes)
+            {
+                var attrId = TryGetInt(attr, "AttributeId", "attributeId");
+                if (!attrId.HasValue) continue;
+
+                var optionId = TryGetInt(attr, "OptionId", "optionId");
+                var customValue = TryGetString(attr, "CustomValue", "customValue", "Value", "value");
+
+                defs.TryGetValue(attrId.Value, out var definition);
+                var label = definition?.Name ?? $"屬性#{attrId.Value}";
+                var value = customValue;
+
+                if (string.IsNullOrWhiteSpace(value) && optionId.HasValue)
+                {
+                    value = definition?.CategoryAttributeOptions
+                        .FirstOrDefault(o => o.Id == optionId.Value)
+                        ?.OptionName
+                        ?? optionId.Value.ToString();
+                }
+
+                if (string.IsNullOrWhiteSpace(value)) continue;
+
+                if (!grouped.TryGetValue(attrId.Value, out var item))
+                {
+                    grouped[attrId.Value] = new ProductAttributeDisplayVm
+                    {
+                        AttributeId = attrId.Value,
+                        Label = label,
+                        Value = value
+                    };
+                }
+                else
+                {
+                    item.Value = $"{item.Value}、{value}";
+                }
+            }
+
+            return grouped.Values.ToList();
+        }
+
+        private static int? TryGetInt(JsonElement element, params string[] names)
+        {
+            foreach (var name in names)
+            {
+                if (!element.TryGetProperty(name, out var value)) continue;
+                if (value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var intValue))
+                    return intValue;
+                if (value.ValueKind == JsonValueKind.String && int.TryParse(value.GetString(), out intValue))
+                    return intValue;
+            }
+
+            return null;
+        }
+
+        private static string? TryGetString(JsonElement element, params string[] names)
+        {
+            foreach (var name in names)
+            {
+                if (!element.TryGetProperty(name, out var value)) continue;
+                if (value.ValueKind == JsonValueKind.String)
+                    return value.GetString();
+                if (value.ValueKind == JsonValueKind.Number)
+                    return value.ToString();
+            }
+
+            return null;
         }
 
         /// <summary>

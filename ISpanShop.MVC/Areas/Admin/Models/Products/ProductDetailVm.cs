@@ -1,5 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.Net;
+using System.Text.RegularExpressions;
 
 namespace ISpanShop.MVC.Areas.Admin.Models.Products
 {
@@ -11,7 +13,9 @@ namespace ISpanShop.MVC.Areas.Admin.Models.Products
         public string CategoryName { get; set; }
         public string BrandName { get; set; }
         public string Description { get; set; }
+        public string PlainDescription => ToPlainText(Description);
         public byte? Status { get; set; }
+        public int CategoryId { get; set; }
 
         public decimal? MinPrice { get; set; }
         public decimal? MaxPrice { get; set; }
@@ -19,6 +23,7 @@ namespace ISpanShop.MVC.Areas.Admin.Models.Products
         public int? ViewCount { get; set; }
         public string? RejectReason { get; set; }
         public string? SpecDefinitionJson { get; set; }
+        public string? AttributesJson { get; set; }
         public DateTime? CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
         /// <summary>審核狀態 (0=待審核, 1=通過, 2=退回, 3=重新申請審核)</summary>
@@ -32,6 +37,7 @@ namespace ISpanShop.MVC.Areas.Admin.Models.Products
 
         public List<string> Images { get; set; } = new();
         public List<ProductVariantDetailVm> Variants { get; set; } = new();
+        public List<ProductAttributeDisplayVm> Attributes { get; set; } = new();
 
         public string StatusText
         {
@@ -58,5 +64,22 @@ namespace ISpanShop.MVC.Areas.Admin.Models.Products
                 _ => "badge-secondary"
             };
         }
+
+        private static string ToPlainText(string? html)
+        {
+            if (string.IsNullOrWhiteSpace(html)) return string.Empty;
+
+            var withBreaks = Regex.Replace(html, @"</(p|div|br|li|h[1-6])\s*>", "\n", RegexOptions.IgnoreCase);
+            var withoutTags = Regex.Replace(withBreaks, "<.*?>", string.Empty);
+            var decoded = WebUtility.HtmlDecode(withoutTags).Replace('\u00A0', ' ');
+            return Regex.Replace(decoded, @"[ \t]+", " ").Trim();
+        }
+    }
+
+    public class ProductAttributeDisplayVm
+    {
+        public int AttributeId { get; set; }
+        public string Label { get; set; } = string.Empty;
+        public string Value { get; set; } = string.Empty;
     }
 }
