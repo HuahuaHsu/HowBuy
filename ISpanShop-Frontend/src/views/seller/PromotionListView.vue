@@ -982,9 +982,9 @@ async function fillDemoCampaign(): Promise<void> {
     ]
     const generatedDescription: string = descTemplates[Math.floor(Math.random() * descTemplates.length)]!
 
-    // 6. 時間：1 小時後開始，30 天後結束
+    // 6. 時間：按下快速填入當下開始，30 天後結束
     const now = new Date()
-    const startDate = new Date(now.getTime() + 60 * 60 * 1000)
+    const startDate = now
     const endDate = new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000)
 
     // 7. 隨機選 2-5 個同分類商品帶入
