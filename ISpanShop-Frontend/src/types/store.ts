@@ -133,7 +133,6 @@ export interface SellerOrderItem {
   quantity: number
   promotionTags?: string[]
 }
-}
 
 export interface SellerReturnItem {
   id: number

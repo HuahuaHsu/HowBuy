@@ -210,6 +210,12 @@ namespace ISpanShop.Repositories.Products
             if (criteria.BrandId.HasValue)
                 query = query.Where(p => p.BrandId == criteria.BrandId.Value);
 
+            if (criteria.MinPrice.HasValue)
+                query = query.Where(p => p.MinPrice >= criteria.MinPrice.Value);
+
+            if (criteria.MaxPrice.HasValue)
+                query = query.Where(p => p.MinPrice <= criteria.MaxPrice.Value);
+
             if (!string.IsNullOrWhiteSpace(criteria.SellerTab))
             {
                 query = criteria.SellerTab.ToLowerInvariant() switch
@@ -535,6 +541,12 @@ namespace ISpanShop.Repositories.Products
 
             if (criteria.BrandId.HasValue)
                 query = query.Where(p => p.BrandId == criteria.BrandId.Value);
+
+            if (criteria.MinPrice.HasValue)
+                query = query.Where(p => p.MinPrice >= criteria.MinPrice.Value);
+
+            if (criteria.MaxPrice.HasValue)
+                query = query.Where(p => p.MinPrice <= criteria.MaxPrice.Value);
 
             if (criteria.Status.HasValue)
             {

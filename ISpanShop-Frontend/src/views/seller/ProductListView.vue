@@ -67,14 +67,28 @@
         <el-collapse-transition>
           <div v-show="showAdvanced" class="advanced-filter">
             <el-row :gutter="12">
+              <el-col :xs="24" :sm="10">
+                <label class="adv-label">價格區間</label>
+                <el-slider
+                  v-model="advPriceRange"
+                  range
+                  :min="0"
+                  :max="priceSliderMax"
+                  :step="500"
+                  :format-tooltip="formatPriceTooltip"
+                  @change="handlePriceRangeChange"
+                />
+              </el-col>
               <el-col :xs="12" :sm="5">
                 <label class="adv-label">最低價</label>
                 <el-input-number
                   v-model="advMinPrice"
                   :min="0"
+                  :max="advMaxPrice ?? priceSliderMax"
                   placeholder="NT$"
                   controls-position="right"
                   style="width:100%"
+                  @change="handlePriceInputChange"
                 />
               </el-col>
               <el-col :xs="12" :sm="5">
@@ -82,9 +96,11 @@
                 <el-input-number
                   v-model="advMaxPrice"
                   :min="0"
+                  :max="priceSliderMax"
                   placeholder="NT$"
                   controls-position="right"
                   style="width:100%"
+                  @change="handlePriceInputChange"
                 />
               </el-col>
             </el-row>
@@ -482,6 +498,8 @@ const activeTab = ref<TabKey>((route.query.tab as TabKey) || 'all')
 const searchKeyword = ref<string>('')
 const searchCategoryId = ref<number | null>(null)
 const showAdvanced = ref<boolean>(false)
+const priceSliderMax = 100000
+const advPriceRange = ref<[number, number]>([0, priceSliderMax])
 const advMinPrice = ref<number | null>(null)
 const advMaxPrice = ref<number | null>(null)
 
@@ -538,6 +556,7 @@ function restoreListState(): void {
     if (state.searchKeyword) searchKeyword.value = state.searchKeyword
     if (state.advMinPrice !== undefined) advMinPrice.value = state.advMinPrice
     if (state.advMaxPrice !== undefined) advMaxPrice.value = state.advMaxPrice
+    syncPriceRangeFromInputs()
     if (state.sortField) sortField.value = state.sortField
     if (state.sortDir) sortDir.value = state.sortDir
     if (state.page) currentPage.value = state.page
@@ -561,6 +580,38 @@ function saveListState(): void {
     viewMode: viewMode.value,
   }
   sessionStorage.setItem(SESSION_STATE_KEY, JSON.stringify(state))
+}
+
+function formatPriceTooltip(value: number): string {
+  return `NT$ ${value.toLocaleString()}`
+}
+
+function syncPriceRangeFromInputs(): void {
+  const min = Math.max(0, advMinPrice.value ?? 0)
+  const max = Math.min(priceSliderMax, Math.max(min, advMaxPrice.value ?? priceSliderMax))
+  advPriceRange.value = [min, max]
+}
+
+function handlePriceRangeChange(value: number | number[]): void {
+  const nextRange = Array.isArray(value) && value.length >= 2
+    ? [Number(value[0] ?? 0), Number(value[1] ?? priceSliderMax)] as [number, number]
+    : advPriceRange.value
+  const [min, max] = nextRange
+  advMinPrice.value = min > 0 ? min : null
+  advMaxPrice.value = max < priceSliderMax ? max : null
+  handleSearch()
+}
+
+function handlePriceInputChange(): void {
+  if (
+    advMinPrice.value !== null &&
+    advMaxPrice.value !== null &&
+    advMinPrice.value > advMaxPrice.value
+  ) {
+    advMaxPrice.value = advMinPrice.value
+  }
+  syncPriceRangeFromInputs()
+  handleSearch()
 }
 
 // 監聽所有狀態變動，自動儲存
@@ -652,7 +703,12 @@ async function loadProducts(): Promise<void> {
 
 async function loadTabCounts(): Promise<void> {
   const tabs = level1Tabs.map((tab) => tab.key)
-  tabCounts.value = await fetchSellerProductTabCounts(tabs, { keyword: searchKeyword.value.trim() || undefined, categoryId: searchCategoryId.value || undefined } as any) as Record<TabKey, number>
+  tabCounts.value = await fetchSellerProductTabCounts(tabs, {
+    keyword: searchKeyword.value.trim() || undefined,
+    categoryId: searchCategoryId.value || undefined,
+    minPrice: advMinPrice.value ?? undefined,
+    maxPrice: advMaxPrice.value ?? undefined,
+  } as any) as Record<TabKey, number>
 }
 
 function reloadFromFirstPage(): void { currentPage.value = 1; void loadProducts(); void loadTabCounts() }
@@ -688,6 +744,7 @@ function handleReset(): void {
   searchCategoryId.value = null
   advMinPrice.value = null
   advMaxPrice.value = null
+  advPriceRange.value = [0, priceSliderMax]
   showAdvanced.value = false
   sortField.value = 'createdAt'
   sortDir.value = 'desc'

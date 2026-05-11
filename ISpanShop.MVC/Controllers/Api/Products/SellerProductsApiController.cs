@@ -42,6 +42,8 @@ namespace ISpanShop.MVC.Controllers.Api.Products
             [FromQuery] int?    brandId      = null,
             [FromQuery] int?    status       = null,
             [FromQuery] string? tab          = null,
+            [FromQuery] decimal? minPrice    = null,
+            [FromQuery] decimal? maxPrice    = null,
             [FromQuery] string? sortBy       = null,
             [FromQuery] int     page         = 1,
             [FromQuery] int     pageSize     = 20)
@@ -65,6 +67,8 @@ namespace ISpanShop.MVC.Controllers.Api.Products
                 StoreId          = storeId,  // 強制使用 JWT 中的 StoreId
                 Status           = status,
                 SellerTab        = tab,
+                MinPrice         = minPrice,
+                MaxPrice         = maxPrice,
                 SortOrder        = sortBy ?? "date_desc",
                 PageNumber       = page,
                 PageSize         = pageSize,
@@ -363,7 +367,8 @@ namespace ISpanShop.MVC.Controllers.Api.Products
             int id, 
             [FromForm] List<IFormFile>? images, 
             [FromForm] List<string>? existingImages,
-            [FromForm] int mainImageIndex = 0)
+            [FromForm] int mainImageIndex = 0,
+            [FromForm] bool imageListSubmitted = false)
         {
             // 從 JWT token 取得 StoreId
             var storeIdClaim = User.FindFirst("StoreId")?.Value;
@@ -382,8 +387,8 @@ namespace ISpanShop.MVC.Controllers.Api.Products
                 return StatusCode(StatusCodes.Status403Forbidden, new { success = false, message = "無權修改此商品" });
             }
 
-            // 如果沒有新圖片也沒有 existingImages，代表前端沒有送圖片相關資料，不做任何處理
-            if ((images == null || images.Count == 0) && (existingImages == null || existingImages.Count == 0))
+            // 如果沒有明確送出圖片清單，代表前端沒有要處理圖片；若有送出清單但為空，代表要刪光圖片。
+            if (!imageListSubmitted && (images == null || images.Count == 0) && (existingImages == null || existingImages.Count == 0))
             {
                 return Ok(new { success = true, message = "未變更圖片" });
             }

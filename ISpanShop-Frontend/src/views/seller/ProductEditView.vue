@@ -1793,6 +1793,8 @@ async function handleSubmit(publishNow: boolean, redirectAfter = true, isDraftAc
       const newFiles = form.images.filter(f => f.raw)
       if (newFiles.length > 0 || form.images.length !== originalImageCount.value) {
         const formData = new FormData()
+        formData.append('imageListSubmitted', 'true')
+        formData.append('mainImageIndex', '0')
         form.images.forEach(file => {
           if (file.raw) {
             formData.append('images', file.raw)
