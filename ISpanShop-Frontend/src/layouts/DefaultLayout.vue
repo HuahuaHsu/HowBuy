@@ -272,6 +272,7 @@ function handleLogout() { authStore.logout(); router.push('/'); }
 function handleLogoClick(): void {
   searchText.value = ''
   void router.push({ path: '/' })
+  window.dispatchEvent(new CustomEvent('howbuy:clear-home-filters'))
 }
 
 /** 導向搜尋結果頁 */

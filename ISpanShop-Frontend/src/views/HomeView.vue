@@ -223,6 +223,8 @@
             :selected-brand-ids="selectedBrandIds"
             :min-price="minPrice"
             :max-price="maxPrice"
+            :price-lower-bound="priceLowerBound"
+            :price-upper-bound="priceUpperBound"
             :brand-keyword="isBrandSearchKeyword"
             :is-brand-expanded="isBrandListExpanded"
             @clear="onClearCategory"
@@ -254,6 +256,8 @@
             :selected-brand-ids="selectedBrandIds"
             :min-price="minPrice"
             :max-price="maxPrice"
+            :price-lower-bound="priceLowerBound"
+            :price-upper-bound="priceUpperBound"
             :brand-keyword="isBrandSearchKeyword"
             :is-brand-expanded="isBrandListExpanded"
             @clear="onClearCategory"
@@ -423,6 +427,10 @@ const isBrandSearchKeyword = ref<string>('')
 const isBrandListExpanded = ref<boolean>(false)
 const drawerOpen = ref<boolean>(false)
 
+const priceLowerBound = ref<number>(0)
+const priceUpperBound = ref<number>(0)
+const priceBoundsLocked = ref<boolean>(false)
+
 // ── 活動/輪播 ────────────────────────────────────────────────────
 const promotions = ref<Promotion[]>([])
 
@@ -528,6 +536,7 @@ async function loadProducts(): Promise<void> {
     if (res.success) {
       products.value = res.data.items
       total.value = res.data.totalCount ?? res.data.total ?? 0
+      lockInitialPriceBounds(res.data.items)
     } else {
       ElMessage.error(res.message || '載入失敗')
     }
@@ -537,6 +546,26 @@ async function loadProducts(): Promise<void> {
   } finally {
     if (requestSeq === productRequestSeq) loading.value = false
   }
+}
+
+function resetPriceBounds(): void {
+  priceLowerBound.value = 0
+  priceUpperBound.value = 0
+  priceBoundsLocked.value = false
+}
+
+function lockInitialPriceBounds(items: ProductListItem[]): void {
+  if (priceBoundsLocked.value) return
+
+  const prices = items
+    .map(p => p.price)
+    .filter((price): price is number => typeof price === 'number' && Number.isFinite(price))
+
+  if (prices.length === 0) return
+
+  priceLowerBound.value = Math.max(0, Math.floor(Math.min(...prices)))
+  priceUpperBound.value = Math.ceil(Math.max(...prices))
+  priceBoundsLocked.value = true
 }
 
 async function loadCategories(): Promise<void> {
@@ -615,6 +644,7 @@ function clearSidebarState(): void {
   selectedBrandIds.value = []
   minPrice.value = null
   maxPrice.value = null
+  resetPriceBounds()
   isBrandSearchKeyword.value = ''
   isBrandListExpanded.value = false
   subCategories.value = []
@@ -644,6 +674,17 @@ function onClearCategory(): void {
   void loadProducts()
 }
 
+function clearHomeFilters(): void {
+  selectedCategoryId.value = null
+  clearSidebarState()
+  drawerOpen.value = false
+  currentPage.value = 1
+  if (Object.keys(route.query).length > 0) {
+    void router.replace({ path: '/', query: {} })
+  }
+  void loadProducts()
+}
+
 function onFilterChange(): void {
   currentPage.value = 1
   void loadProducts()
@@ -651,6 +692,9 @@ function onFilterChange(): void {
 
 async function onSubCategoryChange(subCategoryId: number | null): Promise<void> {
   selectedSubCategoryId.value = subCategoryId
+  minPrice.value = null
+  maxPrice.value = null
+  resetPriceBounds()
   currentPage.value = 1
   const brandsParams =
     subCategoryId !== null
@@ -690,6 +734,9 @@ async function applyQueryFilter(): Promise<void> {
     if (subCatId !== null && !Number.isNaN(subCatId)) {
       selectedSubCategoryId.value = subCatId
     }
+  } else {
+    selectedCategoryId.value = null
+    clearSidebarState()
   }
 
   currentPage.value = 1
@@ -734,10 +781,12 @@ onMounted(() => {
   void loadCategories()
   void loadPromotions()
   window.addEventListener('resize', handleResize)
+  window.addEventListener('howbuy:clear-home-filters', clearHomeFilters)
 })
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
+  window.removeEventListener('howbuy:clear-home-filters', clearHomeFilters)
   if (countdownTimer) {
     clearInterval(countdownTimer)
     countdownTimer = null
