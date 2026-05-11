@@ -51,9 +51,14 @@
           >
             {{ authStore.memberInfo.hasPassword ? '確認修改' : '確認設定' }}
           </el-button>
-          <el-button @click="$router.push('/member')" :disabled="submitting">
+          <el-button @click="$router.push('/member')" :disabled="submitting" class="cancel-btn">
             取消
           </el-button>
+          <div class="quick-fill-container">
+            <el-button link type="primary" size="small" @click="quickFill">
+              快速填入 (展示用)
+            </el-button>
+          </div>
         </el-form-item>
       </el-form>
     </div>
@@ -78,6 +83,11 @@ const passwordForm = reactive({
   newPassword: '',
   confirmPassword: ''
 })
+
+const quickFill = () => {
+  passwordForm.newPassword = 'Tesr1234567'
+  passwordForm.confirmPassword = 'Tesr1234567'
+}
 
 // 表單驗證規則
 const rules = reactive<FormRules>({
@@ -182,13 +192,26 @@ const handleSubmit = async () => {
 
 .form-actions {
   margin-top: 40px;
-  display: flex;
-  justify-content: center;
 }
 
-.submit-btn {
+:deep(.el-form-item__content) {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.submit-btn, .cancel-btn {
   padding: 12px 30px;
   font-size: 16px;
+  margin: 0 !important;
+  min-width: 120px;
+}
+
+.quick-fill-container {
+  margin-top: 10px;
+  width: 100%;
+  text-align: center;
 }
 
 :deep(.el-form-item__label) {

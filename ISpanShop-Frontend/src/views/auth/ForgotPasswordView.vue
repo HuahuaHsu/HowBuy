@@ -12,7 +12,7 @@
         <el-result
           icon="success"
           title="郵件已發送"
-          sub-title="重設密碼連結已發送至您的信箱，請在 24 小時內完成重設。"
+          sub-title="重設密碼連結已發送至您的信箱，請在 30分鐘內完成重設。"
         >
           <template #extra>
             <el-button type="primary" @click="$router.push('/login')">返回登入</el-button>
@@ -29,18 +29,18 @@
         @submit.prevent="handleSend"
       >
         <el-form-item label="電子郵件" prop="email">
-          <el-input 
-            v-model="forgotForm.email" 
-            placeholder="請輸入您的 Email" 
+          <el-input
+            v-model="forgotForm.email"
+            placeholder="請輸入您的 Email"
             size="large"
           />
         </el-form-item>
-        
+
         <el-form-item>
-          <el-button 
-            type="primary" 
-            class="w-full submit-btn" 
-            size="large" 
+          <el-button
+            type="primary"
+            class="w-full submit-btn"
+            size="large"
             :loading="loading"
             @click="handleSend"
           >
@@ -50,6 +50,8 @@
 
         <div class="footer-links">
           想起密碼了？ <router-link to="/login" class="link">返回登入</router-link>
+          <span class="divider">|</span>
+          <el-link type="info" :underline="false" @click="quickFill" class="demo-link">快速填入(展示用)</el-link>
         </div>
       </el-form>
     </el-card>
@@ -70,6 +72,10 @@ const forgotForm = reactive({
   email: ''
 })
 
+const quickFill = () => {
+  forgotForm.email = 'fuen49.02@gmail.com'
+}
+
 const rules = reactive<FormRules>({
   email: [
     { required: true, message: '請輸入電子郵件', trigger: 'blur' },
@@ -79,13 +85,13 @@ const rules = reactive<FormRules>({
 
 const handleSend = async () => {
   if (!formRef.value) return
-  
+
   await formRef.value.validate(async (valid) => {
     if (valid) {
       try {
         loading.value = true
         const { data } = await forgotPasswordApi(forgotForm)
-        
+
         if (data.isSuccess) {
           isSent.value = true
           ElMessage.success(data.message)
@@ -151,6 +157,16 @@ const handleSend = async () => {
   text-align: center;
   margin-top: 20px;
   font-size: 14px;
+}
+
+.divider {
+  margin: 0 10px;
+  color: #dcdfe6;
+}
+
+.demo-link {
+  font-size: 14px;
+  vertical-align: baseline;
 }
 
 .link {

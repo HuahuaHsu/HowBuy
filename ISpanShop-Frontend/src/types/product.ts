@@ -138,6 +138,7 @@ export interface SellerProductListItem {
   id: number
   name: string
   storeName: string
+  categoryId: number
   categoryName: string
   brandName: string
   minPrice: number | null
@@ -188,6 +189,7 @@ export interface SellerProductDetail {
   reviewStatus: number
   createdAt: string | null
   updatedAt: string | null
+  attributesJson: string | null
   images: string[]
   variants: SellerVariantDetail[]
 }

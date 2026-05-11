@@ -86,12 +86,29 @@
     <!-- ④ 價格區間 -->
     <div class="sb-block">
       <div class="sb-title">價格區間</div>
+      <div class="price-range-head">
+        <span>NT$ {{ sliderMin.toLocaleString() }}</span>
+        <span>NT$ {{ sliderMax.toLocaleString() }}</span>
+      </div>
+      <el-slider
+        v-model="priceRangeDraft"
+        range
+        :min="sliderMin"
+        :max="sliderMax"
+        :step="priceSliderStep"
+        :disabled="sliderMax <= sliderMin"
+        :format-tooltip="formatSliderTooltip"
+        class="price-slider"
+        @change="syncPriceInputsFromSlider"
+        @input="syncPriceInputsFromSlider"
+      />
       <div class="price-inputs">
         <el-input
           v-model="priceMinInput"
           placeholder="最低"
           size="small"
           type="number"
+          @input="syncSliderFromInputs"
         />
         <span class="price-sep">~</span>
         <el-input
@@ -99,11 +116,9 @@
           placeholder="最高"
           size="small"
           type="number"
+          @input="syncSliderFromInputs"
         />
       </div>
-      <el-button class="price-apply-btn" size="small" plain type="danger" @click="applyPriceFilter">
-        套用
-      </el-button>
     </div>
 
     <!-- ⑤ 已套用篩選 -->
@@ -153,6 +168,8 @@ const props = defineProps<{
   selectedBrandIds: number[]
   minPrice: number | null
   maxPrice: number | null
+  priceLowerBound: number
+  priceUpperBound: number
   brandKeyword: string
   isBrandExpanded: boolean
 }>()
@@ -170,13 +187,36 @@ const emit = defineEmits<{
 
 const priceMinInput = ref(props.minPrice !== null ? String(props.minPrice) : '')
 const priceMaxInput = ref(props.maxPrice !== null ? String(props.maxPrice) : '')
+const priceRangeDraft = ref<[number, number]>([0, 0])
+let priceFilterTimer: ReturnType<typeof setTimeout> | null = null
+
+const sliderMin = computed<number>(() => {
+  const activeMin = props.minPrice
+  const lower = Number.isFinite(props.priceLowerBound) ? props.priceLowerBound : 0
+  return Math.max(0, Math.floor(Math.min(lower, activeMin ?? lower)))
+})
+
+const sliderMax = computed<number>(() => {
+  const activeMax = props.maxPrice
+  const upper = Number.isFinite(props.priceUpperBound) ? props.priceUpperBound : 0
+  return Math.ceil(Math.max(upper, activeMax ?? upper))
+})
+
+const priceSliderStep = computed<number>(() => {
+  const span = sliderMax.value - sliderMin.value
+  if (span >= 100000) return 1000
+  if (span >= 10000) return 100
+  return 10
+})
 
 watch(
-  () => [props.minPrice, props.maxPrice] as const,
+  () => [props.minPrice, props.maxPrice, props.priceLowerBound, props.priceUpperBound] as const,
   ([min, max]) => {
     priceMinInput.value = min !== null ? String(min) : ''
     priceMaxInput.value = max !== null ? String(max) : ''
+    syncSliderFromProps()
   },
+  { immediate: true },
 )
 
 // null → -1 作為 el-radio-group 的「全部」sentinel
@@ -248,9 +288,54 @@ function removeFilter(f: AppliedFilter): void {
 }
 
 function applyPriceFilter(): void {
-  emit('update:minPrice', priceMinInput.value ? Number(priceMinInput.value) : null)
-  emit('update:maxPrice', priceMaxInput.value ? Number(priceMaxInput.value) : null)
+  const min = priceMinInput.value ? Number(priceMinInput.value) : null
+  const max = priceMaxInput.value ? Number(priceMaxInput.value) : null
+  if (min !== null && max !== null && min > max) return
+
+  emit('update:minPrice', min)
+  emit('update:maxPrice', max)
   emit('filter-change')
+}
+
+function syncPriceInputsFromSlider(value: number | number[]): void {
+  if (!Array.isArray(value)) return
+  priceMinInput.value = String(value[0])
+  priceMaxInput.value = String(value[1])
+  schedulePriceFilter()
+}
+
+function syncSliderFromProps(): void {
+  const min = props.minPrice ?? sliderMin.value
+  const max = props.maxPrice ?? sliderMax.value
+  priceRangeDraft.value = [
+    Math.max(sliderMin.value, min),
+    Math.min(sliderMax.value, max),
+  ]
+}
+
+function syncSliderFromInputs(): void {
+  const min = priceMinInput.value ? Number(priceMinInput.value) : sliderMin.value
+  const max = priceMaxInput.value ? Number(priceMaxInput.value) : sliderMax.value
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return
+  const clampedMin = Math.max(sliderMin.value, Math.min(min, sliderMax.value))
+  const clampedMax = Math.max(sliderMin.value, Math.min(max, sliderMax.value))
+  priceRangeDraft.value = [
+    Math.min(clampedMin, clampedMax),
+    Math.max(clampedMin, clampedMax),
+  ]
+  schedulePriceFilter()
+}
+
+function formatSliderTooltip(value: number): string {
+  return `NT$ ${value.toLocaleString()}`
+}
+
+function schedulePriceFilter(): void {
+  if (priceFilterTimer) clearTimeout(priceFilterTimer)
+  priceFilterTimer = setTimeout(() => {
+    priceFilterTimer = null
+    applyPriceFilter()
+  }, 350)
 }
 
 function clearAll(): void {
@@ -348,6 +433,24 @@ function clearAll(): void {
 }
 
 /* 價格 */
+.price-range-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 2px;
+  font-size: 12px;
+  color: #94a3b8;
+}
+.price-slider {
+  padding: 0 3px;
+  margin-bottom: 6px;
+}
+:deep(.price-slider .el-slider__bar) {
+  background-color: #EE4D2D;
+}
+:deep(.price-slider .el-slider__button) {
+  border-color: #EE4D2D;
+}
 .price-inputs {
   display: flex;
   align-items: center;
@@ -357,11 +460,6 @@ function clearAll(): void {
   color: #94a3b8;
   font-size: 12px;
 }
-.price-apply-btn {
-  width: 100%;
-  margin-top: 8px;
-}
-
 /* 已套用篩選 */
 .applied-tags {
   display: flex;

@@ -40,6 +40,7 @@ namespace ISpanShop.Services.Products
                 Description        = dto.Description,
                 VideoUrl           = dto.VideoUrl,
                 SpecDefinitionJson = dto.SpecDefinitionJson,
+                AttributesJson     = dto.AttributesJson,
                 CreatedAt          = DateTime.Now,
                 UpdatedAt          = DateTime.Now,
                 Status             = dto.Status,
@@ -77,6 +78,7 @@ namespace ISpanShop.Services.Products
             var dtos = items.Select(p => new ProductListDto
             {
                 Id           = p.Id,
+                CategoryId   = p.CategoryId,
                 StoreName    = p.Store?.StoreName ?? "未知商店",
                 CategoryName = p.Category?.Name ?? "未分類",
                 BrandName    = p.Brand?.Name ?? "未設定",

@@ -253,6 +253,8 @@ namespace ISpanShop.Repositories.Products
                 "stock_asc"    => query.OrderBy(p => p.ProductVariants.Where(v => v.IsDeleted != true).Sum(v => (int?)v.Stock ?? 0)),
                 "sales_desc"   => query.OrderByDescending(p => p.TotalSales ?? 0),
                 "sales_asc"    => query.OrderBy(p => p.TotalSales ?? 0),
+                "views_desc"   => query.OrderByDescending(p => p.ViewCount ?? 0),
+                "views_asc"    => query.OrderBy(p => p.ViewCount ?? 0),
                 "updated_asc"  => query.OrderBy(p => p.UpdatedAt),
                 "updated_desc" => query.OrderByDescending(p => p.UpdatedAt),
                 "date_desc"    => query.OrderByDescending(p => p.CreatedAt),
@@ -427,7 +429,7 @@ namespace ISpanShop.Repositories.Products
         public bool RestoreDeletedProductAsDraft(int id)
         {
             var product = _context.Products.Find(id);
-            if (product == null || !product.IsDeleted || product.ReviewStatus == 2)
+            if (product == null || !product.IsDeleted)
                 return false;
 
             product.IsDeleted = false;
@@ -569,6 +571,8 @@ namespace ISpanShop.Repositories.Products
                 "stock_asc"    => query.OrderBy(p => p.ProductVariants.Where(v => v.IsDeleted != true).Sum(v => (int?)v.Stock ?? 0)),
                 "sales_desc"   => query.OrderByDescending(p => p.TotalSales ?? 0),
                 "sales_asc"    => query.OrderBy(p => p.TotalSales ?? 0),
+                "views_desc"   => query.OrderByDescending(p => p.ViewCount ?? 0),
+                "views_asc"    => query.OrderBy(p => p.ViewCount ?? 0),
                 "updated_asc"  => query.OrderBy(p => p.UpdatedAt),
                 "updated_desc" => query.OrderByDescending(p => p.UpdatedAt),
                 "date_desc"    => query.OrderByDescending(p => p.CreatedAt),

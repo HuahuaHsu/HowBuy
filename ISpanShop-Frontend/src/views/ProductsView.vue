@@ -42,6 +42,21 @@
         <!-- 價格區間 -->
         <div class="filter-block">
           <div class="filter-block-title">價格區間</div>
+          <div class="price-range-head">
+            <span>NT$ {{ sliderMin.toLocaleString() }}</span>
+            <span>NT$ {{ sliderMax.toLocaleString() }}</span>
+          </div>
+          <el-slider
+            v-model="priceRangeDraft"
+            range
+            :min="sliderMin"
+            :max="sliderMax"
+            :step="priceSliderStep"
+            :disabled="sliderMax <= sliderMin"
+            :format-tooltip="formatSliderTooltip"
+            class="price-slider"
+            @change="syncPriceInputsFromSlider"
+          />
           <div class="price-inputs">
             <el-input
               v-model="priceMinStr"
@@ -49,6 +64,7 @@
               size="small"
               type="number"
               style="flex:1"
+              @input="syncSliderFromInputs"
             />
             <span class="price-sep">~</span>
             <el-input
@@ -57,15 +73,9 @@
               size="small"
               type="number"
               style="flex:1"
+              @input="syncSliderFromInputs"
             />
           </div>
-          <el-button
-            size="small"
-            type="primary"
-            plain
-            style="width:100%;margin-top:8px"
-            @click="applyPriceFilter"
-          >套用</el-button>
         </div>
 
         <!-- 預留擴充 -->
@@ -274,11 +284,14 @@ const routeMaxPrice = computed<number | undefined>(() => {
 // ── 本地價格輸入（使用者打字但未套用時的暫存）───────────────────
 const priceMinStr = ref<string>(routeMinPrice.value !== undefined ? String(routeMinPrice.value) : '')
 const priceMaxStr = ref<string>(routeMaxPrice.value !== undefined ? String(routeMaxPrice.value) : '')
+const priceRangeDraft = ref<[number, number]>([0, 0])
+let priceFilterTimer: ReturnType<typeof setTimeout> | null = null
 
 // 當 URL 的價格 query 變化時同步輸入框
 watch([routeMinPrice, routeMaxPrice], ([min, max]) => {
   priceMinStr.value = min !== undefined ? String(min) : ''
   priceMaxStr.value = max !== undefined ? String(max) : ''
+  syncSliderFromRoute()
 })
 
 // ── API 狀態 ─────────────────────────────────────────────────────
@@ -287,6 +300,28 @@ const total    = ref<number>(0)
 const pageSize = ref<number>(20)
 const loading  = ref<boolean>(false)
 let productRequestSeq = 0
+
+const productPriceBounds = ref<[number, number]>([0, 0])
+const priceBoundsLocked = ref<boolean>(false)
+
+const sliderMin = computed<number>(() => {
+  const [min] = productPriceBounds.value
+  const activeMin = routeMinPrice.value
+  return Math.max(0, Math.floor(Math.min(min, activeMin ?? min)))
+})
+
+const sliderMax = computed<number>(() => {
+  const [, max] = productPriceBounds.value
+  const activeMax = routeMaxPrice.value
+  return Math.ceil(Math.max(max, activeMax ?? max))
+})
+
+const priceSliderStep = computed<number>(() => {
+  const span = sliderMax.value - sliderMin.value
+  if (span >= 100000) return 1000
+  if (span >= 10000) return 100
+  return 10
+})
 
 // ── 分類清單 ─────────────────────────────────────────────────────
 const categories  = ref<Category[]>([])
@@ -306,8 +341,8 @@ function buildQuery(
   overrides: Partial<{
     keyword: string
     categoryId: number | null
-    minPrice: number | undefined
-    maxPrice: number | undefined
+    minPrice: number | null | undefined
+    maxPrice: number | null | undefined
     sortBy: SortBy
     page: number
   }> = {},
@@ -318,8 +353,8 @@ function buildQuery(
   const merged = {
     keyword:    overrides.keyword    !== undefined ? overrides.keyword    : keyword.value,
     categoryId: overrides.categoryId !== undefined ? overrides.categoryId : selectedCategoryId.value,
-    minPrice:   overrides.minPrice   !== undefined ? overrides.minPrice   : routeMinPrice.value,
-    maxPrice:   overrides.maxPrice   !== undefined ? overrides.maxPrice   : routeMaxPrice.value,
+    minPrice:   Object.prototype.hasOwnProperty.call(overrides, 'minPrice') ? overrides.minPrice : routeMinPrice.value,
+    maxPrice:   Object.prototype.hasOwnProperty.call(overrides, 'maxPrice') ? overrides.maxPrice : routeMaxPrice.value,
     sortBy:     overrides.sortBy     !== undefined ? overrides.sortBy     : sortBy.value,
     page:       overrides.page       !== undefined ? overrides.page       : currentPage.value,
   }
@@ -331,10 +366,10 @@ function buildQuery(
   if (merged.categoryId !== null)         q['categoryId'] = String(merged.categoryId)
   else                                    delete q['categoryId']
 
-  if (merged.minPrice !== undefined)      q['minPrice']   = String(merged.minPrice)
+  if (merged.minPrice != null)            q['minPrice']   = String(merged.minPrice)
   else                                    delete q['minPrice']
 
-  if (merged.maxPrice !== undefined)      q['maxPrice']   = String(merged.maxPrice)
+  if (merged.maxPrice != null)            q['maxPrice']   = String(merged.maxPrice)
   else                                    delete q['maxPrice']
 
   if (merged.sortBy !== 'latest')         q['sortBy']     = merged.sortBy
@@ -368,16 +403,91 @@ function handleSortCommand(command: string): void {
 function applyPriceFilter(): void {
   const min = priceMinStr.value ? Number(priceMinStr.value) : undefined
   const max = priceMaxStr.value ? Number(priceMaxStr.value) : undefined
-  if (min !== undefined && max !== undefined && min > max) {
-    ElMessage.warning('最低價不能大於最高價')
-    return
-  }
-  pushQuery({ minPrice: min, maxPrice: max })
+  if (min !== undefined && max !== undefined && min > max) return
+
+  const isFullRange =
+    min !== undefined &&
+    max !== undefined &&
+    min <= sliderMin.value &&
+    max >= sliderMax.value
+
+  const isUninitializedRange =
+    min === 0 &&
+    max === 0 &&
+    sliderMin.value === 0 &&
+    sliderMax.value === 0
+
+  pushQuery({
+    minPrice: isFullRange || isUninitializedRange ? null : min,
+    maxPrice: isFullRange || isUninitializedRange ? null : max,
+  })
+}
+
+function syncPriceInputsFromSlider(value: number | number[]): void {
+  if (!Array.isArray(value)) return
+  if (sliderMax.value <= sliderMin.value) return
+  priceMinStr.value = String(value[0])
+  priceMaxStr.value = String(value[1])
+  applyPriceFilter()
+}
+
+function syncSliderFromRoute(): void {
+  const min = routeMinPrice.value ?? sliderMin.value
+  const max = routeMaxPrice.value ?? sliderMax.value
+  priceRangeDraft.value = [Math.max(sliderMin.value, min), Math.min(sliderMax.value, max)]
+}
+
+function resetPriceBounds(): void {
+  productPriceBounds.value = [0, 0]
+  priceBoundsLocked.value = false
+}
+
+function lockInitialPriceBounds(items: ProductListItem[]): void {
+  if (priceBoundsLocked.value) return
+
+  const prices = items
+    .map(p => p.price)
+    .filter((price): price is number => typeof price === 'number' && Number.isFinite(price))
+
+  if (prices.length === 0) return
+
+  productPriceBounds.value = [
+    Math.max(0, Math.floor(Math.min(...prices))),
+    Math.ceil(Math.max(...prices)),
+  ]
+  priceBoundsLocked.value = true
+}
+
+function formatSliderTooltip(value: number): string {
+  return `NT$ ${value.toLocaleString()}`
+}
+
+function syncSliderFromInputs(): void {
+  const min = priceMinStr.value ? Number(priceMinStr.value) : sliderMin.value
+  const max = priceMaxStr.value ? Number(priceMaxStr.value) : sliderMax.value
+  if (sliderMax.value <= sliderMin.value && !priceMinStr.value && !priceMaxStr.value) return
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return
+  const clampedMin = Math.max(sliderMin.value, Math.min(min, sliderMax.value))
+  const clampedMax = Math.max(sliderMin.value, Math.min(max, sliderMax.value))
+  priceRangeDraft.value = [
+    Math.min(clampedMin, clampedMax),
+    Math.max(clampedMin, clampedMax),
+  ]
+  schedulePriceFilter()
+}
+
+function schedulePriceFilter(): void {
+  if (priceFilterTimer) clearTimeout(priceFilterTimer)
+  priceFilterTimer = setTimeout(() => {
+    priceFilterTimer = null
+    applyPriceFilter()
+  }, 350)
 }
 
 function clearFilters(): void {
   priceMinStr.value = ''
   priceMaxStr.value = ''
+  priceRangeDraft.value = [sliderMin.value, sliderMax.value]
   void router.push({ path: '/products', query: keyword.value ? { keyword: keyword.value } : {} })
 }
 
@@ -408,6 +518,8 @@ async function loadProducts(): Promise<void> {
     if (res.success) {
       products.value = res.data.items
       total.value    = res.data.totalCount ?? res.data.total ?? 0
+      lockInitialPriceBounds(res.data.items)
+      syncSliderFromRoute()
     } else {
       ElMessage.error(res.message || '載入失敗')
     }
@@ -443,6 +555,17 @@ onMounted(() => {
 watch(
   () => route.query,
   () => void loadProducts(),
+)
+
+watch(
+  () => [
+    keyword.value,
+    selectedCategoryId.value,
+    selectedSubCategoryId.value,
+    selectedBrandIds.value.join(','),
+  ] as const,
+  () => resetPriceBounds(),
+  { flush: 'sync' },
 )
 </script>
 
@@ -530,6 +653,24 @@ watch(
   background: #fef2f2;
   color: #EE4D2D;
   font-weight: 600;
+}
+.price-range-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 2px;
+  font-size: 12px;
+  color: #94a3b8;
+}
+.price-slider {
+  padding: 0 3px;
+  margin-bottom: 6px;
+}
+:deep(.price-slider .el-slider__bar) {
+  background-color: #EE4D2D;
+}
+:deep(.price-slider .el-slider__button) {
+  border-color: #EE4D2D;
 }
 .price-inputs {
   display: flex;

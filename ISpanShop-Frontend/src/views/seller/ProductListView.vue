@@ -186,8 +186,6 @@
                 <div class="card-stats">
                   <!-- TODO: viewCount 後端尚未回傳，補上後移除 ?? '--' -->
                   <span title="瀏覽次數"><el-icon><View /></el-icon> {{ product.viewCount ?? '--' }}</span>
-                  <!-- TODO: reviewCount 尚未由後端商品列表 API 回傳，待補上 -->
-                  <span title="評論數"><el-icon><ChatDotRound /></el-icon> 0</span>
                 </div>
                 <div class="card-date">建立時間: {{ formatDate(product.createdAt) }}</div>
                 <div class="card-date">編輯時間: {{ formatDate(product.updatedAt) }}</div>
@@ -401,19 +399,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Plus, Search, Edit, Delete, Grid, List,
   ArrowDown, ArrowUp, DCaret, CaretTop, CaretBottom,
-  MoreFilled, WarningFilled, View, ChatDotRound,
+  MoreFilled, WarningFilled, View,
 } from '@element-plus/icons-vue'
 import { fetchSellerProducts, fetchSellerProductTabCounts, updateProductStatus, deleteSellerProduct, restoreSellerProduct, submitProductForReview } from '@/api/product'
-import { fetchMainCategories } from '@/api/category'
 import { useSellerStore } from '@/stores/seller'
 import type { SellerProductListItem } from '@/types/product'
-import type { Category } from '@/types/category'
 
 const router = useRouter()
 const route = useRoute()
@@ -440,7 +436,7 @@ function getProductPrice(product: SellerProduct): string {
 // ── 型別定義 ──────────────────────────────────────────────────────
 type ProductStatus = 'on' | 'off' | 'deleted' | 'review' | 'rejected' | 'draft'
 type TabKey = 'all' | 'on' | 'off' | 'deleted' | 'review' | 'rejected' | 'draft'
-type SortField = 'minPrice' | 'createdAt' | 'updatedAt' | 'totalStock' | 'totalSales'
+type SortField = 'minPrice' | 'createdAt' | 'updatedAt' | 'totalStock' | 'totalSales' | 'viewCount'
 type SortDir = 'asc' | 'desc' | null
 
 /** 將後端 status 數字 + reviewStatus 對應至 tab key 字串
@@ -468,9 +464,16 @@ interface SellerProduct extends Omit<SellerProductListItem, 'status'> {
   reviewStatus: number
 }
 
+interface SellerCategoryOption {
+  id: number
+  name: string
+}
+
 // ── State ─────────────────────────────────────────────────────────
 const loading = ref<boolean>(false)
-const products = ref<SellerProduct[]>([]), categories = ref<Category[]>([])
+const products = ref<SellerProduct[]>([])
+const sellerCategoryOptions = ref<SellerCategoryOption[]>([])
+const categories = computed<SellerCategoryOption[]>(() => sellerCategoryOptions.value)
 
 // Tabs
 const activeTab = ref<TabKey>((route.query.tab as TabKey) || 'all')
@@ -501,7 +504,7 @@ const level1Tabs: Array<{ key: TabKey; label: string }> = [
   { key: 'rejected', label: '已退回' },
   { key: 'review',   label: '審核中' },
   { key: 'draft',    label: '草稿' },
-  { key: 'deleted',  label: '違規/刪除' },
+  { key: 'deleted',  label: '已刪除' },
 ]
 
 const sortOptions: Array<{ field: string; label: string }> = [
@@ -509,6 +512,7 @@ const sortOptions: Array<{ field: string; label: string }> = [
   { field: 'createdAt',   label: '建立時間' },
   { field: 'updatedAt',   label: '編輯時間' },
   { field: 'totalSales',  label: '已售出' },
+  { field: 'viewCount',   label: '瀏覽次數' },
   { field: 'totalStock',  label: '商品數量' },
 ]
 
@@ -519,7 +523,8 @@ onMounted(async () => {
   // 1. 嘗試還原狀態
   restoreListState()
   
-  await Promise.all([loadCategories(), loadProducts(), loadTabCounts()])
+  await loadCategories()
+  await Promise.all([loadProducts(), loadTabCounts()])
 })
 
 /** 從 sessionStorage 還原搜尋/分頁狀態 */
@@ -531,7 +536,6 @@ function restoreListState(): void {
     const state = JSON.parse(saved)
     if (state.activeTab) activeTab.value = state.activeTab
     if (state.searchKeyword) searchKeyword.value = state.searchKeyword
-    if (state.searchCategoryId) searchCategoryId.value = state.searchCategoryId
     if (state.advMinPrice !== undefined) advMinPrice.value = state.advMinPrice
     if (state.advMaxPrice !== undefined) advMaxPrice.value = state.advMaxPrice
     if (state.sortField) sortField.value = state.sortField
@@ -549,7 +553,6 @@ function saveListState(): void {
   const state = {
     activeTab: activeTab.value,
     searchKeyword: searchKeyword.value,
-    searchCategoryId: searchCategoryId.value,
     advMinPrice: advMinPrice.value,
     advMaxPrice: advMaxPrice.value,
     sortField: sortField.value,
@@ -571,8 +574,28 @@ watch(
 
 async function loadCategories(): Promise<void> {
   try {
-    const res = await fetchMainCategories()
-    if (res.success) categories.value = res.data
+    const res = await fetchSellerProducts({
+      page: 1,
+      pageSize: 1000,
+      sortBy: 'date_desc',
+    } as any)
+
+    const optionMap = new Map<number, string>()
+    for (const item of res.items) {
+      if (item.categoryId && item.categoryName) {
+        optionMap.set(item.categoryId, item.categoryName)
+      }
+    }
+
+    sellerCategoryOptions.value = Array.from(optionMap, ([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'zh-Hant'))
+
+    if (
+      searchCategoryId.value !== null &&
+      !optionMap.has(searchCategoryId.value)
+    ) {
+      searchCategoryId.value = null
+    }
   } catch {
     // 靜默失敗，不阻塞頁面
   }
@@ -589,6 +612,8 @@ async function loadProducts(): Promise<void> {
       sortByParam = sortDir.value === 'asc' ? 'stock_asc' : 'stock_desc'
     } else if (sortField.value === 'totalSales') {
       sortByParam = sortDir.value === 'asc' ? 'sales_asc' : 'sales_desc'
+    } else if (sortField.value === 'viewCount') {
+      sortByParam = sortDir.value === 'asc' ? 'views_asc' : 'views_desc'
     } else if (sortField.value === 'updatedAt') {
       sortByParam = sortDir.value === 'asc' ? 'updated_asc' : 'updated_desc'
     } else {
@@ -725,7 +750,7 @@ async function handleCardCommand(cmd: string, product: SellerProduct): Promise<v
 async function handleDeleteProduct(product: SellerProduct): Promise<void> {
   try {
     await ElMessageBox.confirm(
-      '確定要刪除此商品嗎？刪除後可在「違規/刪除」中查看',
+      '確定要刪除此商品嗎？刪除後可在「已刪除」中查看',
       '刪除確認',
       {
         confirmButtonText: '確定刪除',
