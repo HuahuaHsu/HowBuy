@@ -186,8 +186,6 @@
                 <div class="card-stats">
                   <!-- TODO: viewCount 後端尚未回傳，補上後移除 ?? '--' -->
                   <span title="瀏覽次數"><el-icon><View /></el-icon> {{ product.viewCount ?? '--' }}</span>
-                  <!-- TODO: reviewCount 尚未由後端商品列表 API 回傳，待補上 -->
-                  <span title="評論數"><el-icon><ChatDotRound /></el-icon> 0</span>
                 </div>
                 <div class="card-date">建立時間: {{ formatDate(product.createdAt) }}</div>
                 <div class="card-date">編輯時間: {{ formatDate(product.updatedAt) }}</div>
@@ -407,7 +405,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Plus, Search, Edit, Delete, Grid, List,
   ArrowDown, ArrowUp, DCaret, CaretTop, CaretBottom,
-  MoreFilled, WarningFilled, View, ChatDotRound,
+  MoreFilled, WarningFilled, View,
 } from '@element-plus/icons-vue'
 import { fetchSellerProducts, fetchSellerProductTabCounts, updateProductStatus, deleteSellerProduct, restoreSellerProduct, submitProductForReview } from '@/api/product'
 import { fetchMainCategories } from '@/api/category'
@@ -440,7 +438,7 @@ function getProductPrice(product: SellerProduct): string {
 // ── 型別定義 ──────────────────────────────────────────────────────
 type ProductStatus = 'on' | 'off' | 'deleted' | 'review' | 'rejected' | 'draft'
 type TabKey = 'all' | 'on' | 'off' | 'deleted' | 'review' | 'rejected' | 'draft'
-type SortField = 'minPrice' | 'createdAt' | 'updatedAt' | 'totalStock' | 'totalSales'
+type SortField = 'minPrice' | 'createdAt' | 'updatedAt' | 'totalStock' | 'totalSales' | 'viewCount'
 type SortDir = 'asc' | 'desc' | null
 
 /** 將後端 status 數字 + reviewStatus 對應至 tab key 字串
@@ -509,6 +507,7 @@ const sortOptions: Array<{ field: string; label: string }> = [
   { field: 'createdAt',   label: '建立時間' },
   { field: 'updatedAt',   label: '編輯時間' },
   { field: 'totalSales',  label: '已售出' },
+  { field: 'viewCount',   label: '瀏覽次數' },
   { field: 'totalStock',  label: '商品數量' },
 ]
 
@@ -589,6 +588,8 @@ async function loadProducts(): Promise<void> {
       sortByParam = sortDir.value === 'asc' ? 'stock_asc' : 'stock_desc'
     } else if (sortField.value === 'totalSales') {
       sortByParam = sortDir.value === 'asc' ? 'sales_asc' : 'sales_desc'
+    } else if (sortField.value === 'viewCount') {
+      sortByParam = sortDir.value === 'asc' ? 'views_asc' : 'views_desc'
     } else if (sortField.value === 'updatedAt') {
       sortByParam = sortDir.value === 'asc' ? 'updated_asc' : 'updated_desc'
     } else {

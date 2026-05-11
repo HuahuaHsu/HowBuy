@@ -135,14 +135,14 @@
             @click="handleView(row)"
           >檢視</el-button>
 
-          <!-- 編輯：已拒絕（完整）、即將開始（部分） -->
+          <!-- 重新送審：已拒絕；編輯：即將開始（部分） -->
           <el-button
             v-if="canEdit(row.statusText)"
             link
             type="primary"
             size="small"
             @click="openEditDialog(row)"
-          >編輯</el-button>
+          >{{ row.statusText === '已拒絕' ? '重新送審' : '編輯' }}</el-button>
 
           <!-- 撤銷送審：待審核 -->
           <el-button
@@ -188,7 +188,7 @@
     <!-- 新增/編輯活動彈窗 -->
     <el-dialog
       v-model="dialogVisible"
-      :title="isEdit ? '編輯活動' : '新增活動'"
+      :title="dialogTitle"
       width="600px"
       :close-on-click-modal="false"
     >
@@ -397,7 +397,7 @@
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
         <el-button type="primary" :loading="submitting" @click="handleSubmit">
-          {{ isEdit ? '更新活動' : '送出審核' }}
+          {{ submitButtonText }}
         </el-button>
       </template>
     </el-dialog>
@@ -594,7 +594,7 @@
           type="primary"
           @click="openEditFromView"
         >
-          編輯活動
+          {{ viewingRow.statusText === '已拒絕' ? '重新送審' : '編輯活動' }}
         </el-button>
       </template>
     </el-dialog>
@@ -696,9 +696,20 @@ let promotionRequestSeq = 0
 const dialogVisible = ref(false)
 const isEdit = ref(false)
 const isPartialEdit = ref(false) // 即將開始的活動只能改名稱/描述/商品
+const isRejectedResubmit = ref(false)
 const editingId = ref<number | null>(null)
 const submitting = ref(false)
 const formRef = ref<FormInstance>()
+
+const dialogTitle = computed(() => {
+  if (!isEdit.value) return '新增活動'
+  return isRejectedResubmit.value ? '重新送審活動' : '編輯活動'
+})
+
+const submitButtonText = computed(() => {
+  if (!isEdit.value) return '送出審核'
+  return isRejectedResubmit.value ? '重新送審' : '更新活動'
+})
 
 // 輔助函式：格式化日期為 YYYY-MM-DDTHH:mm:ss
 const getFormattedDate = (date: Date) => {
@@ -1049,6 +1060,7 @@ async function fillDemoCampaign(): Promise<void> {
 function openCreateDialog(): void {
   isEdit.value = false
   isPartialEdit.value = false
+  isRejectedResubmit.value = false
   editingId.value = null
   const dates = getDefaultDates()
   formData.value = {
@@ -1069,6 +1081,7 @@ function openCreateDialog(): void {
 async function openEditDialog(row: SellerPromotion): Promise<void> {
   isEdit.value = true
   isPartialEdit.value = row.statusText === '即將開始'
+  isRejectedResubmit.value = row.statusText === '已拒絕'
   editingId.value = row.id
 
   console.log('editing item:', JSON.stringify(row))
@@ -1144,7 +1157,7 @@ async function handleSubmit(): Promise<void> {
           await unbindPromotionProduct(editingId.value, pid)
         }
 
-        ElMessage.success('活動更新成功')
+        ElMessage.success(isRejectedResubmit.value ? '活動已重新送審' : '活動更新成功')
       } else {
         const response = await createSellerPromotion(submitData)
         console.log('新增活動成功，後端回傳:', response)
