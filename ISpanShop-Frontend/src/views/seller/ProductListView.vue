@@ -536,7 +536,6 @@ function restoreListState(): void {
     const state = JSON.parse(saved)
     if (state.activeTab) activeTab.value = state.activeTab
     if (state.searchKeyword) searchKeyword.value = state.searchKeyword
-    if (state.searchCategoryId) searchCategoryId.value = state.searchCategoryId
     if (state.advMinPrice !== undefined) advMinPrice.value = state.advMinPrice
     if (state.advMaxPrice !== undefined) advMaxPrice.value = state.advMaxPrice
     if (state.sortField) sortField.value = state.sortField
@@ -554,7 +553,6 @@ function saveListState(): void {
   const state = {
     activeTab: activeTab.value,
     searchKeyword: searchKeyword.value,
-    searchCategoryId: searchCategoryId.value,
     advMinPrice: advMinPrice.value,
     advMaxPrice: advMaxPrice.value,
     sortField: sortField.value,

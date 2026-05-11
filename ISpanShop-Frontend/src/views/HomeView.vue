@@ -911,8 +911,8 @@ const quickItems = [
   }
 
   .slide-products.count-3 {
-    width: 52%;
-    padding: 18px;
+    width: 56%;
+    padding: 22px;
   }
 
   .slide-product-card {
@@ -1388,8 +1388,9 @@ const quickItems = [
   border-radius: 26px;
 }
 .slide-products.count-3 {
-  width: min(50%, 560px);
-  padding: clamp(18px, 1.8vw, 24px);
+  width: min(54%, 620px);
+  gap: clamp(12px, 1.4vw, 20px);
+  padding: clamp(24px, 2.2vw, 30px);
 }
 .slide-product-card {
   width: clamp(96px, 9.2vw, 130px);
