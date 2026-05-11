@@ -15,6 +15,8 @@
                   class="slide-bg-blur"
                   aria-hidden="true"
                 />
+                <div class="slide-ambient" aria-hidden="true"></div>
+                <div class="slide-ribbon" aria-hidden="true"></div>
                 <!-- 漸層遮罩：保證文字可讀 -->
                 <div class="slide-overlay"></div>
                 <!-- 左側文字區 -->
@@ -36,8 +38,8 @@
                       <span v-else class="slide-countdown-inline expired">已結束</span>
                     </template>
                   </div>
-                  <h2 class="slide-title" style="font-size: clamp(20px, 5vw, 36px); line-height: 1.2; word-break: break-word;">{{ promo.title }}</h2>
-                  <p v-if="promo.subtitle" class="slide-desc" style="font-size: clamp(14px, 3vw, 18px); line-height: 1.5; margin-top: 8px;">{{ promo.subtitle }}</p>
+                  <h2 class="slide-title">{{ promo.title }}</h2>
+                  <p v-if="promo.subtitle" class="slide-desc">{{ promo.subtitle }}</p>
                   <el-button type="danger" round size="large" @click.stop="goToActivity(promo)">立即搶購</el-button>
                 </div>
                 <!-- 右側商品圖拼貼（最多 3 張） -->
@@ -77,6 +79,7 @@
               class="sb-bg-img"
               @error="(e: any) => (e.target as HTMLImageElement).style.display = 'none'"
             />
+            <div class="sb-ambient" aria-hidden="true"></div>
             <!-- 漸層遮罩 -->
             <div class="sb-overlay"></div>
             <!-- 文字內容 -->
@@ -117,13 +120,15 @@
           <el-carousel height="320px" arrow="always">
             <el-carousel-item v-for="(banner, i) in staticBanners" :key="i">
               <div class="carousel-slide" :style="getSlideBackground(banner)" @click="goToActivity(banner)">
+                <div class="slide-ambient" aria-hidden="true"></div>
+                <div class="slide-ribbon" aria-hidden="true"></div>
                 <!-- 漸層遮罩 -->
                 <div class="slide-overlay"></div>
                 <!-- 文字與按鈕 -->
                 <div class="slide-content">
                   <span class="slide-tag">{{ banner.tag }}</span>
-                  <h2 class="slide-title" style="font-size: clamp(20px, 5vw, 36px); line-height: 1.2; word-break: break-word;">{{ banner.title }}</h2>
-                  <p class="slide-desc" style="font-size: clamp(14px, 3vw, 18px); line-height: 1.5; margin-top: 8px;">{{ banner.subtitle }}</p>
+                  <h2 class="slide-title">{{ banner.title }}</h2>
+                  <p class="slide-desc">{{ banner.subtitle }}</p>
                   <el-button type="danger" round size="large" @click.stop="goToActivity(banner)">立即搶購</el-button>
                 </div>
                 <span class="slide-static-emoji">{{ banner.emoji }}</span>
@@ -841,6 +846,15 @@ const quickItems = [
   grid-template-columns: 2fr 1fr;
   gap: 16px;
   margin-bottom: 24px;
+  min-width: 0;
+}
+
+.banner-section > *,
+.main-carousel,
+.side-banners-grid,
+.side-banners {
+  min-width: 0;
+  width: 100%;
 }
 
 /* 響應式：中等螢幕 (1024px ~ 768px) - Banner 佔滿，右側卡片改橫排 */
@@ -870,9 +884,10 @@ const quickItems = [
 }
 
 /* 響應式：小螢幕 (平板直向/手機) */
-@media (max-width: 768px) {
+@media (max-width: 900px) {
   .home {
     padding: 12px 15px;
+    overflow-x: hidden;
   }
   
   .banner-section {
@@ -885,11 +900,15 @@ const quickItems = [
   /* 主輪播改成簡潔卡片風格 */
   :deep(.el-carousel__container) {
     height: 200px !important;
+    width: 100% !important;
+    overflow: hidden !important;
   }
   
   .carousel-slide {
     height: 200px !important;
     padding: 16px 20px;
+    width: 100% !important;
+    min-width: 0 !important;
   }
   
   /* 文字區域精簡 */
@@ -917,7 +936,7 @@ const quickItems = [
   }
   
   .slide-title {
-    font-size: 18px !important;
+    font-size: clamp(18px, 5vw, 22px) !important;
     line-height: 1.3 !important;
     margin: 6px 0 !important;
     /* 最多兩行 */
@@ -928,7 +947,7 @@ const quickItems = [
   }
   
   .slide-desc {
-    font-size: 12px !important;
+    font-size: 13px !important;
     margin-bottom: 10px !important;
     line-height: 1.4;
     /* 最多兩行 */
@@ -982,6 +1001,8 @@ const quickItems = [
     gap: 10px;
     overflow-x: visible !important;
     padding-bottom: 0;
+    height: auto !important;
+    width: 100% !important;
   }
   
   .side-banner-dynamic,
@@ -1008,12 +1029,14 @@ const quickItems = [
     font-size: 15px !important;
     margin-bottom: 4px !important;
     line-height: 1.3;
+    max-width: 86% !important;
   }
   
   .sb-subtitle {
     font-size: 12px !important;
     line-height: 1.4;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 1;
+    max-width: 82% !important;
   }
   
   .sb-countdown-bar {
@@ -1057,10 +1080,81 @@ const quickItems = [
   }
 }
 
+@media (max-width: 520px) {
+  .banner-section {
+    gap: 10px;
+  }
+
+  :deep(.el-carousel__container) {
+    height: 220px !important;
+  }
+
+  .carousel-slide {
+    height: 220px !important;
+    padding: 16px !important;
+  }
+
+  .slide-content {
+    justify-content: center !important;
+  }
+
+  .slide-header {
+    flex-wrap: wrap;
+    gap: 6px !important;
+  }
+
+  .slide-title {
+    font-size: clamp(20px, 7vw, 24px) !important;
+    line-height: 1.22 !important;
+    max-width: 92% !important;
+  }
+
+  .slide-desc {
+    font-size: 12px !important;
+    max-width: 92% !important;
+    -webkit-line-clamp: 2;
+  }
+
+  .slide-countdown-inline {
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .slide-countdown-inline .cd-num {
+    min-width: 17px !important;
+    padding: 2px 3px !important;
+  }
+
+  .side-banner-dynamic,
+  .side-banner {
+    height: 120px !important;
+    min-height: 120px !important;
+  }
+
+  .sb-content {
+    padding: 12px 16px !important;
+  }
+
+  .sb-title {
+    font-size: 15px !important;
+    max-width: 92% !important;
+    -webkit-line-clamp: 2;
+  }
+
+  .sb-subtitle {
+    max-width: 92% !important;
+  }
+
+  .sb-countdown-bar {
+    padding: 3px 8px !important;
+    max-width: 100%;
+  }
+}
+
 .main-carousel {
-  border-radius: 12px;
+  border-radius: 14px;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.16);
 }
 
 /* 每個 slide */
@@ -1070,8 +1164,38 @@ const quickItems = [
   overflow: hidden;
   display: flex;
   align-items: center;
-  background-color: #1a1b2e;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 78% 18%, rgba(255, 153, 89, 0.24), transparent 30%),
+    radial-gradient(circle at 18% 70%, rgba(132, 77, 255, 0.28), transparent 36%),
+    linear-gradient(135deg, #090b18 0%, #17172c 48%, #222234 100%);
   cursor: pointer;
+}
+
+.carousel-slide::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.46;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+  background-size: 42px 42px;
+  mask-image: linear-gradient(90deg, rgba(0,0,0,0.85), rgba(0,0,0,0.12));
+}
+
+.carousel-slide::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    linear-gradient(115deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.035) 18%, transparent 38%),
+    radial-gradient(circle at 48% 100%, rgba(238, 77, 45, 0.32), transparent 32%);
+  mix-blend-mode: screen;
 }
 
 /* 模糊底圖 */
@@ -1081,17 +1205,45 @@ const quickItems = [
   width: 100%;
   height: 100%;
   object-fit: cover;
-  filter: blur(20px) brightness(0.4);
-  transform: scale(1.1);
+  filter: blur(26px) saturate(1.35) brightness(0.42);
+  transform: scale(1.16);
   z-index: 0;
+  opacity: 0.78;
+}
+
+.slide-ambient {
+  position: absolute;
+  inset: -24%;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 74% 42%, rgba(255, 255, 255, 0.22), transparent 18%),
+    radial-gradient(circle at 22% 18%, rgba(238, 77, 45, 0.28), transparent 26%),
+    radial-gradient(circle at 42% 88%, rgba(20, 184, 166, 0.2), transparent 28%);
+  filter: blur(4px);
+}
+
+.slide-ribbon {
+  position: absolute;
+  right: -86px;
+  top: -120px;
+  width: 440px;
+  height: 520px;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(140deg, rgba(255,255,255,0.28), rgba(255,255,255,0.04) 42%, transparent 70%);
+  transform: rotate(18deg);
+  border-left: 1px solid rgba(255,255,255,0.18);
 }
 
 /* 漸層遮罩：左深右透，保障文字可讀 */
 .slide-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.2) 50%, transparent 100%);
-  z-index: 1;
+  background:
+    linear-gradient(90deg, rgba(3, 7, 18, 0.9) 0%, rgba(15, 23, 42, 0.62) 43%, rgba(15, 23, 42, 0.18) 100%),
+    linear-gradient(0deg, rgba(0,0,0,0.42), transparent 48%);
+  z-index: 3;
   pointer-events: none;
 }
 
@@ -1100,65 +1252,98 @@ const quickItems = [
   position: relative;
   z-index: 10;
   padding: 40px 40px 40px 60px;
-  max-width: 50%;
+  max-width: 56%;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   color: white;
 }
 
+.slide-content :deep(.el-button) {
+  border: 0;
+  background: linear-gradient(135deg, #ff765f 0%, #ee4d2d 52%, #ff9f43 100%);
+  box-shadow: 0 12px 24px rgba(238, 77, 45, 0.34);
+  font-weight: 700;
+}
+
 /* 活動類型標籤 */
 .slide-tag {
   display: inline-block;
-  padding: 4px 14px;
-  border-radius: 4px;
+  align-self: flex-start;
+  padding: 7px 14px;
+  border-radius: 9px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 800;
   margin-bottom: 12px;
-  background: rgba(238,77,45,0.85);
+  color: #fff;
+  background: rgba(238,77,45,0.92);
+  box-shadow: 0 8px 18px rgba(238, 77, 45, 0.24);
 }
-.slide-tag.flashSale  { background: #ff6b35; }
-.slide-tag.discount   { background: #ee4d2d; }
-.slide-tag.limitedBuy { background: #7c3aed; }
-.slide-tag.other      { background: #555; }
+.slide-tag.flashSale  { background: linear-gradient(135deg, #ff7a45, #ee4d2d); }
+.slide-tag.discount   { background: linear-gradient(135deg, #f97316, #dc2626); }
+.slide-tag.limitedBuy { background: linear-gradient(135deg, #9333ea, #4f46e5); }
+.slide-tag.other      { background: linear-gradient(135deg, #334155, #0f172a); }
 
 .slide-title {
-  font-size: 30px;
-  font-weight: 700;
-  margin: 0 0 12px;
-  text-shadow: 0 2px 8px rgba(0,0,0,0.4);
-  line-height: 1.3;
+  max-width: 520px;
+  font-size: clamp(28px, 3.1vw, 34px);
+  font-weight: 850;
+  margin: 0 0 14px;
+  text-shadow: 0 4px 20px rgba(0,0,0,0.48);
+  line-height: 1.18;
+  letter-spacing: 0;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 .slide-desc {
-  font-size: 15px;
-  opacity: 0.9;
+  max-width: 560px;
+  font-size: clamp(15px, 1.45vw, 17px);
+  opacity: 0.92;
   margin-bottom: 20px;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.3);
-  line-height: 1.6;
+  text-shadow: 0 1px 8px rgba(0,0,0,0.36);
+  line-height: 1.55;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 /* 右側商品圖拼貼 */
 .slide-products {
   position: absolute;
-  right: 40px;
+  right: 42px;
   top: 50%;
   transform: translateY(-50%);
   display: flex;
-  gap: 12px;
+  gap: 14px;
   z-index: 5;
+  padding: 18px;
+  border-radius: 28px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.08));
+  border: 1px solid rgba(255,255,255,0.18);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 24px 50px rgba(0,0,0,0.28);
+  backdrop-filter: blur(10px);
 }
 .slide-product-card {
   width: 130px;
   height: 130px;
-  border-radius: 12px;
+  border-radius: 18px;
   overflow: hidden;
-  background: #fff;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  background: linear-gradient(180deg, #fff, #f8fafc);
+  border: 1px solid rgba(255,255,255,0.9);
+  box-shadow: 0 14px 30px rgba(0,0,0,0.26);
   flex-shrink: 0;
   transition: transform 0.3s;
 }
-.slide-product-card:hover { transform: translateY(-4px) scale(1.02); }
-.slide-product-card img { width: 100%; height: 100%; object-fit: cover; }
+.slide-product-card:nth-child(2) { transform: translateY(12px); }
+.slide-product-card:nth-child(3) { transform: translateY(-10px); }
+.slide-product-card:hover { transform: translateY(-6px) scale(1.03); }
+.slide-product-card:nth-child(2):hover { transform: translateY(6px) scale(1.03); }
+.slide-product-card:nth-child(3):hover { transform: translateY(-16px) scale(1.03); }
+.slide-product-card img { width: 100%; height: 100%; object-fit: contain; padding: 8px; }
 
 /* 單張主圖（無多張商品圖時） */
 .slide-main-img {
@@ -1170,7 +1355,7 @@ const quickItems = [
   max-width: 280px;
   object-fit: contain;
   z-index: 5;
-  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3));
+  filter: drop-shadow(0 24px 30px rgba(0,0,0,0.4));
 }
 
 /* 靜態 fallback 用 emoji */
@@ -1180,37 +1365,71 @@ const quickItems = [
   top: 50%;
   transform: translateY(-50%);
   font-size: 140px;
-  opacity: 0.25;
-  z-index: 2;
+  opacity: 0.32;
+  z-index: 5;
   pointer-events: none;
+  filter: drop-shadow(0 20px 28px rgba(0,0,0,0.28));
 }
 
 /* 右側小 Banner */
 .side-banner-dynamic {
   position: relative;
-  border-radius: 12px;
+  border-radius: 14px;
   overflow: hidden;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-  transition: transform 0.3s;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 82% 18%, rgba(255, 190, 92, 0.28), transparent 34%),
+    linear-gradient(135deg, #111827 0%, #25213a 100%);
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.15);
+  transition: transform 0.3s, box-shadow 0.3s;
 }
-.side-banner-dynamic:hover { transform: translateY(-3px); }
+.side-banner-dynamic::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.38;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px);
+  background-size: 30px 30px;
+}
+.side-banner-dynamic:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.2);
+}
 
 /* 靜態 side-banner 補位與 fallback */
 .side-banner {
   position: relative;
   padding: 16px 20px;
   color: white;
-  border-radius: 12px;
+  border-radius: 14px;
   cursor: pointer;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  transition: transform 0.3s;
+  transition: transform 0.3s, box-shadow 0.3s;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  isolation: isolate;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.15);
 }
-.side-banner:hover { transform: translateY(-3px); }
+.side-banner::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 78% 22%, rgba(255,255,255,0.18), transparent 28%),
+    linear-gradient(115deg, rgba(255,255,255,0.12), transparent 34%);
+}
+.side-banner:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.2);
+}
 .side-banner h3 { margin: 0 0 4px; font-size: 18px; font-weight: 700; position: relative; z-index: 2; }
 .side-banner p { margin: 0; font-size: 13px; opacity: 0.85; position: relative; z-index: 2; }
 .sb-emoji { position: absolute; right: 10px; bottom: -10px; font-size: 60px; opacity: 0.2; z-index: 1; }
@@ -1222,49 +1441,74 @@ const quickItems = [
   height: 100%;
   object-fit: cover;
   z-index: 0;
+  filter: saturate(1.08) contrast(1.04);
+}
+.sb-ambient {
+  position: absolute;
+  inset: -30%;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 28% 24%, rgba(238, 77, 45, 0.28), transparent 28%),
+    radial-gradient(circle at 80% 78%, rgba(99, 102, 241, 0.24), transparent 30%);
+  filter: blur(2px);
 }
 .sb-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to right, rgba(26,27,46,0.9) 0%, rgba(26,27,46,0.3) 100%);
-  z-index: 1;
+  background:
+    linear-gradient(90deg, rgba(3, 7, 18, 0.88) 0%, rgba(15, 23, 42, 0.58) 52%, rgba(15, 23, 42, 0.18) 100%),
+    linear-gradient(0deg, rgba(0,0,0,0.35), transparent 54%);
+  z-index: 2;
 }
 .sb-content {
   position: relative;
-  z-index: 2;
-  padding: 16px 20px;
+  z-index: 3;
+  padding: 18px 22px 16px;
   color: white;
   height: 100%;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: flex-start;
 }
 .sb-tag {
   display: inline-block;
-  padding: 3px 10px;
-  border-radius: 4px;
+  align-self: flex-start;
+  padding: 5px 11px;
+  border-radius: 8px;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 800;
   margin-bottom: 8px;
   background: rgba(238,77,45,0.85);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.2);
 }
-.sb-tag.flashSale  { background: #ff6b35; }
-.sb-tag.discount   { background: #ee4d2d; }
-.sb-tag.limitedBuy { background: #7c3aed; }
-.sb-tag.other      { background: #555; }
+.sb-tag.flashSale  { background: linear-gradient(135deg, #ff7a45, #ee4d2d); }
+.sb-tag.discount   { background: linear-gradient(135deg, #f97316, #dc2626); }
+.sb-tag.limitedBuy { background: linear-gradient(135deg, #9333ea, #4f46e5); }
+.sb-tag.other      { background: linear-gradient(135deg, #334155, #0f172a); }
 .sb-title {
   margin: 0 0 4px;
-  font-size: 18px;
-  font-weight: 700;
-  line-height: 1.4;
+  max-width: 88%;
+  font-size: clamp(16px, 1.28vw, 18px);
+  font-weight: 850;
+  line-height: 1.32;
+  letter-spacing: 0;
+  text-shadow: 0 3px 14px rgba(0,0,0,0.42);
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 .sb-subtitle {
   margin: 0;
-  font-size: 13px;
-  opacity: 0.85;
+  max-width: 82%;
+  font-size: clamp(12px, 0.92vw, 13px);
+  opacity: 0.9;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.36);
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -1624,10 +1868,11 @@ const quickItems = [
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  margin-top: 10px;
+  margin-top: auto;
   background: rgba(0, 0, 0, 0.25);
   padding: 4px 10px;
   border-radius: 14px;
+  max-width: 100%;
 }
 .sb-cd-icon {
   font-size: 11px;
