@@ -1428,6 +1428,7 @@ interface DemoProduct {
   categoryPath: string
   brandKeyword: string
   description: string
+  descriptionImage: string
   price: number
   stock: number
   images: string[]
@@ -1441,6 +1442,7 @@ const demoProducts: DemoProduct[] = [
     categoryPath: '筆記型電腦',
     brandKeyword: 'ASUS',
     description: '<p>搭載第 13 代 Intel Core i9 處理器與 NVIDIA GeForce RTX 4070 獨立顯卡，輕鬆駕馭 3A 大作與專業創作需求。16 吋 QHD 240Hz 高刷新率螢幕，色彩準確度達 100% DCI-P3 廣色域。MUX Switch 獨立顯卡直連技術大幅提升遊戲效能，搭配 ROG 智慧散熱系統，長時間高負載也能維持穩定性能。RGB 背光鍵盤支援 Aura Sync 燈效同步。</p>',
+    descriptionImage: 'https://cdn.dummyjson.com/products/images/laptops/Apple%20MacBook%20Pro%2014%20Inch%20Space%20Grey/1.png',
     price: 52900,
     stock: 45,
     images: [
@@ -1459,6 +1461,7 @@ const demoProducts: DemoProduct[] = [
     categoryPath: '大型家具',
     brandKeyword: 'MUJI',
     description: '<p>嚴選北美白橡木原木製作，展現自然溫潤的木紋質感。180cm 寬敞桌面可舒適容納六人用餐，圓角設計安全防撞，特別適合有小朋友的家庭。桌面厚度 3cm，堅固耐用承重力強。四隻實木桌腳搭配金屬腳墊，可微調高度適應不平地面。表面採用食品級木蠟油塗裝，無甲醛無異味，觸感滑順好清理。</p>',
+    descriptionImage: 'https://cdn.dummyjson.com/products/images/furniture/Annibale%20Colombo%20Bed/1.png',
     price: 18500,
     stock: 30,
     images: [
@@ -1477,6 +1480,7 @@ const demoProducts: DemoProduct[] = [
     categoryPath: '香水與香氛',
     brandKeyword: 'Chanel',
     description: '<p>自 1921 年問世以來，Chanel N°5 一直是香水界的傳奇經典。由調香大師恩尼斯·鮑創作，以大量茉莉與五月玫瑰為核心，搭配乙醛的獨特氣息，創造出既優雅又現代的花香調。前調散發清新的柑橘與乙醛香氣，中調綻放茉莉與玫瑰的華麗花香，後調以檀香與香草收尾，留下溫暖持久的餘韻。</p>',
+    descriptionImage: 'https://cdn.dummyjson.com/products/images/fragrances/Calvin%20Klein%20CK%20One/1.png',
     price: 5200,
     stock: 80,
     images: [
@@ -1494,6 +1498,7 @@ const demoProducts: DemoProduct[] = [
     categoryPath: '男士鞋款',
     brandKeyword: 'Nike',
     description: '<p>向 1985 年的經典致敬，Air Jordan 1 Retro High OG 以最接近元年的規格重新復刻。招牌的黑紅配色「Bred」是球鞋文化中最具代表性的配色之一。全粒面皮革鞋面質感細膩，Nike Air 氣墊緩震舒適，Wings Logo 印於鞋領處。無論是籃球場上還是街頭穿搭，AJ1 都是永不退流行的經典。附原廠鞋盒與防塵袋。</p>',
+    descriptionImage: 'https://cdn.dummyjson.com/products/images/mens-shoes/Nike%20Air%20Jordan%201%20Red%20And%20Black/1.png',
     price: 5980,
     stock: 60,
     images: [
@@ -1507,6 +1512,96 @@ const demoProducts: DemoProduct[] = [
     ],
   },
 ]
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, ms))
+}
+
+async function waitForCategoryAttributes(categoryId: number): Promise<CategoryAttribute[]> {
+  for (let i = 0; i < 30; i++) {
+    if (form.categoryId !== categoryId) return []
+    if (!loadingAttributes.value) {
+      return categoryAttributes.value
+    }
+    await delay(100)
+  }
+  return categoryAttributes.value
+}
+
+function getDemoCustomAttributeValue(attrName: string): string {
+  const name = attrName.toLowerCase()
+  if (attrName.includes('產地') || name.includes('origin')) return '台灣'
+  if (attrName.includes('材質') || name.includes('material')) return '展示用高質感材質'
+  if (attrName.includes('尺寸') || attrName.includes('規格') || name.includes('size')) return '展示規格'
+  if (attrName.includes('顏色') || name.includes('color')) return '展示色'
+  if (attrName.includes('保固') || name.includes('warranty')) return '一年保固'
+  if (attrName.includes('組裝')) return '需簡易組裝'
+  return `${attrName}展示值`
+}
+
+function fillDemoAttributes(): number {
+  const nextAttributes: ProductForm['dynamicAttributes'] = {}
+
+  categoryAttributes.value.forEach((attr) => {
+    const options = attr.options || []
+    if (attr.isMultiple) {
+      const max = attr.maxSelect || 2
+      const selected = options.slice(0, Math.min(max, Math.max(1, options.length))).map((opt) => opt.value)
+      if (attr.allowCustom !== false && selected.length < max) {
+        selected.push(getDemoCustomAttributeValue(attr.name))
+      }
+      if (selected.length > 0) nextAttributes[attr.id] = selected
+      return
+    }
+
+    if (options.length > 0) {
+      nextAttributes[attr.id] = options[0].value
+      return
+    }
+
+    if (attr.allowCustom !== false) {
+      nextAttributes[attr.id] = getDemoCustomAttributeValue(attr.name)
+    }
+  })
+
+  form.dynamicAttributes = nextAttributes
+  return Object.keys(nextAttributes).length
+}
+
+function appendDescriptionImage(imageUrl: string): void {
+  const imageHtml = `<p><img src="${imageUrl}" style="max-width: 100%;" /></p>`
+
+  if (quillEditorRef.value) {
+    const quill = quillEditorRef.value.getQuill?.()
+    if (quill) {
+      const insertIndex = Math.max(0, quill.getLength() - 1)
+      quill.clipboard.dangerouslyPasteHTML(insertIndex, imageHtml)
+      form.description = quill.root.innerHTML
+      return
+    }
+  }
+
+  form.description += imageHtml
+}
+
+async function uploadDemoDescriptionImage(imageUrl: string): Promise<string> {
+  try {
+    const response = await fetch(imageUrl)
+    if (!response.ok) throw new Error(`HTTP ${response.status}`)
+
+    const blob = await response.blob()
+    const file = new File([blob], 'demo-description-image.png', {
+      type: blob.type || 'image/png',
+    })
+    const res = await uploadDescriptionImage(file)
+    const uploadedUrl = (res as any).url || res.data?.url || res.data?.imageUrl
+    if (res.success && uploadedUrl) return uploadedUrl
+  } catch (error) {
+    console.warn('示範描述圖片上傳失敗，改用外部圖片預覽:', error)
+  }
+
+  return imageUrl
+}
 
 async function fillDemoData(): Promise<void> {
   demoLoading.value = true
@@ -1522,6 +1617,7 @@ async function fillDemoData(): Promise<void> {
     // 2. 分類（watcher 會自動載入屬性）
     form.categoryId = demo.categoryId
     form.categoryPath = demo.categoryPath
+    await nextTick()
 
     // 3. 品牌（模糊比對）
     form.attributes.brandId = null
@@ -1531,7 +1627,11 @@ async function fillDemoData(): Promise<void> {
       if (matched) form.attributes.brandId = matched.id
     }
 
-    // 4. 規格：先開啟規格模式，再寫入 spec 結構
+    // 4. 分類屬性：等欄位載入後，自動填入選項或自填測試值
+    await waitForCategoryAttributes(demo.categoryId)
+    const filledAttributeCount = fillDemoAttributes()
+
+    // 5. 規格：先開啟規格模式，再寫入 spec 結構
     specsEnabled.value = true
     form.specs = demo.specs.map((s) => ({
       name: s.name,
@@ -1546,7 +1646,7 @@ async function fillDemoData(): Promise<void> {
       stock: demo.stock,
     }))
 
-    // 5. 圖片（嘗試從 CDN 下載為 File 物件，CORS 失敗則只保留 URL 供預覽）
+    // 6. 圖片（嘗試從 CDN 下載為 File 物件，CORS 失敗則只保留 URL 供預覽）
     const loadedImages: UploadUserFile[] = []
     await Promise.all(
       demo.images.map(async (imageUrl, i) => {
@@ -1575,7 +1675,7 @@ async function fillDemoData(): Promise<void> {
     )
     form.images = loadedImages.filter(Boolean)
 
-    // 6. 富文本描述：先設值，再透過 nextTick 呼叫 Quill 實體強制更新畫面
+    // 7. 富文本描述：帶入文字後，上傳一張相關示範圖並插入編輯器
     form.description = demo.description
     await nextTick()
     if (quillEditorRef.value) {
@@ -1585,13 +1685,18 @@ async function fillDemoData(): Promise<void> {
         quill.clipboard.dangerouslyPasteHTML(0, demo.description)
       }
     }
+    const descriptionImageUrl = await uploadDemoDescriptionImage(demo.descriptionImage)
+    appendDescriptionImage(descriptionImageUrl)
 
     const hasRaw = form.images.some((img) => (img as any).raw)
     const imgMsg = form.images.length > 0
       ? `已載入 ${form.images.length} 張圖片${hasRaw ? '' : '（預覽用，送審前請重新上傳）'}`
       : '（圖片載入失敗，請手動上傳）'
+    const attrMsg = filledAttributeCount > 0
+      ? `，已填入 ${filledAttributeCount} 個分類屬性`
+      : '，此分類目前沒有可填入的屬性'
 
-    ElMessage.success(`已填入：${demo.name}　${imgMsg}`)
+    ElMessage.success(`已填入：${demo.name}　${imgMsg}${attrMsg}`)
   } finally {
     demoLoading.value = false
   }
