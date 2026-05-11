@@ -300,6 +300,54 @@
                 }
             </div>
         </div>
+
+        <div class="card shadow-sm mb-3">
+            <div class="card-header bg-white border-bottom py-2">
+                <h6 class="mb-0 fw-bold" style="color:#1e2d3d; font-size:.9rem;">
+                    <i class="bx bx-package me-2" style="color:#f59e0b;"></i>適用商品
+                    <span class="badge bg-label-secondary ms-2">@Model.Items.Count 件</span>
+                </h6>
+            </div>
+            <div class="card-body p-0">
+                @if (Model.Items.Any())
+                {
+                    <table class="table pd-items-table mb-0">
+                        <thead style="background:#f8fafc;">
+                            <tr class="outline-none focus:outline-none">
+                                <th>商品名稱</th>
+                                <th>原價</th>
+                                <th>活動規則</th>
+                                <th>庫存</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.Items)
+                            {
+                                <tr class="outline-none focus:outline-none">
+                                    <td class="fw-semibold" style="word-break:break-word; max-width:180px;">@item.ProductName</td>
+                                    <td>NT$ @item.OriginalPrice.ToString("N0")</td>
+                                    <td style="color:#64748b; font-size:.85rem;">
+                                        @if (Model.Rules.Any())
+                                        {
+                                            @string.Join("；", Model.Rules.Select(r => r.DisplayText))
+                                        }
+                                        else
+                                        {
+                                            <span>滿額折扣</span>
+                                        }
+                                    </td>
+                                    <td>@item.ProductStock</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+                else
+                {
+                    <div class="text-center py-3 text-muted" style="font-size:.875rem;">尚無適用商品</div>
+                }
+            </div>
+        </div>
     }
     else
     {
