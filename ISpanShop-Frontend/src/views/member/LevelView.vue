@@ -43,10 +43,18 @@
       <div class="progress-section">
         <div class="progress-header">
           <span>等級進度</span>
-          <span v-if="nextLevel" class="next-level-tip">
+          <!-- ↓ 修改：依據 periodStatus 顯示對應提示 -->
+          <span v-if="nextLevel && periodStatus === 'active'" class="next-level-tip">
             再消費 <strong>NT$ {{ formatNumber(neededForNext) }}</strong> 即可升級至 <strong>{{ nextLevel.levelName }}</strong>
           </span>
+          <span v-else-if="nextLevel && periodStatus === 'lastday'" class="next-level-tip next-level-tip--urgent">
+            ⚠️ 今日截止，再消費 <strong>NT$ {{ formatNumber(neededForNext) }}</strong> 即可升級至 <strong>{{ nextLevel.levelName }}</strong>
+          </span>
+          <span v-else-if="periodStatus === 'expired'" class="next-level-tip next-level-tip--expired">
+            計算區間已結束，等待系統重新結算等級…
+          </span>
           <span v-else class="next-level-tip">您已達到最高等級！</span>
+          <!-- ↑ 修改結束 -->
         </div>
         <el-progress
           :percentage="progressPercentage"
@@ -195,6 +203,25 @@ const fetchLevelData = async () => {
 const calculationPeriod = computed(() => {
   return statsInfo.value.startDate ? `${statsInfo.value.startDate} ～ ${statsInfo.value.endDate}` : '載入中...'
 })
+
+// ↓ 新增：判斷計算區間狀態
+const periodStatus = computed((): 'active' | 'lastday' | 'expired' => {
+  if (!statsInfo.value.endDate) return 'active'
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const endDate = new Date(statsInfo.value.endDate)
+  endDate.setHours(0, 0, 0, 0)
+
+  const diffMs = endDate.getTime() - today.getTime()
+  const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24))
+
+  if (diffDays < 0) return 'expired'
+  if (diffDays === 0) return 'lastday'
+  return 'active'
+})
+// ↑ 新增結束
 
 const currentLevel = computed(() => {
   if (levelRules.value.length === 0) return { levelName: '載入中...', color: '#94a3b8' }
@@ -398,6 +425,21 @@ const generateDemoOrder = async () => {
 .next-level-tip strong {
   color: #ee4d2d;
 }
+
+/* ↓ 新增兩個狀態樣式 */
+.next-level-tip--urgent {
+  color: #e6a23c;
+}
+
+.next-level-tip--urgent strong {
+  color: #e6a23c;
+}
+
+.next-level-tip--expired {
+  color: #909399;
+  font-style: italic;
+}
+/* ↑ 新增結束 */
 
 .progress-footer {
   display: flex;

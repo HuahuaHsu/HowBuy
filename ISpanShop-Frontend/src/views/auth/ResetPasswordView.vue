@@ -45,6 +45,11 @@
           >
             確認重設
           </el-button>
+          <div class="quick-fill-container">
+            <el-button link type="primary" size="small" @click="quickFill">
+              快速填入 (展示用)
+            </el-button>
+          </div>
         </el-form-item>
       </el-form>
     </el-card>
@@ -68,6 +73,11 @@ const resetForm = reactive({
   newPassword: '',
   confirmPassword: ''
 })
+
+const quickFill = () => {
+  resetForm.newPassword = 'Test1234567'
+  resetForm.confirmPassword = 'Test1234567'
+}
 
 onMounted(() => {
   // 從 URL 取得參數
@@ -157,6 +167,12 @@ const handleReset = async () => {
   margin-top: 8px;
   font-size: 14px;
   color: #888;
+}
+
+.quick-fill-container {
+  margin-top: 10px;
+  width: 100%;
+  text-align: center;
 }
 
 .w-full {
